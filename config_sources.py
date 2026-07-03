@@ -29,7 +29,7 @@ class SourcesData:
     def chercher_encaissements(date_str=None):
         """
         Cherche le fichier PDF d'encaissements.
-        Accepte variantes: "Etat des encaissements01.07.2026.pdf" ou "Etat des encaissements 01.07.2026.pdf"
+        Format: "Etat des encaissements01.07.2026" (avec ou sans .pdf)
 
         Args:
             date_str: Date au format DD.MM.YYYY (optionnel)
@@ -41,24 +41,34 @@ class SourcesData:
             print(f"⚠️ ERREUR: {GOOGLE_DRIVE_PATH} n'existe pas")
             return None
 
-        # Chercher avec plusieurs patterns possibles
-        patterns = ["Etat des encaissements*.pdf", "*encaissements*.pdf"]
+        # Chercher avec TOUS les patterns possibles (avec et sans extension)
+        patterns = [
+            "Etat des encaissements*.pdf",
+            "Etat des encaissements*",
+            "*encaissements*.pdf",
+            "*encaissements*"
+        ]
         fichiers = []
 
         for pattern in patterns:
-            fichiers.extend(Path(GOOGLE_DRIVE_PATH).glob(pattern))
+            found = list(Path(GOOGLE_DRIVE_PATH).glob(pattern))
+            # Filtrer: fichier doit contenir "encaissements" (ignore les dossiers)
+            found = [f for f in found if f.is_file() and "encaissements" in f.name.lower()]
+            fichiers.extend(found)
 
         # Supprimer les doublons
         fichiers = list(set(fichiers))
 
         if not fichiers:
             print(f"❌ Aucun fichier d'encaissements trouvé dans {GOOGLE_DRIVE_PATH}")
+            print(f"   Cherchait patterns: Etat des encaissements*")
             return None
 
         # Si date spécifiée, chercher ce jour exact
         if date_str:
+            date_search = date_str.replace("/", ".").replace("-", ".")
             for f in fichiers:
-                if date_str.replace("/", ".") in f.name or date_str.replace("-", ".") in f.name:
+                if date_search in f.name:
                     print(f"✅ Encaissements trouvés: {f.name}")
                     return f
 
@@ -70,8 +80,8 @@ class SourcesData:
     @staticmethod
     def chercher_rapports_compagnies(date_str=None):
         """
-        Cherche les fichiers des rapports des compagnies (Excel ou CSV).
-        Accepte: "RAPPORT MATU 01-07-2026.xlsx" ou "RAPPORT MATU 01-07-2026.csv"
+        Cherche les fichiers des rapports des compagnies.
+        Format: "RAPPORT MATU 01-07-2026" (avec ou sans .xlsx/.csv)
 
         Compagnies attendues: MATU, SANLAM, WAFA, MAROC ASSISTANCE
 
@@ -89,12 +99,22 @@ class SourcesData:
         rapports = {}
 
         for cie in compagnies:
-            # Chercher avec .xlsx et .csv
-            patterns = [f"RAPPORT {cie} *.xlsx", f"RAPPORT {cie} *.csv", f"*{cie}*.xlsx", f"*{cie}*.csv"]
+            # Chercher avec TOUS les patterns (avec et sans extension)
+            patterns = [
+                f"RAPPORT {cie} *.xlsx",
+                f"RAPPORT {cie} *.csv",
+                f"RAPPORT {cie}*",
+                f"*{cie}*.xlsx",
+                f"*{cie}*.csv",
+                f"*{cie}*"
+            ]
             fichiers = []
 
             for pattern in patterns:
-                fichiers.extend(Path(GOOGLE_DRIVE_PATH).glob(pattern))
+                found = list(Path(GOOGLE_DRIVE_PATH).glob(pattern))
+                # Filtrer: doit être un fichier et contenir "RAPPORT" et le nom de la cie
+                found = [f for f in found if f.is_file() and "RAPPORT" in f.name.upper() and cie.upper() in f.name.upper()]
+                fichiers.extend(found)
 
             # Supprimer les doublons
             fichiers = list(set(fichiers))
@@ -105,13 +125,15 @@ class SourcesData:
 
             # Si date spécifiée, chercher ce jour exact
             if date_str:
+                date_search = date_str.replace("-", ".").replace("/", ".")
                 for f in fichiers:
-                    if date_str.replace("-", ".") in f.name or date_str in f.name:
+                    if date_search in f.name or date_str in f.name:
                         rapports[cie] = f
                         print(f"✅ Rapport {cie} trouvé: {f.name}")
                         break
-            else:
-                # Sinon retourner le plus récent
+
+            # Si pas trouvé avec la date, prendre le plus récent
+            if cie not in rapports and fichiers:
                 f = sorted(fichiers, key=lambda x: x.stat().st_mtime, reverse=True)[0]
                 rapports[cie] = f
                 print(f"✅ Rapport {cie} trouvé: {f.name}")
