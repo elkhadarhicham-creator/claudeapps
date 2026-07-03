@@ -26,13 +26,19 @@ from PyQt5.QtWidgets import (
     QPushButton, QLabel, QLineEdit, QFileDialog, QTableWidget,
     QTableWidgetItem, QTabWidget, QMessageBox, QProgressBar,
     QComboBox, QSpinBox, QDialog, QDialogButtonBox, QTextEdit,
-    QStatusBar, QSystemTrayIcon, QMenu, QAction
+    QStatusBar, QSystemTrayIcon, QMenu, QAction, QGroupBox, QScrollArea
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QThread, QDateTime
 from PyQt5.QtGui import QIcon, QColor, QFont, QPixmap
 # from PyQt5.QtChart import QChart, QChartView, QBarSeries, QBarSet, QBarCategoryAxis  # Not used
 from PyQt5.QtCore import QSize
 import subprocess
+
+# Import configuration des sources
+try:
+    from config_sources import SourcesData
+except ImportError:
+    print("⚠️ config_sources.py non trouvé")
 
 # ================================================================================
 # CONFIGURATION
