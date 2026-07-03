@@ -30,7 +30,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QThread, QDateTime
 from PyQt5.QtGui import QIcon, QColor, QFont, QPixmap
-from PyQt5.QtChart import QChart, QChartView, QBarSeries, QBarSet, QBarCategoryAxis
+# from PyQt5.QtChart import QChart, QChartView, QBarSeries, QBarSet, QBarCategoryAxis  # Not used
 from PyQt5.QtCore import QSize
 import subprocess
 
