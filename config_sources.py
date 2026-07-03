@@ -29,7 +29,7 @@ class SourcesData:
     def chercher_encaissements(date_str=None):
         """
         Cherche le fichier PDF d'encaissements.
-        Format: Etat des encaissements01.07.2026.pdf
+        Accepte variantes: "Etat des encaissements01.07.2026.pdf" ou "Etat des encaissements 01.07.2026.pdf"
 
         Args:
             date_str: Date au format DD.MM.YYYY (optionnel)
@@ -41,17 +41,25 @@ class SourcesData:
             print(f"⚠️ ERREUR: {GOOGLE_DRIVE_PATH} n'existe pas")
             return None
 
-        pattern = "Etat des encaissements*.pdf"
-        fichiers = list(Path(GOOGLE_DRIVE_PATH).glob(pattern))
+        # Chercher avec plusieurs patterns possibles
+        patterns = ["Etat des encaissements*.pdf", "*encaissements*.pdf"]
+        fichiers = []
+
+        for pattern in patterns:
+            fichiers.extend(Path(GOOGLE_DRIVE_PATH).glob(pattern))
+
+        # Supprimer les doublons
+        fichiers = list(set(fichiers))
 
         if not fichiers:
-            print(f"❌ Aucun fichier trouvé matching '{pattern}' dans {GOOGLE_DRIVE_PATH}")
+            print(f"❌ Aucun fichier d'encaissements trouvé dans {GOOGLE_DRIVE_PATH}")
             return None
 
         # Si date spécifiée, chercher ce jour exact
         if date_str:
             for f in fichiers:
-                if date_str in f.name:
+                if date_str.replace("/", ".") in f.name or date_str.replace("-", ".") in f.name:
+                    print(f"✅ Encaissements trouvés: {f.name}")
                     return f
 
         # Sinon retourner le plus récent
@@ -62,8 +70,8 @@ class SourcesData:
     @staticmethod
     def chercher_rapports_compagnies(date_str=None):
         """
-        Cherche les fichiers Excel des rapports des compagnies.
-        Format: RAPPORT [COMPAGNIE] DD-MM-YYYY.xlsx
+        Cherche les fichiers des rapports des compagnies (Excel ou CSV).
+        Accepte: "RAPPORT MATU 01-07-2026.xlsx" ou "RAPPORT MATU 01-07-2026.csv"
 
         Compagnies attendues: MATU, SANLAM, WAFA, MAROC ASSISTANCE
 
@@ -81,8 +89,15 @@ class SourcesData:
         rapports = {}
 
         for cie in compagnies:
-            pattern = f"RAPPORT {cie} *.xlsx"
-            fichiers = list(Path(GOOGLE_DRIVE_PATH).glob(pattern))
+            # Chercher avec .xlsx et .csv
+            patterns = [f"RAPPORT {cie} *.xlsx", f"RAPPORT {cie} *.csv", f"*{cie}*.xlsx", f"*{cie}*.csv"]
+            fichiers = []
+
+            for pattern in patterns:
+                fichiers.extend(Path(GOOGLE_DRIVE_PATH).glob(pattern))
+
+            # Supprimer les doublons
+            fichiers = list(set(fichiers))
 
             if not fichiers:
                 print(f"⚠️ Aucun rapport trouvé pour {cie}")
@@ -91,7 +106,7 @@ class SourcesData:
             # Si date spécifiée, chercher ce jour exact
             if date_str:
                 for f in fichiers:
-                    if date_str in f.name:
+                    if date_str.replace("-", ".") in f.name or date_str in f.name:
                         rapports[cie] = f
                         print(f"✅ Rapport {cie} trouvé: {f.name}")
                         break
