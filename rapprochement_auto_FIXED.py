@@ -930,7 +930,7 @@ def _ecrire_dataframe(feuille, df, colonne_statut=None, ligne_depart=1):
     feuille.freeze_panes = feuille.cell(row=ligne_entete + 1, column=1).coordinate
 
 
-def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, periode_controlee=None):
+def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, periode_controlee=None, df_controle_att=None):
     classeur = Workbook()
 
     texte_periode = (
@@ -1002,8 +1002,120 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
     for cellule in feuille_synthese["A5:B5"][0]:
         _style_entete(cellule)
 
+    # Feuille "Contrôle Attestations" (NOUVEAU)
+    if df_controle_att is not None and not df_controle_att.empty:
+        feuille_att = classeur.create_sheet("Controle_Attestations", 1)
+        feuille_att.append(["CONTRÔLE DES ATTESTATIONS SCANNÉES"])
+        feuille_att["A1"].font = Font(bold=True, size=13, color="C00000")
+        feuille_att.append(["Vérification que tous les documents ont été scannés"])
+        feuille_att.append([])
+
+        # Ajouter les données de contrôle
+        _ecrire_dataframe(feuille_att, df_controle_att, colonne_statut="Statut", ligne_depart=4)
+
+        # Ajouter un résumé
+        att_trouvees = (df_controle_att["Statut"] == "✅ TROUVÉE").sum()
+        att_manquantes = (df_controle_att["Statut"] == "❌ MANQUANTE").sum()
+        total_att = len(df_controle_att)
+
+        feuille_att.append([])
+        feuille_att.append(["RÉSUMÉ"])
+        feuille_att.append(["Attestations trouvées (scannées)", att_trouvees])
+        feuille_att.append(["Attestations manquantes (NON scannées)", att_manquantes])
+        feuille_att.append(["Total", total_att])
+        feuille_att.append(["Taux de conformité (%)", round(100 * att_trouvees / total_att, 1) if total_att > 0 else 0])
+
+        feuille_att.column_dimensions["A"].width = 30
+        feuille_att.column_dimensions["B"].width = 25
+        feuille_att.column_dimensions["C"].width = 40
+
     classeur.save(chemin_sortie)
     log(f"Rapport Excel créé : {chemin_sortie}")
+
+
+# ================================================================================
+# CONTRÔLE DES ATTESTATIONS SCANNÉES
+# ================================================================================
+
+def controler_attestations_scannees(df_analysis, df_compagnies):
+    """
+    Contrôle si toutes les attestations ont été scannées.
+    Compare les numéros d'attestation avec les fichiers dans \\KARIMA\images analisis
+
+    Returns:
+        DataFrame avec colonnes: attestation, source, statut (✅ ou ❌)
+    """
+    log("\n" + "=" * 70)
+    log("CONTRÔLE DES ATTESTATIONS SCANNÉES")
+    log("=" * 70)
+
+    # Récupérer les attestations depuis config_sources
+    try:
+        attestations_dispo = SourcesData.chercher_attestations() or {}
+        log(f"✅ {len(attestations_dispo)} attestation(s) trouvée(s) sur le réseau")
+    except Exception as e:
+        log(f"❌ Erreur lors de la recherche d'attestations : {e}")
+        attestations_dispo = {}
+
+    # Extraire tous les numéros d'attestation uniques
+    attestations_a_controler = set()
+
+    # Depuis les encaissements
+    if not df_analysis.empty and "attestation" in df_analysis.columns:
+        att_enc = df_analysis["attestation"].dropna()
+        att_enc = att_enc[att_enc.str.strip() != ""]
+        for att in att_enc:
+            att_norm = normaliser_cle(str(att))
+            if att_norm:
+                attestations_a_controler.add(att_norm)
+        log(f"Encaissements : {len(attestations_a_controler)} attestation(s) unique(s)")
+
+    # Depuis les rapports compagnies (si disponibles)
+    if not df_compagnies.empty:
+        # Chercher une colonne attestation/police/numéro
+        colonnes_att = [c for c in df_compagnies.columns if "attestation" in c.lower() or "police" in c.lower()]
+        for col in colonnes_att:
+            if col in df_compagnies.columns:
+                att_cie = df_compagnies[col].dropna()
+                att_cie = att_cie[att_cie.astype(str).str.strip() != ""]
+                for att in att_cie:
+                    att_norm = normaliser_cle(str(att))
+                    if att_norm:
+                        attestations_a_controler.add(att_norm)
+        log(f"Compagnies : {len(attestations_a_controler)} attestation(s) total unique(s)")
+
+    # Créer le rapport de contrôle
+    controle = []
+    attestations_trouvees = 0
+    attestations_manquantes = 0
+
+    for att_num in sorted(attestations_a_controler):
+        att_trouvee = att_num in attestations_dispo
+        statut = "✅ TROUVÉE" if att_trouvee else "❌ MANQUANTE"
+
+        controle.append({
+            "Numéro Attestation": att_num,
+            "Statut": statut,
+            "Fichier": attestations_dispo.get(att_num, {}).name if att_trouvee else "---"
+        })
+
+        if att_trouvee:
+            attestations_trouvees += 1
+        else:
+            attestations_manquantes += 1
+
+    # Résumé du contrôle
+    log(f"\n📊 RÉSUMÉ DU CONTRÔLE D'ATTESTATIONS :")
+    log(f"   ✅ Trouvées : {attestations_trouvees}/{len(attestations_a_controler)}")
+    log(f"   ❌ Manquantes : {attestations_manquantes}/{len(attestations_a_controler)}")
+
+    if attestations_manquantes > 0:
+        log(f"\n⚠️  ALERTES - {attestations_manquantes} attestation(s) non scannée(s) :")
+        for item in controle:
+            if "MANQUANTE" in item["Statut"]:
+                log(f"   ❌ {item['Numéro Attestation']}")
+
+    return pd.DataFrame(controle) if controle else pd.DataFrame()
 
 
 # ================================================================================
@@ -1098,10 +1210,13 @@ def main():
     else:
         df_resultat, df_omissions = rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_prime, seuil_nom)
 
+    # NOUVEAU: Contrôle des attestations scannées
+    df_controle_att = controler_attestations_scannees(df_analysis, df_compagnies)
+
     # Génération du rapport Excel
     nom_fichier_sortie = _construire_nom_fichier_sortie(periode_controlee)
     chemin_sortie = os.path.join(output_path, nom_fichier_sortie)
-    generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, periode_controlee)
+    generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, periode_controlee, df_controle_att)
 
     ecrire_journal(output_path)
 
