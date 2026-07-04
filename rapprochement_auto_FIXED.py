@@ -42,6 +42,13 @@ from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, Alignment
 from openpyxl.utils import get_column_letter
 
+# Import de la configuration des sources
+try:
+    from config_sources import SourcesData
+    SOURCES_DISPONIBLES = True
+except ImportError:
+    SOURCES_DISPONIBLES = False
+
 
 # ================================================================================
 # JOURNAL DE DIAGNOSTIC
@@ -1010,8 +1017,6 @@ def main():
 
     config = charger_config("config.ini")
 
-    drive_path = config["Chemins"].get("drive_path", ".")
-    scans_path = config["Chemins"].get("scans_path", ".")
     output_path = config["Chemins"].get("output_path", "./Rapports_Generes")
     os.makedirs(output_path, exist_ok=True)
 
@@ -1021,37 +1026,68 @@ def main():
     date_cible = demander_date_controle(config["Controle"].get("date_controle", "auto"))
     filtrer_scans_par_date = config["Controle"].get("filtrer_scans_par_date", "oui").strip().lower() in ("oui", "yes", "true", "1")
 
-    # Lecture des fichiers source
-    motif_pdf = config["Fichiers"].get(
-        "pattern_encaissements",
-        "Etat des encaissements*.pdf;Etat_des_encaissements*.pdf;Rapport encaissement*.pdf",
-    )
-    chemin_pdf, date_pdf_confirmee = trouver_fichier_pour_date(drive_path, motif_pdf, date_cible)
+    # Convertir la date en format DD.MM.YYYY pour les sources
+    if date_cible and SOURCES_DISPONIBLES:
+        date_search = date_cible.replace("/", ".") if "/" in date_cible else date_cible
 
     df_analysis = pd.DataFrame()
     df_rappels = pd.DataFrame()
     periode_controlee = None
-    if chemin_pdf:
-        df_analysis, df_rappels, periode_controlee = lire_pdf_encaissements(chemin_pdf)
+
+    # NOUVELLE APPROCHE: utiliser config_sources si disponible
+    if SOURCES_DISPONIBLES:
+        log("✅ Utilisation des sources configurées (Google Drive + Réseau)")
+
+        # Chercher encaissements
+        chemin_pdf = SourcesData.chercher_encaissements(date_search if date_cible else None)
+        if chemin_pdf:
+            df_analysis, df_rappels, periode_controlee = lire_pdf_encaissements(str(chemin_pdf))
+        else:
+            log("ARRÊT PARTIEL : aucun PDF d'encaissements trouvé.")
+
+        # Chercher rapports compagnies
+        scans_jour, scans_tous = [], []  # Pas de scans pour le moment
+        rapports = SourcesData.chercher_rapports_compagnies(date_search if date_cible else None)
+
+        morceaux_cies = []
+        for nom_cie, chemin_cie in rapports.items():
+            if chemin_cie:
+                df_cie = lire_rapport_compagnie(str(chemin_cie), nom_cie)
+                if not df_cie.empty:
+                    morceaux_cies.append(df_cie)
     else:
-        log("ARRÊT PARTIEL : aucun PDF d'encaissements trouvé.")
+        # ANCIENNE APPROCHE: utiliser les chemins de config
+        log("⚠️ config_sources.py non disponible, utilisation des chemins config")
+        drive_path = config["Chemins"].get("drive_path", ".")
+        scans_path = config["Chemins"].get("scans_path", ".")
 
-    scans_jour, scans_tous = lister_fichiers_scans(scans_path, date_cible, filtrer_scans_par_date)
+        motif_pdf = config["Fichiers"].get(
+            "pattern_encaissements",
+            "Etat des encaissements*.pdf;Etat_des_encaissements*.pdf;Rapport encaissement*.pdf",
+        )
+        chemin_pdf, date_pdf_confirmee = trouver_fichier_pour_date(drive_path, motif_pdf, date_cible)
 
-    # Lecture des compagnies
-    compagnies = {
-        "MATU": config["Fichiers"].get("pattern_matu", "RAPPORT MATU*.xlsx"),
-        "SANLAM": config["Fichiers"].get("pattern_sanlam", "RAPPORT SANLAM*.xlsx"),
-        "WAFA ASSURANCE": config["Fichiers"].get("pattern_wafa", "RAPPORT WAFA*.xlsx"),
-        "MAROC ASSISTANCE": config["Fichiers"].get("pattern_maroc_assistance", "RAPPORT MAROC ASSISTANCE*.xlsx"),
-    }
+        if chemin_pdf:
+            df_analysis, df_rappels, periode_controlee = lire_pdf_encaissements(chemin_pdf)
+        else:
+            log("ARRÊT PARTIEL : aucun PDF d'encaissements trouvé.")
 
-    morceaux_cies = []
-    for nom_cie, motif in compagnies.items():
-        chemin_cie, _ = trouver_fichier_pour_date(drive_path, motif, date_cible)
-        df_cie = lire_rapport_compagnie(chemin_cie, nom_cie)
-        if not df_cie.empty:
-            morceaux_cies.append(df_cie)
+        scans_jour, scans_tous = lister_fichiers_scans(scans_path, date_cible, filtrer_scans_par_date)
+
+        # Lecture des compagnies
+        compagnies = {
+            "MATU": config["Fichiers"].get("pattern_matu", "RAPPORT MATU*.xlsx"),
+            "SANLAM": config["Fichiers"].get("pattern_sanlam", "RAPPORT SANLAM*.xlsx"),
+            "WAFA ASSURANCE": config["Fichiers"].get("pattern_wafa", "RAPPORT WAFA*.xlsx"),
+            "MAROC ASSISTANCE": config["Fichiers"].get("pattern_maroc_assistance", "RAPPORT MAROC ASSISTANCE*.xlsx"),
+        }
+
+        morceaux_cies = []
+        for nom_cie, motif in compagnies.items():
+            chemin_cie, _ = trouver_fichier_pour_date(drive_path, motif, date_cible)
+            df_cie = lire_rapport_compagnie(chemin_cie, nom_cie)
+            if not df_cie.empty:
+                morceaux_cies.append(df_cie)
 
     df_compagnies = pd.concat(morceaux_cies, ignore_index=True) if morceaux_cies else pd.DataFrame()
 
