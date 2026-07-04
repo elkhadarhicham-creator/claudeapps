@@ -1,0 +1,62 @@
+================================================================
+  GUIDE D'UTILISATION - CONTROLE QUOTIDIEN ASSURANCES
+================================================================
+
+POUR LANCER LE CONTROLE (tous les jours) :
+
+  1. Double-cliquez sur le fichier :  CONTROLE.bat
+  2. Le programme demande la date a controler.
+     - Appuyez sur ENTREE pour la date proposee
+     - Ou tapez une date : 29/06/2026
+  3. Attendez environ 30 secondes (lecture des fichiers reseau).
+  4. Le rapport Excel s'ouvre automatiquement a la fin.
+
+================================================================
+  CE QUE FAIT LE PROGRAMME
+================================================================
+
+  1. Il trouve automatiquement dans G:\Mon Drive :
+     - L'etat des encaissements (PDF) du jour choisi
+     - Les rapports des compagnies : MATU, SANLAM, WAFA,
+       MAROC ASSISTANCE (Excel ou CSV)
+
+  2. Il lit toutes les attestations scannees sur le reseau :
+     \\KARIMA\images analisis
+     (les noms avec ou sans espace sont reconnus :
+      "A 204570164" = "A204570164")
+
+  3. Il verifie pour CHAQUE attestation du jour si elle a bien
+     ete scannee par vos collaboratrices.
+
+================================================================
+  LE RAPPORT EXCEL (dossier Rapports_Generes)
+================================================================
+
+  Feuille "Controle_Attestations" :
+     - TROUVEE   = le document a bien ete scanne
+     - MANQUANTE = le document N'A PAS ete scanne
+                   -> a reclamer a la collaboratrice
+
+  Feuille "Rapprochement" : detail de chaque quittance
+  Feuille "Ecarts"        : les anomalies uniquement
+  Feuille "Synthese"      : resume avec taux de conformite
+
+================================================================
+  EN CAS DE PROBLEME
+================================================================
+
+  "Google Drive NON accessible"
+     -> Verifiez que Google Drive est bien demarre (icone en bas
+        a droite de l'ecran) et que le lecteur G: existe.
+
+  "Partage reseau NON accessible"
+     -> Ouvrez l'Explorateur Windows et tapez :
+        \\KARIMA\images analisis
+        Si ca ne s'ouvre pas, l'ordinateur KARIMA est eteint
+        ou le reseau est coupe.
+
+  "Aucun rapport trouve pour SANLAM / WAFA"
+     -> Le fichier n'existe pas encore dans G:\Mon Drive
+        pour ce jour. Deposez-le puis relancez.
+
+================================================================

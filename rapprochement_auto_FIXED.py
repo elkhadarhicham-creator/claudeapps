@@ -993,6 +993,20 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
         ["Omissions possibles", len(df_omissions) if not df_omissions.empty else 0],
         ["Quittances rappel", len(df_rappels) if not df_rappels.empty else 0],
     ]
+
+    # Statistiques du contrôle des attestations scannées
+    if df_controle_att is not None and not df_controle_att.empty:
+        att_ok = int((df_controle_att["Statut"] == "✅ TROUVÉE").sum())
+        att_manq = int((df_controle_att["Statut"] == "❌ MANQUANTE").sum())
+        total_att = len(df_controle_att)
+        lignes_synthese += [
+            [],
+            ["CONTRÔLE DES SCANS", ""],
+            ["Attestations scannées (trouvées)", att_ok],
+            ["Attestations NON scannées (manquantes)", att_manq],
+            ["Taux de scan (%)", round(100 * att_ok / total_att, 1) if total_att else 0],
+        ]
+
     for ligne in lignes_synthese:
         feuille_synthese.append(ligne)
     feuille_synthese.column_dimensions["A"].width = 60
@@ -1173,6 +1187,19 @@ def main():
             attestations_reseau = SourcesData.chercher_attestations() or {}
             scans_tous = {cle: chemin.name for cle, chemin in attestations_reseau.items()}
             log(f"{len(scans_tous)} attestation(s) scannée(s) disponibles sur le réseau.")
+
+            # Déterminer les scans datés du jour contrôlé (via la date du fichier)
+            if date_cible is not None and not df_analysis.empty and "attestation" in df_analysis.columns:
+                for att in df_analysis["attestation"].dropna():
+                    cle = normaliser_cle(str(att))
+                    chemin_att = attestations_reseau.get(cle)
+                    if chemin_att:
+                        try:
+                            date_fichier = datetime.fromtimestamp(chemin_att.stat().st_mtime).date()
+                            if date_fichier == date_cible:
+                                scans_jour[cle] = chemin_att.name
+                        except Exception:
+                            pass
         except Exception as e:
             log(f"ATTENTION : impossible de lire les attestations réseau : {e}")
             attestations_reseau = None
