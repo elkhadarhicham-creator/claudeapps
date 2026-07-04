@@ -1139,8 +1139,10 @@ def main():
     filtrer_scans_par_date = config["Controle"].get("filtrer_scans_par_date", "oui").strip().lower() in ("oui", "yes", "true", "1")
 
     # Convertir la date en format DD.MM.YYYY pour les sources
+    date_search = None
     if date_cible and SOURCES_DISPONIBLES:
-        date_search = date_cible.replace("/", ".") if "/" in date_cible else date_cible
+        date_str = date_cible.strftime("%d.%m.%Y") if hasattr(date_cible, 'strftime') else str(date_cible)
+        date_search = date_str.replace("/", ".") if "/" in date_str else date_str
 
     df_analysis = pd.DataFrame()
     df_rappels = pd.DataFrame()
@@ -1151,7 +1153,7 @@ def main():
         log("✅ Utilisation des sources configurées (Google Drive + Réseau)")
 
         # Chercher encaissements
-        chemin_pdf = SourcesData.chercher_encaissements(date_search if date_cible else None)
+        chemin_pdf = SourcesData.chercher_encaissements(date_search)
         if chemin_pdf:
             df_analysis, df_rappels, periode_controlee = lire_pdf_encaissements(str(chemin_pdf))
         else:
@@ -1159,7 +1161,7 @@ def main():
 
         # Chercher rapports compagnies
         scans_jour, scans_tous = [], []  # Pas de scans pour le moment
-        rapports = SourcesData.chercher_rapports_compagnies(date_search if date_cible else None)
+        rapports = SourcesData.chercher_rapports_compagnies(date_search)
 
         morceaux_cies = []
         for nom_cie, chemin_cie in rapports.items():
