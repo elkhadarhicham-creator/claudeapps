@@ -16,7 +16,9 @@ from pathlib import Path
 GOOGLE_DRIVE_PATH = r"G:\Mon Drive"
 
 # Partage réseau pour les attestations
-ATTESTATIONS_NETWORK_PATH = r"\\KARIMA\images analisis\A 204570153"
+# Premier essai: dossier principal
+ATTESTATIONS_NETWORK_PATH = r"\\KARIMA\images analisis"
+# Alternative si nécessaire: ATTESTATIONS_NETWORK_PATH = r"\\KARIMA\images analisis\A 204570153"
 
 # ================================================================================
 # SOURCES DE FICHIERS
@@ -78,7 +80,7 @@ class SourcesData:
         return fichier
 
     @staticmethod
-    def chercher_rapports_compagnies(date_str=None):
+    def chercher_rapports_compagnies(date_str=None, verbose=False):
         """
         Cherche les fichiers des rapports des compagnies.
         Format: "RAPPORT MATU 01-07-2026" (avec ou sans .xlsx/.csv)
@@ -87,6 +89,7 @@ class SourcesData:
 
         Args:
             date_str: Date au format DD-MM-YYYY (optionnel)
+            verbose: Afficher les détails de la recherche
 
         Returns:
             Dict: {nom_compagnie: Path}
@@ -95,32 +98,51 @@ class SourcesData:
             print(f"⚠️ ERREUR: {GOOGLE_DRIVE_PATH} n'existe pas")
             return {}
 
-        compagnies = ["MATU", "SANLAM", "WAFA", "MAROC ASSISTANCE"]
+        # Mapping des noms de compagnies avec leurs alias possibles
+        compagnies_map = {
+            "MATU": ["MATU"],
+            "SANLAM": ["SANLAM", "SANLAMÉ"],
+            "WAFA": ["WAFA", "WAFA ASSURANCE"],
+            "MAROC ASSISTANCE": ["MAROC ASSISTANCE", "MAROC ASSIST"]
+        }
+
         rapports = {}
 
-        for cie in compagnies:
-            # Chercher avec TOUS les patterns (avec et sans extension)
-            patterns = [
-                f"RAPPORT {cie} *.xlsx",
-                f"RAPPORT {cie} *.csv",
-                f"RAPPORT {cie}*",
-                f"*{cie}*.xlsx",
-                f"*{cie}*.csv",
-                f"*{cie}*"
-            ]
+        for nom_cie, aliases in compagnies_map.items():
             fichiers = []
 
-            for pattern in patterns:
-                found = list(Path(GOOGLE_DRIVE_PATH).glob(pattern))
-                # Filtrer: doit être un fichier et contenir "RAPPORT" et le nom de la cie
-                found = [f for f in found if f.is_file() and "RAPPORT" in f.name.upper() and cie.upper() in f.name.upper()]
-                fichiers.extend(found)
+            # Essayer chaque alias
+            for alias in aliases:
+                # Chercher avec TOUS les patterns (avec et sans extension)
+                patterns = [
+                    f"RAPPORT {alias} *.xlsx",
+                    f"RAPPORT {alias} *.csv",
+                    f"RAPPORT {alias}*",
+                    f"*RAPPORT {alias}*",
+                    f"*{alias}*.xlsx",
+                    f"*{alias}*.csv",
+                    f"*{alias}*"
+                ]
+
+                for pattern in patterns:
+                    try:
+                        found = list(Path(GOOGLE_DRIVE_PATH).glob(pattern))
+                        # Filtrer: doit être un fichier et contenir "RAPPORT" et le nom de la cie
+                        found = [f for f in found if f.is_file() and "RAPPORT" in f.name.upper() and alias.upper() in f.name.upper()]
+                        fichiers.extend(found)
+
+                        if verbose and found:
+                            print(f"  Pattern '{pattern}' trouvé {len(found)} fichier(s)")
+                    except Exception as e:
+                        if verbose:
+                            print(f"  Erreur pattern '{pattern}': {e}")
 
             # Supprimer les doublons
             fichiers = list(set(fichiers))
 
             if not fichiers:
-                print(f"⚠️ Aucun rapport trouvé pour {cie}")
+                if verbose:
+                    print(f"⚠️ Aucun rapport trouvé pour {nom_cie}")
                 continue
 
             # Si date spécifiée, chercher ce jour exact
@@ -128,49 +150,85 @@ class SourcesData:
                 date_search = date_str.replace("-", ".").replace("/", ".")
                 for f in fichiers:
                     if date_search in f.name or date_str in f.name:
-                        rapports[cie] = f
-                        print(f"✅ Rapport {cie} trouvé: {f.name}")
+                        rapports[nom_cie] = f
+                        print(f"✅ Rapport {nom_cie} trouvé: {f.name}")
                         break
 
             # Si pas trouvé avec la date, prendre le plus récent
-            if cie not in rapports and fichiers:
+            if nom_cie not in rapports and fichiers:
                 f = sorted(fichiers, key=lambda x: x.stat().st_mtime, reverse=True)[0]
-                rapports[cie] = f
-                print(f"✅ Rapport {cie} trouvé: {f.name}")
+                rapports[nom_cie] = f
+                print(f"✅ Rapport {nom_cie} trouvé: {f.name}")
 
         return rapports
 
     @staticmethod
-    def chercher_attestations(numero_attestation=None):
+    def chercher_attestations(numero_attestation=None, verbose=False):
         """
         Cherche les fichiers des attestations.
         Format: [numero].pdf (ex: 001.pdf, 002.jpg)
 
         Args:
             numero_attestation: Numéro spécifique (optionnel)
+            verbose: Afficher les détails
 
         Returns:
             Dict or Path: Tous les fichiers, ou fichier spécifique
         """
+        attestations = {}
+
+        # Vérifier le chemin réseau avec plus de détails
         if not os.path.exists(ATTESTATIONS_NETWORK_PATH):
-            print(f"⚠️ ERREUR: {ATTESTATIONS_NETWORK_PATH} n'existe pas")
-            return {}
+            if verbose:
+                print(f"⚠️ Chemin NON accessible: {ATTESTATIONS_NETWORK_PATH}")
+                print("  Tentatives de diagnostic:")
+                print("  1. Vérifiez que le partage réseau KARIMA est accessible")
+                print("  2. Vérifiez les permissions du dossier A 204570153")
+                print("  3. Essayez d'accéder à \\\\KARIMA\\images analisis dans l'Explorateur")
+
+            # Essayer des chemins alternatifs
+            chemins_alt = [
+                r"\\KARIMA\images analisis\A 204570153",
+                r"\\KARIMA\images analisis",
+                r"\\KARIMA\images_analisis",
+                r"\\KARIMA\A 204570153"
+            ]
+
+            for chemin_alt in chemins_alt:
+                if os.path.exists(chemin_alt):
+                    if verbose:
+                        print(f"  ✅ Chemin alternatif trouvé: {chemin_alt}")
+                    ATTESTATIONS_NETWORK_PATH = chemin_alt
+                    break
+            else:
+                if verbose:
+                    print(f"  ❌ Aucun chemin réseau n'est accessible")
+                return {}
 
         # Lister tous les fichiers (PDF, JPG, PNG, etc.)
-        attestations = {}
-        extensions = ['*.pdf', '*.jpg', '*.jpeg', '*.png', '*.tif', '*.tiff']
+        try:
+            extensions = ['*.pdf', '*.jpg', '*.jpeg', '*.png', '*.tif', '*.tiff', '*.PDF', '*.JPG', '*.JPEG', '*.PNG']
 
-        for ext in extensions:
-            fichiers = list(Path(ATTESTATIONS_NETWORK_PATH).glob(ext))
-            for f in fichiers:
-                # Extraire le numéro du nom du fichier
-                nom_base = f.stem.lower()
-                attestations[nom_base] = f
+            for ext in extensions:
+                try:
+                    fichiers = list(Path(ATTESTATIONS_NETWORK_PATH).glob(ext))
+                    for f in fichiers:
+                        # Extraire le numéro du nom du fichier
+                        nom_base = f.stem.lower()
+                        attestations[nom_base] = f
+                except Exception as e:
+                    if verbose:
+                        print(f"  Erreur lors de la lecture de {ext}: {e}")
 
-        if attestations:
-            print(f"✅ {len(attestations)} attestation(s) trouvée(s)")
-        else:
-            print(f"⚠️ Aucune attestation trouvée dans {ATTESTATIONS_NETWORK_PATH}")
+            if attestations:
+                print(f"✅ {len(attestations)} attestation(s) trouvée(s)")
+            elif verbose:
+                print(f"⚠️ Aucune attestation trouvée dans {ATTESTATIONS_NETWORK_PATH}")
+
+        except Exception as e:
+            if verbose:
+                print(f"❌ Erreur lors de l'accès au dossier attestations: {e}")
+            return {}
 
         if numero_attestation:
             numero_norm = str(numero_attestation).lower().zfill(3)
@@ -179,26 +237,43 @@ class SourcesData:
         return attestations
 
     @staticmethod
-    def verifier_connectivite():
+    def verifier_connectivite(verbose=False):
         """Vérifie que tous les chemins sont accessibles."""
         print("\n📁 Vérification des chemins...")
+
+        google_ok = False
+        reseau_ok = False
 
         # Vérifier Google Drive
         if os.path.exists(GOOGLE_DRIVE_PATH):
             print(f"✅ Google Drive accessible: {GOOGLE_DRIVE_PATH}")
+            google_ok = True
+            if verbose:
+                try:
+                    files = list(Path(GOOGLE_DRIVE_PATH).glob("*"))
+                    print(f"   {len(files)} fichiers trouvés")
+                except Exception as e:
+                    print(f"   ⚠️ Erreur lors de la lecture: {e}")
         else:
             print(f"❌ Google Drive NON accessible: {GOOGLE_DRIVE_PATH}")
-            return False
 
         # Vérifier partage réseau
         if os.path.exists(ATTESTATIONS_NETWORK_PATH):
             print(f"✅ Partage réseau accessible: {ATTESTATIONS_NETWORK_PATH}")
+            reseau_ok = True
+            if verbose:
+                try:
+                    files = list(Path(ATTESTATIONS_NETWORK_PATH).glob("*"))
+                    print(f"   {len(files)} fichiers trouvés")
+                except Exception as e:
+                    print(f"   ⚠️ Erreur lors de la lecture: {e}")
         else:
             print(f"❌ Partage réseau NON accessible: {ATTESTATIONS_NETWORK_PATH}")
-            return False
+            if verbose:
+                print("   Conseil: Essayez d'accéder à \\\\KARIMA\\images analisis dans l'Explorateur Windows")
 
-        print("✅ Tous les chemins sont accessibles!\n")
-        return True
+        print()
+        return google_ok  # Au moins Google Drive est nécessaire
 
 
 if __name__ == "__main__":

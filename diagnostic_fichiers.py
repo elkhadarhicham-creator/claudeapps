@@ -114,7 +114,7 @@ print("\n" + "="*80)
 print("RECHERCHE: ATTESTATIONS (réseau)")
 print("="*80)
 
-ATTESTATIONS_PATH = r"\\KARIMA\images analisis\A 204570153"
+ATTESTATIONS_PATH = r"\\KARIMA\images analisis"
 
 if os.path.exists(ATTESTATIONS_PATH):
     print(f"\n✅ Chemin accessible: {ATTESTATIONS_PATH}")
