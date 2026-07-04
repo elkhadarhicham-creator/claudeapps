@@ -1037,10 +1037,13 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
 # CONTRÔLE DES ATTESTATIONS SCANNÉES
 # ================================================================================
 
-def controler_attestations_scannees(df_analysis, df_compagnies):
+def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dispo=None):
     r"""
     Contrôle si toutes les attestations ont été scannées.
     Compare les numéros d'attestation avec les fichiers dans \\KARIMA\images analisis
+
+    Args:
+        attestations_dispo: dict {numero: Path} déjà chargé (évite un 2e scan réseau)
 
     Returns:
         DataFrame avec colonnes: attestation, source, statut (✅ ou ❌)
@@ -1049,13 +1052,14 @@ def controler_attestations_scannees(df_analysis, df_compagnies):
     log("CONTRÔLE DES ATTESTATIONS SCANNÉES")
     log("=" * 70)
 
-    # Récupérer les attestations depuis config_sources
-    try:
-        attestations_dispo = SourcesData.chercher_attestations() or {}
-        log(f"✅ {len(attestations_dispo)} attestation(s) trouvée(s) sur le réseau")
-    except Exception as e:
-        log(f"❌ Erreur lors de la recherche d'attestations : {e}")
-        attestations_dispo = {}
+    # Récupérer les attestations depuis config_sources (sauf si déjà fournies)
+    if attestations_dispo is None:
+        try:
+            attestations_dispo = SourcesData.chercher_attestations() or {}
+        except Exception as e:
+            log(f"❌ Erreur lors de la recherche d'attestations : {e}")
+            attestations_dispo = {}
+    log(f"✅ {len(attestations_dispo)} attestation(s) trouvée(s) sur le réseau")
 
     # Extraire tous les numéros d'attestation uniques
     attestations_a_controler = set()
@@ -1150,6 +1154,7 @@ def main():
     df_analysis = pd.DataFrame()
     df_rappels = pd.DataFrame()
     periode_controlee = None
+    attestations_reseau = None
 
     # NOUVELLE APPROCHE: utiliser config_sources si disponible
     if SOURCES_DISPONIBLES:
@@ -1162,8 +1167,17 @@ def main():
         else:
             log("ARRÊT PARTIEL : aucun PDF d'encaissements trouvé.")
 
+        # Les scans = attestations trouvées sur le réseau \\KARIMA\images analisis
+        scans_jour, scans_tous = {}, {}
+        try:
+            attestations_reseau = SourcesData.chercher_attestations() or {}
+            scans_tous = {cle: chemin.name for cle, chemin in attestations_reseau.items()}
+            log(f"{len(scans_tous)} attestation(s) scannée(s) disponibles sur le réseau.")
+        except Exception as e:
+            log(f"ATTENTION : impossible de lire les attestations réseau : {e}")
+            attestations_reseau = None
+
         # Chercher rapports compagnies
-        scans_jour, scans_tous = [], []  # Pas de scans pour le moment
         rapports = SourcesData.chercher_rapports_compagnies(date_search)
 
         morceaux_cies = []
@@ -1216,7 +1230,7 @@ def main():
         df_resultat, df_omissions = rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_prime, seuil_nom)
 
     # NOUVEAU: Contrôle des attestations scannées
-    df_controle_att = controler_attestations_scannees(df_analysis, df_compagnies)
+    df_controle_att = controler_attestations_scannees(df_analysis, df_compagnies, attestations_reseau)
 
     # Génération du rapport Excel
     nom_fichier_sortie = _construire_nom_fichier_sortie(periode_controlee)
