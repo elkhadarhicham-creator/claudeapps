@@ -137,3 +137,7 @@ else:
 print("\n" + "="*80)
 print("FIN DU DIAGNOSTIC")
 print("="*80 + "\n")
+
+# Garder la fenêtre ouverte
+input("Appuyez sur ENTRÉE pour fermer...")
+
