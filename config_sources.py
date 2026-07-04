@@ -6,6 +6,7 @@ Gère les chemins locaux et réseau.
 """
 
 import os
+import re
 from pathlib import Path
 
 # ================================================================================
@@ -163,76 +164,74 @@ class SourcesData:
         return rapports
 
     @staticmethod
+    def normaliser_numero(valeur):
+        """
+        Normalise un numéro d'attestation pour la comparaison.
+        'A 204570153' -> 'A204570153' (majuscules, sans espaces ni tirets)
+        """
+        if valeur is None:
+            return ""
+        return re.sub(r"[^A-Z0-9]", "", str(valeur).upper())
+
+    @staticmethod
     def chercher_attestations(numero_attestation=None, verbose=False):
         """
-        Cherche les fichiers des attestations.
-        Format: [numero].pdf (ex: 001.pdf, 002.jpg)
+        Cherche les attestations scannées sur le réseau.
+        Les noms peuvent contenir des espaces: 'A 204570153.pdf' ou dossier 'A 204570153'.
+        La comparaison ignore les espaces et la casse.
 
         Args:
             numero_attestation: Numéro spécifique (optionnel)
             verbose: Afficher les détails
 
         Returns:
-            Dict or Path: Tous les fichiers, ou fichier spécifique
+            Dict {numero_normalise: Path} ou Path si numero_attestation fourni
         """
         attestations = {}
 
-        # Vérifier le chemin réseau avec plus de détails
-        if not os.path.exists(ATTESTATIONS_NETWORK_PATH):
+        # Trouver un chemin réseau accessible
+        chemins_possibles = [
+            ATTESTATIONS_NETWORK_PATH,
+            r"\\KARIMA\images analisis",
+            r"\\KARIMA\images_analisis",
+        ]
+
+        chemin = None
+        for c in chemins_possibles:
+            if os.path.exists(c):
+                chemin = c
+                break
+
+        if chemin is None:
             if verbose:
                 print(f"⚠️ Chemin NON accessible: {ATTESTATIONS_NETWORK_PATH}")
-                print("  Tentatives de diagnostic:")
                 print("  1. Vérifiez que le partage réseau KARIMA est accessible")
-                print("  2. Vérifiez les permissions du dossier A 204570153")
-                print("  3. Essayez d'accéder à \\\\KARIMA\\images analisis dans l'Explorateur")
+                print("  2. Essayez d'ouvrir \\\\KARIMA\\images analisis dans l'Explorateur Windows")
+            return {}
 
-            # Essayer des chemins alternatifs
-            chemins_alt = [
-                r"\\KARIMA\images analisis\A 204570153",
-                r"\\KARIMA\images analisis",
-                r"\\KARIMA\images_analisis",
-                r"\\KARIMA\A 204570153"
-            ]
-
-            for chemin_alt in chemins_alt:
-                if os.path.exists(chemin_alt):
-                    if verbose:
-                        print(f"  ✅ Chemin alternatif trouvé: {chemin_alt}")
-                    ATTESTATIONS_NETWORK_PATH = chemin_alt
-                    break
-            else:
-                if verbose:
-                    print(f"  ❌ Aucun chemin réseau n'est accessible")
-                return {}
-
-        # Lister tous les fichiers (PDF, JPG, PNG, etc.)
+        # Parcourir tous les éléments (fichiers ET dossiers)
+        # Chaque attestation peut être un fichier 'A 204570153.pdf' ou un dossier 'A 204570153'
         try:
-            extensions = ['*.pdf', '*.jpg', '*.jpeg', '*.png', '*.tif', '*.tiff', '*.PDF', '*.JPG', '*.JPEG', '*.PNG']
-
-            for ext in extensions:
-                try:
-                    fichiers = list(Path(ATTESTATIONS_NETWORK_PATH).glob(ext))
-                    for f in fichiers:
-                        # Extraire le numéro du nom du fichier
-                        nom_base = f.stem.lower()
-                        attestations[nom_base] = f
-                except Exception as e:
-                    if verbose:
-                        print(f"  Erreur lors de la lecture de {ext}: {e}")
+            with os.scandir(chemin) as it:
+                for entry in it:
+                    nom = entry.name
+                    if entry.is_file():
+                        nom = os.path.splitext(nom)[0]
+                    cle = SourcesData.normaliser_numero(nom)
+                    if cle:
+                        attestations[cle] = Path(entry.path)
 
             if attestations:
-                print(f"✅ {len(attestations)} attestation(s) trouvée(s)")
+                print(f"✅ {len(attestations)} attestation(s) trouvée(s) sur le réseau")
             elif verbose:
-                print(f"⚠️ Aucune attestation trouvée dans {ATTESTATIONS_NETWORK_PATH}")
+                print(f"⚠️ Aucune attestation trouvée dans {chemin}")
 
         except Exception as e:
-            if verbose:
-                print(f"❌ Erreur lors de l'accès au dossier attestations: {e}")
+            print(f"❌ Erreur lors de l'accès au dossier attestations: {e}")
             return {}
 
         if numero_attestation:
-            numero_norm = str(numero_attestation).lower().zfill(3)
-            return attestations.get(numero_norm)
+            return attestations.get(SourcesData.normaliser_numero(numero_attestation))
 
         return attestations
 

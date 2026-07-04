@@ -1038,7 +1038,7 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
 # ================================================================================
 
 def controler_attestations_scannees(df_analysis, df_compagnies):
-    """
+    r"""
     Contrôle si toutes les attestations ont été scannées.
     Compare les numéros d'attestation avec les fichiers dans \\KARIMA\images analisis
 
@@ -1093,10 +1093,13 @@ def controler_attestations_scannees(df_analysis, df_compagnies):
         att_trouvee = att_num in attestations_dispo
         statut = "✅ TROUVÉE" if att_trouvee else "❌ MANQUANTE"
 
+        # Affichage avec espace entre la lettre et les chiffres : 'A204570164' -> 'A 204570164'
+        att_affichage = re.sub(r"^([A-Z]+)(\d)", r"\1 \2", att_num)
+
         controle.append({
-            "Numéro Attestation": att_num,
+            "Numéro Attestation": att_affichage,
             "Statut": statut,
-            "Fichier": attestations_dispo.get(att_num, {}).name if att_trouvee else "---"
+            "Fichier": attestations_dispo[att_num].name if att_trouvee else "---"
         })
 
         if att_trouvee:
