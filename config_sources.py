@@ -29,6 +29,23 @@ class SourcesData:
     """Gestionnaire des sources de données."""
 
     @staticmethod
+    def variantes_date(date_str):
+        """
+        Génère toutes les écritures possibles d'une date.
+        '29.06.2026' -> {'29.06.2026', '29-06-2026', '29/06/2026',
+                         '29.06.26', '29-06-26', '29/06/26'}
+        """
+        if not date_str:
+            return set()
+        base = str(date_str).replace("/", ".").replace("-", ".")
+        variantes = {base, base.replace(".", "-"), base.replace(".", "/")}
+        parts = base.split(".")
+        if len(parts) == 3 and len(parts[2]) == 4:
+            courte = f"{parts[0]}.{parts[1]}.{parts[2][2:]}"
+            variantes.update({courte, courte.replace(".", "-"), courte.replace(".", "/")})
+        return variantes
+
+    @staticmethod
     def chercher_encaissements(date_str=None):
         """
         Cherche le fichier PDF d'encaissements.
@@ -67,13 +84,14 @@ class SourcesData:
             print(f"   Cherchait patterns: Etat des encaissements*")
             return None
 
-        # Si date spécifiée, chercher ce jour exact
+        # Si date spécifiée, chercher ce jour exact (tous formats: 29.06.2026, 29-06-2026...)
         if date_str:
-            date_search = date_str.replace("/", ".").replace("-", ".")
+            variantes = SourcesData.variantes_date(date_str)
             for f in fichiers:
-                if date_search in f.name:
+                if any(v in f.name for v in variantes):
                     print(f"✅ Encaissements trouvés: {f.name}")
                     return f
+            print(f"⚠️ Pas d'encaissements daté du {date_str}, utilisation du plus récent")
 
         # Sinon retourner le plus récent
         fichier = sorted(fichiers, key=lambda x: x.stat().st_mtime, reverse=True)[0]
@@ -146,20 +164,23 @@ class SourcesData:
                     print(f"⚠️ Aucun rapport trouvé pour {nom_cie}")
                 continue
 
-            # Si date spécifiée, chercher ce jour exact
+            # Si date spécifiée, chercher ce jour exact (tous formats: 29-06-2026, 29.06.2026...)
             if date_str:
-                date_search = date_str.replace("-", ".").replace("/", ".")
+                variantes = SourcesData.variantes_date(date_str)
                 for f in fichiers:
-                    if date_search in f.name or date_str in f.name:
+                    if any(v in f.name for v in variantes):
                         rapports[nom_cie] = f
                         print(f"✅ Rapport {nom_cie} trouvé: {f.name}")
                         break
 
-            # Si pas trouvé avec la date, prendre le plus récent
+            # Si pas trouvé avec la date, prendre le plus récent (avec avertissement)
             if nom_cie not in rapports and fichiers:
                 f = sorted(fichiers, key=lambda x: x.stat().st_mtime, reverse=True)[0]
                 rapports[nom_cie] = f
-                print(f"✅ Rapport {nom_cie} trouvé: {f.name}")
+                if date_str:
+                    print(f"⚠️ Rapport {nom_cie}: pas de fichier daté du {date_str}, utilisation du plus récent: {f.name}")
+                else:
+                    print(f"✅ Rapport {nom_cie} trouvé: {f.name}")
 
         return rapports
 

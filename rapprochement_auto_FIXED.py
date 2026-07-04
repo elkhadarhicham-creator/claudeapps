@@ -749,12 +749,21 @@ def rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_pri
             ligne_cie = None
 
             if not df_compagnies.empty:
-                if cle_police and "police" in df_compagnies.columns:
+                # 1) Correspondance par numéro d'attestation
+                if cle_attestation and "attestation" in df_compagnies.columns:
+                    correspondances = df_compagnies[df_compagnies["attestation"].apply(normaliser_cle) == cle_attestation]
+                    if len(correspondances) > 0:
+                        ligne_cie = correspondances.iloc[0]
+                        compagnie_trouvee = ligne_cie.get("compagnie")
+
+                # 2) Correspondance par numéro de police
+                if ligne_cie is None and cle_police and "police" in df_compagnies.columns:
                     correspondances = df_compagnies[df_compagnies["police"].apply(normaliser_cle) == cle_police]
                     if len(correspondances) > 0:
                         ligne_cie = correspondances.iloc[0]
                         compagnie_trouvee = ligne_cie.get("compagnie")
 
+                # 3) Correspondance par nom de client (approximative)
                 if ligne_cie is None and nom_client and "client" in df_compagnies.columns:
                     meilleur_score = 0
                     for _, candidate in df_compagnies.iterrows():
