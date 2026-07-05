@@ -632,35 +632,98 @@ def _trouver_colonne(en_tetes_normalises, alias_list):
     return None
 
 
+def _detecter_ligne_entete(df):
+    """
+    Cherche la ligne qui contient les vrais en-têtes (police, attestation, client...)
+    quand le fichier a des lignes de titre au-dessus du tableau.
+    Retourne l'index de la ligne d'en-tête, ou None si les colonnes sont déjà bonnes.
+    """
+    mots_cles = ["police", "attestation", "client", "assure", "prime", "quittance", "effet"]
+
+    cols = " ".join(normaliser_texte(str(c)).lower() for c in df.columns)
+    if sum(1 for m in mots_cles if m in cols) >= 2:
+        return None  # les colonnes actuelles sont déjà les bons en-têtes
+
+    for i in range(min(25, len(df))):
+        ligne = " ".join(normaliser_texte(str(v)).lower() for v in df.iloc[i].tolist())
+        if sum(1 for m in mots_cles if m in ligne) >= 2:
+            return i
+    return None
+
+
 def _lire_table_brute(chemin_fichier):
-    """Lit un fichier Excel ou texte tabulé."""
+    """
+    Lit un fichier Excel, CSV ou texte - détection automatique du format,
+    du séparateur (tabulation, point-virgule, virgule) et de la ligne d'en-tête.
+    """
+    chemin_str = str(chemin_fichier)
+    brut = None
+
+    # 1) Excel natif (.xlsx / .xls)
     try:
-        return pd.read_excel(chemin_fichier, dtype=str, engine='openpyxl')
+        brut = pd.read_excel(chemin_str, dtype=str)
+        if brut is not None and len(brut.columns) < 2:
+            brut = None
     except Exception:
-        pass
+        brut = None
 
-    try:
-        with open(chemin_fichier, "r", encoding="utf-8", errors="ignore") as f:
-            lignes = f.readlines()
-    except Exception as e:
-        log(f"Impossible d'ouvrir {chemin_fichier} : {e}")
+    # 2) HTML déguisé en Excel (fréquent avec les exports des compagnies)
+    if brut is None:
+        try:
+            tables = pd.read_html(chemin_str)
+            tables = [t for t in tables if len(t.columns) >= 3]
+            if tables:
+                brut = max(tables, key=len)
+                brut = brut.where(brut.notna(), "").astype(str)
+        except Exception:
+            brut = None
+
+    # 3) CSV / texte : détecter le séparateur et la ligne d'en-tête
+    if brut is None:
+        contenu = None
+        for enc in ("utf-8-sig", "utf-8", "latin-1"):
+            try:
+                with open(chemin_str, "r", encoding=enc, errors="ignore") as f:
+                    contenu = f.read()
+                break
+            except Exception:
+                continue
+
+        if contenu:
+            lignes = contenu.splitlines()
+            meilleur = None
+            for sep in ("\t", ";", ","):
+                # Trouver la première ligne avec assez de séparateurs (l'en-tête)
+                idx = None
+                for i, l in enumerate(lignes[:50]):
+                    if l.count(sep) >= 4:
+                        idx = i
+                        break
+                if idx is None:
+                    continue
+                try:
+                    df = pd.read_csv(io.StringIO("\n".join(lignes[idx:])),
+                                     dtype=str, sep=sep, engine="python",
+                                     on_bad_lines="skip")
+                    if len(df.columns) >= 4 and (meilleur is None or len(df.columns) > len(meilleur.columns)):
+                        meilleur = df
+                except Exception:
+                    continue
+            brut = meilleur
+
+    if brut is None or brut.empty:
         return None
 
-    index_entete = None
-    for i, l in enumerate(lignes):
-        if l.count("\t") >= 5:
-            index_entete = i
-            break
+    # Si les vrais en-têtes sont plus bas (lignes de titre au-dessus du tableau)
+    ligne_entete = _detecter_ligne_entete(brut)
+    if ligne_entete is not None:
+        nouvelles = [str(v) if v is not None else "" for v in brut.iloc[ligne_entete].tolist()]
+        brut = brut.iloc[ligne_entete + 1:].reset_index(drop=True)
+        brut.columns = nouvelles
 
-    if index_entete is None:
-        return None
-
-    contenu = "".join(lignes[index_entete:])
-    try:
-        return pd.read_csv(io.StringIO(contenu), sep="\t", dtype=str)
-    except Exception as e:
-        log(f"Échec de lecture tabulée : {e}")
-        return None
+    # Supprimer les lignes entièrement vides
+    brut = brut.dropna(how="all")
+    return brut if not brut.empty else None
 
 
 def lire_rapport_compagnie(chemin_fichier, nom_compagnie):
@@ -677,6 +740,8 @@ def lire_rapport_compagnie(chemin_fichier, nom_compagnie):
     if brut is None or brut.empty:
         log(f"ERREUR : impossible de lire un tableau pour {nom_compagnie}.")
         return pd.DataFrame()
+
+    log(f"Colonnes détectées pour {nom_compagnie} : {[str(c)[:25] for c in list(brut.columns)[:12]]}")
 
     en_tetes_normalises = [normaliser_texte(c).lower() for c in brut.columns]
     idx = {champ: _trouver_colonne(en_tetes_normalises, alias) for champ, alias in ALIAS_COLONNES_CIE.items()}
