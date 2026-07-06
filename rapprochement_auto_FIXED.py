@@ -1139,16 +1139,21 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
 # CONTRÔLE DES ATTESTATIONS SCANNÉES
 # ================================================================================
 
-def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dispo=None):
+def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dispo=None, df_rappels=None):
     r"""
     Contrôle si toutes les attestations ont été scannées.
-    Compare les numéros d'attestation avec les fichiers dans \\KARIMA\images analisis
+    Compare les numéros d'attestation/police avec les fichiers dans \\KARIMA\images analisis
+
+    - Lignes principales (MATU, SANLAM...) : scan nommé par n° d'attestation
+    - Quittances encaissée / MAROC ASSISTANCE : scan nommé par n° de police
+      (format IAL.xx.xxxxxx). Ces lignes n'ont pas de n° d'attestation.
 
     Args:
         attestations_dispo: dict {numero: Path} déjà chargé (évite un 2e scan réseau)
+        df_rappels: quittances encaissée (section MAROC ASSISTANCE du PDF)
 
     Returns:
-        DataFrame avec colonnes: attestation, source, statut (✅ ou ❌)
+        DataFrame de contrôle
     """
     log("\n" + "=" * 70)
     log("CONTRÔLE DES ATTESTATIONS SCANNÉES")
@@ -1163,30 +1168,24 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
             attestations_dispo = {}
     log(f"✅ {len(attestations_dispo)} attestation(s) trouvée(s) sur le réseau")
 
-    if df_analysis.empty or "attestation" not in df_analysis.columns:
-        log("Aucune ligne d'encaissement à contrôler.")
-        return pd.DataFrame()
-
-    # Un scan est présent si son fichier est nommé par le n° d'attestation
-    # (cas général) OU par le n° de police (cas MAROC ASSISTANCE).
     controle = []
     vus = set()
     nb_trouvees = 0
     nb_manquantes = 0
 
-    for _, ligne in df_analysis.iterrows():
-        att_brut = str(ligne.get("attestation", "") or "").strip()
-        pol_brut = str(ligne.get("police", "") or "").strip()
+    def traiter_ligne(att_brut, pol_brut, assure):
+        nonlocal nb_trouvees, nb_manquantes
+        att_brut = str(att_brut or "").strip()
+        pol_brut = str(pol_brut or "").strip()
         cle_att = normaliser_cle(att_brut)
         cle_pol = normaliser_cle(pol_brut)
 
-        # Clé d'unicité (évite les doublons)
         cle_unique = cle_att or cle_pol
         if not cle_unique or cle_unique in vus:
-            continue
+            return
         vus.add(cle_unique)
 
-        # Chercher le scan : par attestation d'abord, puis par police
+        # Chercher le scan : par attestation d'abord, puis par police (MAROC)
         chemin_trouve = None
         cle_trouvee = None
         if cle_att and cle_att in attestations_dispo:
@@ -1197,17 +1196,12 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
             cle_trouvee = "police"
 
         trouvee = chemin_trouve is not None
-        statut = "✅ TROUVÉE" if trouvee else "❌ MANQUANTE"
-
-        # Affichage : 'A204570164' -> 'A 204570164'
-        att_affichage = re.sub(r"^([A-Z]+)(\d)", r"\1 \2", cle_att) if cle_att else "(sans attestation)"
-        pol_affichage = re.sub(r"^([A-Z]+)(\d)", r"\1 \2", cle_pol) if cle_pol else ""
 
         controle.append({
-            "Numéro Attestation": att_affichage,
-            "Numéro Police": pol_affichage,
-            "Assuré": str(ligne.get("assure", "") or ""),
-            "Statut": statut,
+            "Numéro Attestation": att_brut if att_brut else "(sans attestation)",
+            "Numéro Police": pol_brut,
+            "Assuré": str(assure or ""),
+            "Statut": "✅ TROUVÉE" if trouvee else "❌ MANQUANTE",
             "Trouvé par": cle_trouvee or "---",
             "Fichier": chemin_trouve.name if trouvee else "---",
         })
@@ -1216,6 +1210,20 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
             nb_trouvees += 1
         else:
             nb_manquantes += 1
+
+    # 1) Lignes principales (attestation)
+    if not df_analysis.empty and "attestation" in df_analysis.columns:
+        for _, ligne in df_analysis.iterrows():
+            traiter_ligne(ligne.get("attestation", ""), ligne.get("police", ""), ligne.get("assure", ""))
+
+    # 2) Quittances encaissée = MAROC ASSISTANCE (police, pas d'attestation)
+    if df_rappels is not None and not df_rappels.empty and "police" in df_rappels.columns:
+        for _, ligne in df_rappels.iterrows():
+            traiter_ligne("", ligne.get("police", ""), ligne.get("assure", "") or "MAROC ASSISTANCE")
+
+    if not controle:
+        log("Aucune ligne d'encaissement à contrôler.")
+        return pd.DataFrame()
 
     total = nb_trouvees + nb_manquantes
 
@@ -1229,7 +1237,9 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
         for item in controle:
             if "MANQUANTE" in item["Statut"]:
                 ref = item["Numéro Attestation"]
-                if item["Numéro Police"]:
+                if ref == "(sans attestation)" and item["Numéro Police"]:
+                    ref = f"police {item['Numéro Police']}"
+                elif item["Numéro Police"]:
                     ref += f" (police {item['Numéro Police']})"
                 log(f"   ❌ {ref} - {item['Assuré']}")
 
@@ -1353,8 +1363,8 @@ def main():
     else:
         df_resultat, df_omissions = rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_prime, seuil_nom)
 
-    # NOUVEAU: Contrôle des attestations scannées
-    df_controle_att = controler_attestations_scannees(df_analysis, df_compagnies, attestations_reseau)
+    # NOUVEAU: Contrôle des attestations scannées (inclut MAROC ASSISTANCE via df_rappels)
+    df_controle_att = controler_attestations_scannees(df_analysis, df_compagnies, attestations_reseau, df_rappels)
 
     # Génération du rapport Excel
     nom_fichier_sortie = _construire_nom_fichier_sortie(periode_controlee)
