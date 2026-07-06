@@ -1300,15 +1300,40 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
         else:
             nb_manquantes += 1
 
-    # 1) Lignes principales (attestation)
+    # Table police -> attestation depuis les rapports compagnies (surtout MATU).
+    # Pour les chèques groupés, l'attestation n'est PAS dans l'encaissement :
+    # on la récupère ici via le numéro de police.
+    corr_police_att = {}
+    if df_compagnies is not None and not df_compagnies.empty \
+            and "police" in df_compagnies.columns and "attestation" in df_compagnies.columns:
+        for _, l in df_compagnies.iterrows():
+            p = normaliser_cle(str(l.get("police", "")))
+            a = str(l.get("attestation", "") or "").strip()
+            if p and a and p not in corr_police_att:
+                corr_police_att[p] = a
+
+    # 1) Lignes principales (attestation directe de l'encaissement)
     if not df_analysis.empty and "attestation" in df_analysis.columns:
         for _, ligne in df_analysis.iterrows():
             traiter_ligne(ligne.get("attestation", ""), ligne.get("police", ""), ligne.get("assure", ""))
 
-    # 2) Quittances encaissée = MAROC ASSISTANCE (police, pas d'attestation)
+    # 2) Sous-quittances (chèques groupés + Quittances encaissée)
     if df_rappels is not None and not df_rappels.empty and "police" in df_rappels.columns:
         for _, ligne in df_rappels.iterrows():
-            traiter_ligne("", ligne.get("police", ""), ligne.get("assure", "") or "(quittance de rappel)")
+            police = str(ligne.get("police", "") or "").strip()
+            quittance = str(ligne.get("quittance", "") or "").strip()
+
+            # Pour MAROC : police = attestation = quittance sans le suffixe "-1"
+            if not police and quittance:
+                police = re.sub(r"-\d+$", "", quittance)
+
+            # Résoudre l'attestation :
+            #  - MATU/autres : depuis le rapport compagnie (par police)
+            #  - MAROC ASSISTANCE : la police EST l'attestation (format non numérique, ex IAL.xx)
+            att = corr_police_att.get(normaliser_cle(police), "")
+            if not att and police and not police[:1].isdigit():
+                att = police
+            traiter_ligne(att, police, ligne.get("assure", "") or "(quittance de rappel)")
 
     if not controle:
         log("Aucune ligne d'encaissement à contrôler.")
