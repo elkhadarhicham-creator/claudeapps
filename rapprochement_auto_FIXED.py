@@ -675,8 +675,41 @@ def _lire_table_brute(chemin_fichier):
                 meilleure = (score, df_f)
         if meilleure is not None:
             brut = meilleure[1].reset_index(drop=True)
-    except Exception:
+    except Exception as e:
+        log(f"   (lecture pandas Excel échouée: {e} — tentative openpyxl directe)")
         brut = None
+
+    # 1bis) Repli : openpyxl en lecture directe (contourne les soucis de version
+    #       pandas/openpyxl, ex. 'Workbook contains no default style').
+    if brut is None:
+        try:
+            import warnings
+            from openpyxl import load_workbook
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                wb = load_workbook(chemin_str, read_only=True, data_only=True)
+                meilleure = None
+                for ws in wb.worksheets:
+                    lignes = []
+                    for row in ws.iter_rows(values_only=True):
+                        lignes.append(["" if v is None else str(v) for v in row])
+                    if not lignes:
+                        continue
+                    largeur = max(len(l) for l in lignes)
+                    lignes = [l + [""] * (largeur - len(l)) for l in lignes]
+                    df_f = pd.DataFrame(lignes)
+                    df_f = df_f.replace("", pd.NA).dropna(how="all").dropna(axis=1, how="all")
+                    if df_f.empty or len(df_f.columns) < 2:
+                        continue
+                    score = df_f.notna().sum().sum()
+                    if meilleure is None or score > meilleure[0]:
+                        meilleure = (score, df_f)
+                wb.close()
+                if meilleure is not None:
+                    brut = meilleure[1].fillna("").reset_index(drop=True)
+        except Exception as e:
+            log(f"   (lecture openpyxl directe échouée: {e})")
+            brut = None
 
     # 2) HTML déguisé en Excel (fréquent avec les exports des compagnies)
     if brut is None:
