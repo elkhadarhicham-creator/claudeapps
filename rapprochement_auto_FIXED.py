@@ -497,6 +497,9 @@ def extraire_etat_encaissements(chemin_pdf):
                             "dt": x0_de("DT"), "cheque": x0_de("Cheque"),
                             "banque": x0_de("Banque"), "operat": x0_de("Operat"),
                             "reste": x0_compresse("reste"),
+                            # Colonne "Classmnt" (mise en page 30/06) : sans ancre, ses valeurs
+                            # (ex 260630-006) tombaient dans "Reste" et le rendaient illisible.
+                            "classmnt": x0_de("Classmnt"),
                         }
                         if ancres["police"] is not None and ancres["prime"] is not None:
                             ancres["date_effet"] = (ancres["police"] + ancres["prime"]) / 2 + 5
@@ -916,7 +919,7 @@ def rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_pri
             scan_manquant = not cle_scan_trouvee
             scan_date_du_jour = cle_scan_trouvee in scans_jour if cle_scan_trouvee else False
 
-            if reste is None:
+            if reste is None or pd.isna(reste):
                 statut_encaissement = "INCONNU"
             elif abs(reste) <= tolerance_prime:
                 statut_encaissement = "OK"
