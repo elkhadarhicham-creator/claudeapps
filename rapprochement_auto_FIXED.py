@@ -886,6 +886,19 @@ def rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_pri
 
     for _, ligne in df_analysis.iterrows():
         try:
+            # Ligne de paiement groupé (chèque global) : simple règlement, pas un contrat
+            if str(ligne.get("type_ligne", "contrat")) == "paiement_groupe":
+                resultats.append({
+                    "N° Quittance (interne)": ligne.get("quittance", ""),
+                    "N° Attestation": "",
+                    "Assuré": str(ligne.get("assure", "")),
+                    "Prime Analysis": ligne.get("prime"),
+                    "Chèque": ligne.get("cheque"),
+                    "Statut global": "PAIEMENT GROUPÉ",
+                    "Détail des problèmes": "Chèque global réglant plusieurs quittances (détaillées en contrats)",
+                })
+                continue
+
             cle_attestation = normaliser_cle(ligne.get("attestation", ""))
             cle_police = normaliser_cle(ligne.get("police", ""))
             nom_client = str(ligne.get("assure", ""))
@@ -1126,7 +1139,7 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
     feuille_ecarts.append([texte_periode])
     feuille_ecarts["A1"].font = Font(bold=True, size=13, color="1F4E78")
     feuille_ecarts.append([])
-    df_ecarts = (df_resultat[df_resultat["Statut global"] != "CONFORME"].copy()
+    df_ecarts = (df_resultat[~df_resultat["Statut global"].isin(["CONFORME", "PAIEMENT GROUPÉ"])].copy()
                  if (not df_resultat.empty and "Statut global" in df_resultat.columns)
                  else pd.DataFrame())
     _ecrire_dataframe(feuille_ecarts, df_ecarts, colonne_statut="Statut global", ligne_depart=3)
@@ -1313,8 +1326,11 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
                 corr_police_att[p] = a
 
     # 1) Lignes principales (attestation directe de l'encaissement)
+    #    On saute les lignes de paiement groupé (chèque global, pas un document à scanner).
     if not df_analysis.empty and "attestation" in df_analysis.columns:
         for _, ligne in df_analysis.iterrows():
+            if str(ligne.get("type_ligne", "contrat")) == "paiement_groupe":
+                continue
             traiter_ligne(ligne.get("attestation", ""), ligne.get("police", ""), ligne.get("assure", ""))
 
     # 2) Sous-quittances (chèques groupés + Quittances encaissée)
@@ -1397,6 +1413,85 @@ def enrichir_rappels_avec_assure(df_rappels, df_compagnies):
     if nb:
         log(f"{nb} nom(s) d'assuré ajouté(s) aux quittances de rappel.")
     return df_rappels
+
+
+def integrer_cheques_groupes(df_analysis, df_rappels, df_compagnies):
+    """
+    OPTION 1 : les sous-quittances d'un chèque groupé deviennent de VRAIS
+    contrats à rapprocher, et la ligne de paiement 'CAR' (chèque global)
+    est neutralisée (marquée PAIEMENT, plus signalée comme anomalie).
+
+    - MATU/autres : l'attestation de la sous-quittance est reprise du rapport
+      compagnie (via la police).
+    - MAROC ASSISTANCE : police = attestation = quittance sans le '-1'.
+
+    Retourne df_analysis enrichi (avec colonne 'type_ligne').
+    """
+    if df_analysis is None or df_analysis.empty:
+        return df_analysis
+
+    df_analysis = df_analysis.copy()
+    if "type_ligne" not in df_analysis.columns:
+        df_analysis["type_ligne"] = "contrat"
+
+    # Marquer les lignes de paiement groupé : assuré finissant par 'CAR' + police vide
+    def _est_paiement(l):
+        ass = normaliser_texte(str(l.get("assure", "")))
+        pol = normaliser_cle(str(l.get("police", "")))
+        return ass.endswith("CAR") and not pol
+    masque = df_analysis.apply(_est_paiement, axis=1)
+    nb_paie = int(masque.sum())
+    df_analysis.loc[masque, "type_ligne"] = "paiement_groupe"
+
+    # Table police -> (attestation, client) depuis les compagnies
+    corr = {}
+    if df_compagnies is not None and not df_compagnies.empty and "police" in df_compagnies.columns:
+        for _, l in df_compagnies.iterrows():
+            p = normaliser_cle(str(l.get("police", "")))
+            if p and p not in corr:
+                corr[p] = (str(l.get("attestation", "") or "").strip(),
+                           str(l.get("client", "") or "").strip())
+
+    # Convertir les sous-quittances en lignes de contrat
+    nouvelles = []
+    if df_rappels is not None and not df_rappels.empty:
+        for _, l in df_rappels.iterrows():
+            police = str(l.get("police", "") or "").strip()
+            quittance = str(l.get("quittance", "") or "").strip()
+            if not police and quittance:
+                police = re.sub(r"-\d+$", "", quittance)
+            att, client = corr.get(normaliser_cle(police), ("", ""))
+            if not att and police and not police[:1].isdigit():
+                att = police  # MAROC : la police EST l'attestation
+            montant = l.get("montant_encaisse")
+            if montant is None:
+                montant = l.get("prime")
+            nouvelles.append({
+                "quittance": quittance,
+                "quittance_compagnie": quittance,
+                "attestation": att,
+                "assure": (str(l.get("assure", "") or "").strip() or client),
+                "police": police,
+                "date_effet": l.get("date_effet"),
+                "prime": l.get("prime"),
+                "reference_banque": "",
+                "especes": 0.0,
+                "dt": 0.0,
+                "cheque": montant,
+                "banque": 0.0,
+                "reste": 0.0,
+                "operateur": "",
+                "page": None,
+                "ligne_source": f"Sous-quittance chèque groupé ({quittance})",
+                "type_ligne": "contrat",
+            })
+
+    if nouvelles:
+        df_analysis = pd.concat([df_analysis, pd.DataFrame(nouvelles)], ignore_index=True)
+
+    log(f"Chèques groupés : {nb_paie} ligne(s) de paiement neutralisée(s), "
+        f"{len(nouvelles)} sous-quittance(s) intégrée(s) comme contrats.")
+    return df_analysis
 
 
 # ================================================================================
@@ -1512,6 +1607,10 @@ def main():
     # Enrichir les quittances de rappel avec le nom d'assuré (via le rapport compagnie, par police)
     df_rappels = enrichir_rappels_avec_assure(df_rappels, df_compagnies)
 
+    # OPTION 1 : intégrer les sous-quittances des chèques groupés comme vrais
+    # contrats, et neutraliser les lignes de paiement 'CAR'.
+    df_analysis = integrer_cheques_groupes(df_analysis, df_rappels, df_compagnies)
+
     # Rapprochement
     if df_analysis.empty:
         log("Impossible de poursuivre : aucune donnée Analysis.")
@@ -1519,8 +1618,9 @@ def main():
     else:
         df_resultat, df_omissions = rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_prime, seuil_nom)
 
-    # NOUVEAU: Contrôle des attestations scannées (inclut MAROC ASSISTANCE via df_rappels)
-    df_controle_att = controler_attestations_scannees(df_analysis, df_compagnies, attestations_reseau, df_rappels)
+    # Contrôle des scans : les sous-quittances sont désormais dans df_analysis,
+    # on ne repasse donc PAS df_rappels (éviter les doublons).
+    df_controle_att = controler_attestations_scannees(df_analysis, df_compagnies, attestations_reseau, None)
 
     # Génération du rapport Excel
     nom_fichier_sortie = _construire_nom_fichier_sortie(periode_controlee)
