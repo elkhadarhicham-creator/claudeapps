@@ -615,7 +615,9 @@ def lire_pdf_encaissements(chemin_pdf):
 ALIAS_COLONNES_CIE = {
     "police": ["n police", "n° police", "police"],
     "attestation": ["attestation"],
-    "client": ["client", "assure", "assuré"],
+    # 'souscripteur' en premier : pour MAROC ASSISTANCE, "Assuré principal" vaut
+    # "Conducteur" (générique) alors que "Souscripteur" contient le vrai nom.
+    "client": ["souscripteur", "client", "assure principal", "assure", "assuré"],
     "prime_prorata": ["p. prorata", "p prorata", "prime prorata", "prorata"],
     "prime_annuelle": ["p. annuelle", "p annuelle", "prime annuelle", "prime ttc", "prime"],
     "date_effet": ["d. effet", "date effet", "date debut", "date début"],
