@@ -1124,9 +1124,12 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
         feuille_att.append(["Total", total_att])
         feuille_att.append(["Taux de conformité (%)", round(100 * att_trouvees / total_att, 1) if total_att > 0 else 0])
 
-        feuille_att.column_dimensions["A"].width = 30
-        feuille_att.column_dimensions["B"].width = 25
-        feuille_att.column_dimensions["C"].width = 40
+        feuille_att.column_dimensions["A"].width = 20
+        feuille_att.column_dimensions["B"].width = 18
+        feuille_att.column_dimensions["C"].width = 28
+        feuille_att.column_dimensions["D"].width = 14
+        feuille_att.column_dimensions["E"].width = 14
+        feuille_att.column_dimensions["F"].width = 24
 
     classeur.save(chemin_sortie)
     log(f"Rapport Excel créé : {chemin_sortie}")
@@ -1160,66 +1163,75 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
             attestations_dispo = {}
     log(f"✅ {len(attestations_dispo)} attestation(s) trouvée(s) sur le réseau")
 
-    # Extraire tous les numéros d'attestation uniques
-    attestations_a_controler = set()
+    if df_analysis.empty or "attestation" not in df_analysis.columns:
+        log("Aucune ligne d'encaissement à contrôler.")
+        return pd.DataFrame()
 
-    # Depuis les encaissements
-    if not df_analysis.empty and "attestation" in df_analysis.columns:
-        att_enc = df_analysis["attestation"].dropna()
-        att_enc = att_enc[att_enc.str.strip() != ""]
-        for att in att_enc:
-            att_norm = normaliser_cle(str(att))
-            if att_norm:
-                attestations_a_controler.add(att_norm)
-        log(f"Encaissements : {len(attestations_a_controler)} attestation(s) unique(s)")
-
-    # Depuis les rapports compagnies : UNIQUEMENT les vraies colonnes "attestation"
-    # (on n'inclut PAS les numéros de police, qui ne sont pas des attestations)
-    if not df_compagnies.empty and "attestation" in df_compagnies.columns:
-        att_cie = df_compagnies["attestation"].dropna()
-        att_cie = att_cie[att_cie.astype(str).str.strip() != ""]
-        avant = len(attestations_a_controler)
-        for att in att_cie:
-            att_norm = normaliser_cle(str(att))
-            if att_norm:
-                attestations_a_controler.add(att_norm)
-        ajoutees = len(attestations_a_controler) - avant
-        if ajoutees:
-            log(f"Compagnies : +{ajoutees} attestation(s) ({len(attestations_a_controler)} au total)")
-
-    # Créer le rapport de contrôle
+    # Un scan est présent si son fichier est nommé par le n° d'attestation
+    # (cas général) OU par le n° de police (cas MAROC ASSISTANCE).
     controle = []
-    attestations_trouvees = 0
-    attestations_manquantes = 0
+    vus = set()
+    nb_trouvees = 0
+    nb_manquantes = 0
 
-    for att_num in sorted(attestations_a_controler):
-        att_trouvee = att_num in attestations_dispo
-        statut = "✅ TROUVÉE" if att_trouvee else "❌ MANQUANTE"
+    for _, ligne in df_analysis.iterrows():
+        att_brut = str(ligne.get("attestation", "") or "").strip()
+        pol_brut = str(ligne.get("police", "") or "").strip()
+        cle_att = normaliser_cle(att_brut)
+        cle_pol = normaliser_cle(pol_brut)
 
-        # Affichage avec espace entre la lettre et les chiffres : 'A204570164' -> 'A 204570164'
-        att_affichage = re.sub(r"^([A-Z]+)(\d)", r"\1 \2", att_num)
+        # Clé d'unicité (évite les doublons)
+        cle_unique = cle_att or cle_pol
+        if not cle_unique or cle_unique in vus:
+            continue
+        vus.add(cle_unique)
+
+        # Chercher le scan : par attestation d'abord, puis par police
+        chemin_trouve = None
+        cle_trouvee = None
+        if cle_att and cle_att in attestations_dispo:
+            chemin_trouve = attestations_dispo[cle_att]
+            cle_trouvee = "attestation"
+        elif cle_pol and cle_pol in attestations_dispo:
+            chemin_trouve = attestations_dispo[cle_pol]
+            cle_trouvee = "police"
+
+        trouvee = chemin_trouve is not None
+        statut = "✅ TROUVÉE" if trouvee else "❌ MANQUANTE"
+
+        # Affichage : 'A204570164' -> 'A 204570164'
+        att_affichage = re.sub(r"^([A-Z]+)(\d)", r"\1 \2", cle_att) if cle_att else "(sans attestation)"
+        pol_affichage = re.sub(r"^([A-Z]+)(\d)", r"\1 \2", cle_pol) if cle_pol else ""
 
         controle.append({
             "Numéro Attestation": att_affichage,
+            "Numéro Police": pol_affichage,
+            "Assuré": str(ligne.get("assure", "") or ""),
             "Statut": statut,
-            "Fichier": attestations_dispo[att_num].name if att_trouvee else "---"
+            "Trouvé par": cle_trouvee or "---",
+            "Fichier": chemin_trouve.name if trouvee else "---",
         })
 
-        if att_trouvee:
-            attestations_trouvees += 1
+        if trouvee:
+            nb_trouvees += 1
         else:
-            attestations_manquantes += 1
+            nb_manquantes += 1
+
+    total = nb_trouvees + nb_manquantes
 
     # Résumé du contrôle
     log(f"\n📊 RÉSUMÉ DU CONTRÔLE D'ATTESTATIONS :")
-    log(f"   ✅ Trouvées : {attestations_trouvees}/{len(attestations_a_controler)}")
-    log(f"   ❌ Manquantes : {attestations_manquantes}/{len(attestations_a_controler)}")
+    log(f"   ✅ Trouvées : {nb_trouvees}/{total}")
+    log(f"   ❌ Manquantes : {nb_manquantes}/{total}")
 
-    if attestations_manquantes > 0:
-        log(f"\n⚠️  ALERTES - {attestations_manquantes} attestation(s) non scannée(s) :")
+    if nb_manquantes > 0:
+        log(f"\n⚠️  ALERTES - {nb_manquantes} document(s) non scanné(s) :")
         for item in controle:
             if "MANQUANTE" in item["Statut"]:
-                log(f"   ❌ {item['Numéro Attestation']}")
+                ref = item["Numéro Attestation"]
+                if item["Numéro Police"]:
+                    ref += f" (police {item['Numéro Police']})"
+                log(f"   ❌ {ref} - {item['Assuré']}")
 
     return pd.DataFrame(controle) if controle else pd.DataFrame()
 
