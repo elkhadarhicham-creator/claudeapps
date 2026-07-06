@@ -417,6 +417,40 @@ def _colonne_pour_x(x0, bornes):
     return bornes[-1][0] if bornes else "inconnu"
 
 
+def _est_sous_ligne_espacee(cl, textes):
+    """
+    Détecte une sous-quittance imprimée caractère par caractère.
+    Format: '- QUITTANCE - POLICE DATE MONTANT' avec beaucoup de tokens
+    d'un seul caractère (chèque groupé : MOUNTED CAR, ERRAFIDAYNE CAR...).
+    """
+    if not textes or textes[0] != "-":
+        return False
+    mono = sum(1 for t in textes if len(t) == 1)
+    return len(textes) >= 8 and mono >= 0.5 * len(textes)
+
+
+def _reconstruire_champs_espaces(cl, seuil_gap=15):
+    """
+    Regroupe les tokens espacés en champs d'après les écarts horizontaux (x0).
+    Les caractères d'un même champ sont collés ; un grand écart sépare les champs.
+    Retourne la liste des champs (les séparateurs '-' isolés sont retirés).
+    """
+    champs = []
+    courant = []
+    dernier_x1 = None
+    for w in sorted(cl, key=lambda w: w["x0"]):
+        if dernier_x1 is not None and (w["x0"] - dernier_x1) > seuil_gap:
+            if courant:
+                champs.append("".join(courant))
+                courant = []
+        courant.append(w["text"])
+        dernier_x1 = w["x1"]
+    if courant:
+        champs.append("".join(courant))
+    # Retirer les tirets séparateurs isolés
+    return [c for c in champs if c not in ("-", "")]
+
+
 def extraire_etat_encaissements(chemin_pdf):
     lignes_principales = []
     lignes_rappel = []
@@ -504,6 +538,25 @@ def extraire_etat_encaissements(chemin_pdf):
 
                     # Lettres isolées
                     if all(len(t) <= 2 for t in textes) and all(t.isalpha() for t in textes) and cl[0]["x0"] > 790:
+                        continue
+
+                    # Sous-quittance imprimée caractère par caractère (chèque groupé)
+                    # -> traiter comme quittance de rappel, NE PAS compter dans le total.
+                    if _est_sous_ligne_espacee(cl, textes):
+                        champs = _reconstruire_champs_espaces(cl)
+                        if len(champs) >= 2:
+                            quittance = champs[0]
+                            police = champs[1]  # = attestation pour MAROC ASSISTANCE
+                            date_txt = champs[2] if len(champs) >= 3 else ""
+                            montant_txt = champs[3] if len(champs) >= 4 else ""
+                            lignes_rappel.append({
+                                "police": police,
+                                "assure": "",
+                                "quittance": quittance,
+                                "date_effet": parser_date(date_txt),
+                                "prime": parser_montant(montant_txt) if montant_txt else None,
+                                "montant_encaisse": parser_montant(montant_txt) if montant_txt else None,
+                            })
                         continue
 
                     if not bornes:
@@ -1255,7 +1308,7 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
     # 2) Quittances encaissée = MAROC ASSISTANCE (police, pas d'attestation)
     if df_rappels is not None and not df_rappels.empty and "police" in df_rappels.columns:
         for _, ligne in df_rappels.iterrows():
-            traiter_ligne("", ligne.get("police", ""), ligne.get("assure", "") or "MAROC ASSISTANCE")
+            traiter_ligne("", ligne.get("police", ""), ligne.get("assure", "") or "(quittance de rappel)")
 
     if not controle:
         log("Aucune ligne d'encaissement à contrôler.")
