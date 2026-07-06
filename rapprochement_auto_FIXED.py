@@ -659,11 +659,22 @@ def _lire_table_brute(chemin_fichier):
     chemin_str = str(chemin_fichier)
     brut = None
 
-    # 1) Excel natif (.xlsx / .xls)
+    # 1) Excel natif (.xlsx / .xls) - lire TOUTES les feuilles sans supposer
+    #    l'emplacement de l'en-tête (header=None), garder la plus remplie.
     try:
-        brut = pd.read_excel(chemin_str, dtype=str)
-        if brut is not None and len(brut.columns) < 2:
-            brut = None
+        feuilles = pd.read_excel(chemin_str, dtype=str, header=None, sheet_name=None)
+        meilleure = None
+        for _nom_feuille, df_f in feuilles.items():
+            if df_f is None or df_f.empty:
+                continue
+            df_f = df_f.dropna(how="all").dropna(axis=1, how="all")
+            if df_f.empty or len(df_f.columns) < 2:
+                continue
+            score = df_f.notna().sum().sum()  # nombre de cellules remplies
+            if meilleure is None or score > meilleure[0]:
+                meilleure = (score, df_f)
+        if meilleure is not None:
+            brut = meilleure[1].reset_index(drop=True)
     except Exception:
         brut = None
 
@@ -1162,19 +1173,19 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
                 attestations_a_controler.add(att_norm)
         log(f"Encaissements : {len(attestations_a_controler)} attestation(s) unique(s)")
 
-    # Depuis les rapports compagnies (si disponibles)
-    if not df_compagnies.empty:
-        # Chercher une colonne attestation/police/numéro
-        colonnes_att = [c for c in df_compagnies.columns if "attestation" in c.lower() or "police" in c.lower()]
-        for col in colonnes_att:
-            if col in df_compagnies.columns:
-                att_cie = df_compagnies[col].dropna()
-                att_cie = att_cie[att_cie.astype(str).str.strip() != ""]
-                for att in att_cie:
-                    att_norm = normaliser_cle(str(att))
-                    if att_norm:
-                        attestations_a_controler.add(att_norm)
-        log(f"Compagnies : {len(attestations_a_controler)} attestation(s) total unique(s)")
+    # Depuis les rapports compagnies : UNIQUEMENT les vraies colonnes "attestation"
+    # (on n'inclut PAS les numéros de police, qui ne sont pas des attestations)
+    if not df_compagnies.empty and "attestation" in df_compagnies.columns:
+        att_cie = df_compagnies["attestation"].dropna()
+        att_cie = att_cie[att_cie.astype(str).str.strip() != ""]
+        avant = len(attestations_a_controler)
+        for att in att_cie:
+            att_norm = normaliser_cle(str(att))
+            if att_norm:
+                attestations_a_controler.add(att_norm)
+        ajoutees = len(attestations_a_controler) - avant
+        if ajoutees:
+            log(f"Compagnies : +{ajoutees} attestation(s) ({len(attestations_a_controler)} au total)")
 
     # Créer le rapport de contrôle
     controle = []
