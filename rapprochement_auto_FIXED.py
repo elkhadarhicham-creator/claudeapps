@@ -516,6 +516,7 @@ def extraire_etat_encaissements(chemin_pdf):
                         if len(textes) >= 5:
                             lignes_rappel.append({
                                 "police": textes[0],
+                                "assure": "",  # rempli ensuite via le rapport compagnie (par police)
                                 "quittance": textes[1],
                                 "date_effet": parser_date(textes[2]),
                                 "prime": parser_montant(textes[3]),
@@ -1279,6 +1280,45 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
     return pd.DataFrame(controle) if controle else pd.DataFrame()
 
 
+def enrichir_rappels_avec_assure(df_rappels, df_compagnies):
+    """
+    Ajoute le nom de l'assuré aux quittances de rappel en cherchant la police
+    dans les rapports compagnies (surtout MAROC ASSISTANCE, colonne 'client').
+    """
+    if df_rappels is None or df_rappels.empty:
+        return df_rappels
+    if "assure" not in df_rappels.columns:
+        df_rappels = df_rappels.copy()
+        df_rappels["assure"] = ""
+
+    if df_compagnies is None or df_compagnies.empty or "police" not in df_compagnies.columns:
+        return df_rappels
+
+    # Table de correspondance police normalisée -> nom client
+    corr = {}
+    for _, l in df_compagnies.iterrows():
+        cle = normaliser_cle(str(l.get("police", "")))
+        nom = str(l.get("client", "") or "").strip()
+        if cle and nom and cle not in corr:
+            corr[cle] = nom
+
+    if not corr:
+        return df_rappels
+
+    df_rappels = df_rappels.copy()
+    nb = 0
+    for i, l in df_rappels.iterrows():
+        if str(l.get("assure", "") or "").strip():
+            continue
+        cle = normaliser_cle(str(l.get("police", "")))
+        if cle in corr:
+            df_rappels.at[i, "assure"] = corr[cle]
+            nb += 1
+    if nb:
+        log(f"{nb} nom(s) d'assuré ajouté(s) aux quittances de rappel.")
+    return df_rappels
+
+
 # ================================================================================
 # PROGRAMME PRINCIPAL
 # ================================================================================
@@ -1388,6 +1428,9 @@ def main():
                 morceaux_cies.append(df_cie)
 
     df_compagnies = pd.concat(morceaux_cies, ignore_index=True) if morceaux_cies else pd.DataFrame()
+
+    # Enrichir les quittances de rappel avec le nom d'assuré (via le rapport compagnie, par police)
+    df_rappels = enrichir_rappels_avec_assure(df_rappels, df_compagnies)
 
     # Rapprochement
     if df_analysis.empty:
