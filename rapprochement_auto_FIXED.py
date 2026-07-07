@@ -671,6 +671,7 @@ def lire_pdf_encaissements(chemin_pdf):
 ALIAS_COLONNES_CIE = {
     "police": ["n police", "n° police", "police"],
     "attestation": ["attestation"],
+    "usage": ["usage"],
     # 'souscripteur' en premier : pour MAROC ASSISTANCE, "Assuré principal" vaut
     # "Conducteur" (générique) alors que "Souscripteur" contient le vrai nom.
     "client": ["souscripteur", "client", "assure principal", "assure", "assuré"],
@@ -856,7 +857,26 @@ def lire_rapport_compagnie(chemin_fichier, nom_compagnie):
     try:
         standard = pd.DataFrame()
         standard["police"] = colonne("police")
-        standard["attestation"] = colonne("attestation")
+
+        # Attestation MATU : le numéro (ex 204570168) est complété par la
+        # PREMIÈRE LETTRE de la colonne "Usage" (AXX->A, FAX->F, D12->D)
+        # pour obtenir l'attestation réelle "A 204570168" (= nom du scan).
+        att_brut = list(colonne("attestation"))
+        usage_col = list(colonne("usage"))
+        att_finale = []
+        for i in range(len(att_brut)):
+            num = str(att_brut[i] or "").strip()
+            usg = str(usage_col[i] if i < len(usage_col) else "" or "").strip()
+            if not num or num.lower() == "nan":
+                att_finale.append("")
+            elif num[:1].isalpha():        # déjà préfixée
+                att_finale.append(num)
+            elif usg and usg[:1].isalpha():  # ajouter la lettre d'usage
+                att_finale.append(f"{usg[:1].upper()} {num}")
+            else:
+                att_finale.append(num)
+        standard["attestation"] = att_finale
+
         standard["client"] = colonne("client")
         prime_prorata = colonne("prime_prorata").apply(parser_montant)
         prime_annuelle = colonne("prime_annuelle").apply(parser_montant)
