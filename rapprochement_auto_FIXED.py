@@ -1476,11 +1476,16 @@ def integrer_cheques_groupes(df_analysis, df_rappels, df_compagnies):
     if "type_ligne" not in df_analysis.columns:
         df_analysis["type_ligne"] = "contrat"
 
-    # Marquer les lignes de paiement groupé : assuré finissant par 'CAR' + police vide
+    # Marquer les lignes de paiement groupé (chèque global) : une ligne SANS
+    # numéro de police n'est pas un contrat (un vrai contrat a toujours une
+    # police). C'est un règlement par chèque groupé (MOUNTED CAR, SLLD TRAVEL...)
+    # ou un dépôt — le détail réel est dans les sous-quittances.
     def _est_paiement(l):
-        ass = normaliser_texte(str(l.get("assure", "")))
         pol = normaliser_cle(str(l.get("police", "")))
-        return ass.endswith("CAR") and not pol
+        prime = l.get("prime")
+        a_du_contenu = (prime is not None and not pd.isna(prime)) or \
+                       bool(str(l.get("assure", "") or "").strip())
+        return (not pol) and a_du_contenu
     masque = df_analysis.apply(_est_paiement, axis=1)
     nb_paie = int(masque.sum())
     df_analysis.loc[masque, "type_ligne"] = "paiement_groupe"
