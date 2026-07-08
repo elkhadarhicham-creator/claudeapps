@@ -164,7 +164,9 @@ class SourcesData:
                     print(f"⚠️ Aucun rapport trouvé pour {nom_cie}")
                 continue
 
-            # Si date spécifiée, chercher ce jour exact (tous formats: 29-06-2026, 29.06.2026...)
+            # Si date spécifiée : chercher UNIQUEMENT ce jour exact.
+            # Pas de rapport à cette date = pas de production ce jour-là -> on ne charge rien
+            # (ne JAMAIS prendre un autre jour, ça fausserait le rapprochement).
             if date_str:
                 variantes = SourcesData.variantes_date(date_str)
                 for f in fichiers:
@@ -172,15 +174,13 @@ class SourcesData:
                         rapports[nom_cie] = f
                         print(f"✅ Rapport {nom_cie} trouvé: {f.name}")
                         break
-
-            # Si pas trouvé avec la date, prendre le plus récent (avec avertissement)
-            if nom_cie not in rapports and fichiers:
+                if nom_cie not in rapports:
+                    print(f"ℹ️ Pas de rapport {nom_cie} daté du {date_str} → pas de production {nom_cie} ce jour-là.")
+            else:
+                # Aucune date demandée : prendre le plus récent
                 f = sorted(fichiers, key=lambda x: x.stat().st_mtime, reverse=True)[0]
                 rapports[nom_cie] = f
-                if date_str:
-                    print(f"⚠️ Rapport {nom_cie}: pas de fichier daté du {date_str}, utilisation du plus récent: {f.name}")
-                else:
-                    print(f"✅ Rapport {nom_cie} trouvé: {f.name}")
+                print(f"✅ Rapport {nom_cie} trouvé: {f.name}")
 
         return rapports
 
