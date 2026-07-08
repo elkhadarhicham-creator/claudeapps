@@ -1061,29 +1061,87 @@ def rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_pri
             log(f"ERREUR en traitant une ligne : {e}")
             continue
 
-    df_resultat = pd.DataFrame(resultats)
-
-    # Détection des omissions
+    # ------------------------------------------------------------------
+    # CONTRATS PRODUITS (rapport compagnie) MAIS NON ENCAISSÉS
+    # Objectif : partir du rapport MATU/compagnie. Chaque contrat produit qui
+    # n'apparaît pas dans l'encaissement est ajouté au rapprochement avec le
+    # statut "NON ENCAISSÉ", et son scan est quand même vérifié.
+    # ------------------------------------------------------------------
     omissions = []
-    if not df_compagnies.empty and not df_analysis.empty and "police" in df_compagnies.columns and "police" in df_analysis.columns:
+    if not df_compagnies.empty:
         try:
-            polices_analysis = set(df_analysis["police"].apply(normaliser_cle))
+            # Clés déjà présentes dans l'encaissement (attestation + police)
+            cles_encaissees = set()
+            for _, l in df_analysis.iterrows():
+                for champ in ("attestation", "police"):
+                    c = normaliser_cle(l.get(champ, ""))
+                    if c:
+                        cles_encaissees.add(c)
+            # Inclure aussi les attestations de flotte
+            if "attestations_flotte" in df_analysis.columns:
+                for lst in df_analysis["attestations_flotte"].dropna():
+                    if isinstance(lst, (list, tuple)):
+                        for a in lst:
+                            c = normaliser_cle(a)
+                            if c:
+                                cles_encaissees.add(c)
+
             for _, cie_ligne in df_compagnies.iterrows():
                 cle_p = normaliser_cle(cie_ligne.get("police", ""))
-                if cle_p and cle_p not in polices_analysis:
-                    omissions.append({
-                        "Compagnie": cie_ligne.get("compagnie", ""),
-                        "N° Police": cie_ligne.get("police", ""),
-                        "N° Attestation": cie_ligne.get("attestation", ""),
-                        "Client": cie_ligne.get("client", ""),
-                        "Prime (prorata)": cie_ligne.get("prime", ""),
-                        "Prime annuelle": cie_ligne.get("prime_annuelle", ""),
-                        "Confirmée": cie_ligne.get("confirmee", ""),
-                        "Annulée": cie_ligne.get("annulee", ""),
-                    })
-        except Exception as e:
-            log(f"ERREUR en détectant les omissions : {e}")
+                cle_a = normaliser_cle(cie_ligne.get("attestation", ""))
+                # Déjà encaissé ? (par police OU attestation)
+                if (cle_p and cle_p in cles_encaissees) or (cle_a and cle_a in cles_encaissees):
+                    continue
+                if not cle_p and not cle_a:
+                    continue
 
+                # Contrat annulé chez la compagnie -> pas une omission à réclamer
+                annulee = normaliser_texte(str(cie_ligne.get("annulee", "")))
+                if annulee in ("VRAI", "TRUE", "OUI", "1", "ANNULE"):
+                    continue
+
+                # Vérifier le scan
+                cle_scan = None
+                if cle_a and cle_a in scans_tous:
+                    cle_scan = cle_a
+                elif cle_p and cle_p in scans_tous:
+                    cle_scan = cle_p
+                scan_present = cle_scan is not None
+
+                att_aff = str(cie_ligne.get("attestation", "") or "")
+                problemes = ["Produit non encaissé"]
+                if not scan_present:
+                    problemes.append("Scan manquant")
+
+                resultats.append({
+                    "N° Attestation": att_aff,
+                    "Assuré": str(cie_ligne.get("client", "") or ""),
+                    "N° Police": str(cie_ligne.get("police", "") or ""),
+                    "Prime Analysis": cie_ligne.get("prime"),
+                    "Scan présent": "Oui" if scan_present else "Non",
+                    "Nom fichier scan": scans_tous.get(cle_scan, "") if scan_present else "",
+                    "Statut encaissement": "NON ENCAISSÉ",
+                    "Compagnie retrouvée": cie_ligne.get("compagnie", ""),
+                    "Statut compagnie": "TROUVE",
+                    "Statut global": "NON ENCAISSÉ",
+                    "Détail des problèmes": "; ".join(problemes),
+                })
+
+                omissions.append({
+                    "Compagnie": cie_ligne.get("compagnie", ""),
+                    "N° Police": cie_ligne.get("police", ""),
+                    "N° Attestation": att_aff,
+                    "Client": cie_ligne.get("client", ""),
+                    "Prime (prorata)": cie_ligne.get("prime", ""),
+                    "Prime annuelle": cie_ligne.get("prime_annuelle", ""),
+                    "Scan présent": "Oui" if scan_present else "Non",
+                    "Confirmée": cie_ligne.get("confirmee", ""),
+                    "Annulée": cie_ligne.get("annulee", ""),
+                })
+        except Exception as e:
+            log(f"ERREUR en détectant les contrats non encaissés : {e}")
+
+    df_resultat = pd.DataFrame(resultats)
     df_omissions = pd.DataFrame(omissions)
 
     return df_resultat, df_omissions
@@ -1104,6 +1162,8 @@ def _construire_nom_fichier_sortie(periode_controlee):
 COULEUR_CONFORME = "C6E0B4"
 COULEUR_ATTENTION = "FFE699"
 COULEUR_CRITIQUE = "F4B183"
+COULEUR_NON_ENCAISSE = "BDD7EE"   # bleu clair : produit mais non encaissé
+COULEUR_PAIEMENT = "D9D9D9"       # gris : chèque groupé (paiement)
 COULEUR_ENTETE = "1F4E78"
 
 
@@ -1128,7 +1188,9 @@ def _ecrire_dataframe(feuille, df, colonne_statut=None, ligne_depart=1):
     for i, (_, ligne) in enumerate(df.iterrows(), start=ligne_entete + 1):
         statut = ligne.get(colonne_statut) if colonne_statut else None
         couleur = {"CONFORME": COULEUR_CONFORME, "ATTENTION": COULEUR_ATTENTION,
-                   "CRITIQUE": COULEUR_CRITIQUE}.get(statut)
+                   "CRITIQUE": COULEUR_CRITIQUE,
+                   "NON ENCAISSÉ": COULEUR_NON_ENCAISSE,
+                   "PAIEMENT GROUPÉ": COULEUR_PAIEMENT}.get(statut)
 
         for j, col in enumerate(df.columns, start=1):
             valeur = ligne[col]
@@ -1197,8 +1259,9 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
         nb_conforme = int((df_resultat["Statut global"] == "CONFORME").sum())
         nb_attention = int((df_resultat["Statut global"] == "ATTENTION").sum())
         nb_critique = int((df_resultat["Statut global"] == "CRITIQUE").sum())
+        nb_non_encaisse = int((df_resultat["Statut global"] == "NON ENCAISSÉ").sum())
     else:
-        nb_conforme = nb_attention = nb_critique = 0
+        nb_conforme = nb_attention = nb_critique = nb_non_encaisse = 0
 
     taux_conformite = round(100 * nb_conforme / total, 1) if total > 0 else 0
 
@@ -1212,6 +1275,7 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
         ["Conformes", nb_conforme],
         ["Attention", nb_attention],
         ["Critiques", nb_critique],
+        ["Produits NON encaissés", nb_non_encaisse],
         ["Taux de conformité (%)", taux_conformite],
         ["Omissions possibles", len(df_omissions) if not df_omissions.empty else 0],
         ["Quittances rappel", len(df_rappels) if not df_rappels.empty else 0],
