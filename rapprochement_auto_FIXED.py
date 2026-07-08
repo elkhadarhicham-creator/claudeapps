@@ -995,6 +995,19 @@ def rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_pri
                 statut_police = (cle_police == normaliser_cle(ligne_cie.get("police", "")))
                 cie_annulee = str(ligne_cie.get("annulee", ""))
 
+            # FLOTTE / CHÈQUE GROUPÉ : comparer la SOMME des primes (prime_attendue)
+            # au total encaissé, au lieu d'une seule ligne compagnie.
+            prime_attendue = ligne.get("prime_attendue")
+            if prime_attendue is not None and not pd.isna(prime_attendue):
+                statut_cie = "TROUVE"
+                compagnie_trouvee = compagnie_trouvee or "MATU"
+                ecart_prime = (round(abs(prime_analysis - prime_attendue), 2)
+                               if prime_analysis is not None else None)
+                if ecart_nom is None:
+                    ecart_nom = 0.0
+                if statut_police is None:
+                    statut_police = True
+
             problemes = []
             if scan_manquant:
                 problemes.append("Scan manquant")
@@ -1354,7 +1367,13 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
         for _, ligne in df_analysis.iterrows():
             if str(ligne.get("type_ligne", "contrat")) == "paiement_groupe":
                 continue
-            traiter_ligne(ligne.get("attestation", ""), ligne.get("police", ""), ligne.get("assure", ""))
+            # Flotte : vérifier CHAQUE attestation (un scan par véhicule)
+            atts_flotte = ligne.get("attestations_flotte") if "attestations_flotte" in ligne.index else None
+            if isinstance(atts_flotte, (list, tuple)) and len(atts_flotte) > 0:
+                for att in atts_flotte:
+                    traiter_ligne(att, ligne.get("police", ""), ligne.get("assure", ""))
+            else:
+                traiter_ligne(ligne.get("attestation", ""), ligne.get("police", ""), ligne.get("assure", ""))
 
     # 2) Sous-quittances (chèques groupés + Quittances encaissée)
     if df_rappels is not None and not df_rappels.empty and "police" in df_rappels.columns:
@@ -1466,54 +1485,101 @@ def integrer_cheques_groupes(df_analysis, df_rappels, df_compagnies):
     nb_paie = int(masque.sum())
     df_analysis.loc[masque, "type_ligne"] = "paiement_groupe"
 
-    # Table police -> (attestation, client) depuis les compagnies
+    # Table police -> {attestations (avec lettre), primes, client} depuis les compagnies.
+    # Une flotte a PLUSIEURS lignes (véhicules) sous la même police.
     corr = {}
     if df_compagnies is not None and not df_compagnies.empty and "police" in df_compagnies.columns:
         for _, l in df_compagnies.iterrows():
             p = normaliser_cle(str(l.get("police", "")))
-            if p and p not in corr:
-                corr[p] = (str(l.get("attestation", "") or "").strip(),
-                           str(l.get("client", "") or "").strip())
+            if not p:
+                continue
+            info = corr.setdefault(p, {"atts": [], "primes": [], "client": ""})
+            att = str(l.get("attestation", "") or "").strip()
+            if att and att.lower() != "nan":
+                info["atts"].append(att)
+            prime = l.get("prime")
+            if prime is not None and not pd.isna(prime):
+                info["primes"].append(float(prime))
+            if not info["client"]:
+                info["client"] = str(l.get("client", "") or "").strip()
 
-    # Convertir les sous-quittances en lignes de contrat
-    nouvelles = []
+    # Regrouper les sous-quittances par police (une flotte = une police, plusieurs quittances)
+    groupes = defaultdict(list)
     if df_rappels is not None and not df_rappels.empty:
         for _, l in df_rappels.iterrows():
             police = str(l.get("police", "") or "").strip()
             quittance = str(l.get("quittance", "") or "").strip()
             if not police and quittance:
                 police = re.sub(r"-\d+$", "", quittance)
-            att, client = corr.get(normaliser_cle(police), ("", ""))
-            if not att and police and not police[:1].isdigit():
-                att = police  # MAROC : la police EST l'attestation
-            montant = l.get("montant_encaisse")
-            if montant is None:
-                montant = l.get("prime")
-            nouvelles.append({
-                "quittance": quittance,
-                "quittance_compagnie": quittance,
-                "attestation": att,
-                "assure": (str(l.get("assure", "") or "").strip() or client),
-                "police": police,
-                "date_effet": l.get("date_effet"),
-                "prime": l.get("prime"),
-                "reference_banque": "",
-                "especes": 0.0,
-                "dt": 0.0,
-                "cheque": montant,
-                "banque": 0.0,
-                "reste": 0.0,
-                "operateur": "",
-                "page": None,
-                "ligne_source": f"Sous-quittance chèque groupé ({quittance})",
-                "type_ligne": "contrat",
-            })
+            groupes[police].append(l)
+
+    nouvelles = []
+    for police, lignes in groupes.items():
+        cle_pol = normaliser_cle(police)
+        info = corr.get(cle_pol)
+
+        # Total encaissé = somme des montants des sous-quittances de la flotte
+        total_paye = 0.0
+        quittances = []
+        for l in lignes:
+            m = l.get("montant_encaisse")
+            if m is None or pd.isna(m):
+                m = l.get("prime")
+            if m is not None and not pd.isna(m):
+                total_paye += float(m)
+            q = str(l.get("quittance", "") or "").strip()
+            if q:
+                quittances.append(q)
+
+        # Somme des primes MATU de la flotte (règle : somme des primes vs encaissement)
+        prime_attendue = round(sum(info["primes"]), 2) if info and info["primes"] else None
+        atts = list(info["atts"]) if info else []
+        client = info["client"] if info else ""
+
+        # Attestation principale (pour l'affichage) et liste pour le contrôle des scans
+        if atts:
+            att_principale = atts[0]
+        elif police and not police[:1].isdigit():
+            att_principale = police   # MAROC : police = attestation
+            atts = [police]
+        else:
+            att_principale = ""
+
+        assure = ""
+        for l in lignes:
+            a = str(l.get("assure", "") or "").strip()
+            if a:
+                assure = a
+                break
+        assure = assure or client
+
+        nouvelles.append({
+            "quittance": quittances[0] if quittances else "",
+            "quittance_compagnie": " + ".join(quittances),
+            "attestation": att_principale,
+            "attestations_flotte": atts,          # pour le contrôle des scans
+            "assure": assure,
+            "police": police,
+            "date_effet": lignes[0].get("date_effet"),
+            "prime": round(total_paye, 2),
+            "prime_attendue": prime_attendue,     # somme des primes MATU de la flotte
+            "reference_banque": "",
+            "especes": 0.0,
+            "dt": 0.0,
+            "cheque": round(total_paye, 2),
+            "banque": 0.0,
+            "reste": 0.0,
+            "operateur": "",
+            "page": None,
+            "ligne_source": f"Chèque groupé / flotte ({len(lignes)} quittance(s), police {police})",
+            "type_ligne": "contrat",
+        })
 
     if nouvelles:
         df_analysis = pd.concat([df_analysis, pd.DataFrame(nouvelles)], ignore_index=True)
 
     log(f"Chèques groupés : {nb_paie} ligne(s) de paiement neutralisée(s), "
-        f"{len(nouvelles)} sous-quittance(s) intégrée(s) comme contrats.")
+        f"{len(nouvelles)} contrat(s)/flotte(s) intégré(s) depuis {sum(len(v) for v in groupes.values())} sous-quittance(s).")
     return df_analysis
 
 
