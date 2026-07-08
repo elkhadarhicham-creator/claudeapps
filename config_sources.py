@@ -31,18 +31,36 @@ class SourcesData:
     @staticmethod
     def variantes_date(date_str):
         """
-        Génère toutes les écritures possibles d'une date.
-        '29.06.2026' -> {'29.06.2026', '29-06-2026', '29/06/2026',
-                         '29.06.26', '29-06-26', '29/06/26'}
+        Génère TOUTES les écritures possibles d'une date pour retrouver le fichier,
+        quel que soit le nommage :
+          - séparateurs : '-', '.', '/'  (ex: RAPPORT MATU 01-07-2026)
+          - jour/mois avec ou sans zéro : 01 ou 1, 07 ou 7
+          - année sur 4 ou 2 chiffres : 2026 ou 26
+        '01.07.2026' -> '01-07-2026', '1-7-2026', '01.07.26', '1/7/26', ...
         """
         if not date_str:
             return set()
-        base = str(date_str).replace("/", ".").replace("-", ".")
-        variantes = {base, base.replace(".", "-"), base.replace(".", "/")}
+        base = str(date_str).replace("/", ".").replace("-", ".").strip()
         parts = base.split(".")
-        if len(parts) == 3 and len(parts[2]) == 4:
-            courte = f"{parts[0]}.{parts[1]}.{parts[2][2:]}"
-            variantes.update({courte, courte.replace(".", "-"), courte.replace(".", "/")})
+        if len(parts) != 3:
+            return {base, base.replace(".", "-"), base.replace(".", "/")}
+
+        j, m, a = parts[0], parts[1], parts[2]
+        jours = {j, j.zfill(2), (j.lstrip("0") or j)}
+        mois = {m, m.zfill(2), (m.lstrip("0") or m)}
+        if len(a) == 4:
+            annees = {a, a[2:]}
+        elif len(a) == 2:
+            annees = {a, "20" + a}
+        else:
+            annees = {a}
+
+        variantes = set()
+        for jj in jours:
+            for mm in mois:
+                for aa in annees:
+                    for sep in (".", "-", "/"):
+                        variantes.add(f"{jj}{sep}{mm}{sep}{aa}")
         return variantes
 
     @staticmethod
