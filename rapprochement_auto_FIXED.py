@@ -1008,6 +1008,11 @@ def rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_pri
                 if statut_police is None:
                     statut_police = True
 
+            # Contrat encaissé mais absent du rapport du jour = paiement en retard
+            # (produit un autre jour). Ce n'est PAS une erreur : à rapprocher plus
+            # tard avec la production antérieure (recherche multi-jours à venir).
+            paiement_en_retard = (statut_cie == "NON TROUVE")
+
             problemes = []
             if scan_manquant:
                 problemes.append("Scan manquant")
@@ -1015,8 +1020,6 @@ def rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_pri
                 problemes.append("Impayé")
             if statut_encaissement == "SURPAYE":
                 problemes.append("Surpaiement")
-            if statut_cie == "NON TROUVE":
-                problemes.append("Contrat non retrouvé chez une compagnie")
             if ecart_prime is not None and ecart_prime > tolerance_prime:
                 problemes.append(f"Écart de prime ({ecart_prime} DH)")
             if ecart_nom is not None and ecart_nom > (100 - seuil_nom):
@@ -1024,13 +1027,18 @@ def rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_pri
             if normaliser_texte(cie_annulee) in ("VRAI", "TRUE", "OUI", "1", "ANNULE"):
                 problemes.append("Contrat annulé chez la compagnie")
 
-            if not problemes:
-                statut_global = "CONFORME"
-            elif any(p in problemes for p in ("Scan manquant", "Contrat non retrouvé chez une compagnie",
-                                               "Impayé", "Contrat annulé chez la compagnie")):
-                statut_global = "CRITIQUE"
+            if problemes:
+                if any(p in problemes for p in ("Scan manquant", "Impayé", "Contrat annulé chez la compagnie")):
+                    statut_global = "CRITIQUE"
+                else:
+                    statut_global = "ATTENTION"
+                if paiement_en_retard:
+                    problemes.append("À rapprocher (production d'un autre jour)")
+            elif paiement_en_retard:
+                statut_global = "PAIEMENT EN RETARD"
+                problemes.append("À rapprocher avec la production d'un autre jour")
             else:
-                statut_global = "ATTENTION"
+                statut_global = "CONFORME"
 
             resultats.append({
                 "N° Quittance (interne)": ligne.get("quittance", ""),
@@ -1164,6 +1172,7 @@ COULEUR_ATTENTION = "FFE699"
 COULEUR_CRITIQUE = "F4B183"
 COULEUR_NON_ENCAISSE = "BDD7EE"   # bleu clair : produit mais non encaissé
 COULEUR_PAIEMENT = "D9D9D9"       # gris : chèque groupé (paiement)
+COULEUR_RETARD = "E4DFEC"         # violet clair : paiement en retard (à rapprocher)
 COULEUR_ENTETE = "1F4E78"
 
 
@@ -1190,7 +1199,8 @@ def _ecrire_dataframe(feuille, df, colonne_statut=None, ligne_depart=1):
         couleur = {"CONFORME": COULEUR_CONFORME, "ATTENTION": COULEUR_ATTENTION,
                    "CRITIQUE": COULEUR_CRITIQUE,
                    "NON ENCAISSÉ": COULEUR_NON_ENCAISSE,
-                   "PAIEMENT GROUPÉ": COULEUR_PAIEMENT}.get(statut)
+                   "PAIEMENT GROUPÉ": COULEUR_PAIEMENT,
+                   "PAIEMENT EN RETARD": COULEUR_RETARD}.get(statut)
 
         for j, col in enumerate(df.columns, start=1):
             valeur = ligne[col]
@@ -1237,7 +1247,8 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
     feuille_ecarts.append([texte_periode])
     feuille_ecarts["A1"].font = Font(bold=True, size=13, color="1F4E78")
     feuille_ecarts.append([])
-    df_ecarts = (df_resultat[~df_resultat["Statut global"].isin(["CONFORME", "PAIEMENT GROUPÉ"])].copy()
+    df_ecarts = (df_resultat[~df_resultat["Statut global"].isin(
+                     ["CONFORME", "PAIEMENT GROUPÉ", "PAIEMENT EN RETARD"])].copy()
                  if (not df_resultat.empty and "Statut global" in df_resultat.columns)
                  else pd.DataFrame())
     _ecrire_dataframe(feuille_ecarts, df_ecarts, colonne_statut="Statut global", ligne_depart=3)
@@ -1260,8 +1271,9 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
         nb_attention = int((df_resultat["Statut global"] == "ATTENTION").sum())
         nb_critique = int((df_resultat["Statut global"] == "CRITIQUE").sum())
         nb_non_encaisse = int((df_resultat["Statut global"] == "NON ENCAISSÉ").sum())
+        nb_retard = int((df_resultat["Statut global"] == "PAIEMENT EN RETARD").sum())
     else:
-        nb_conforme = nb_attention = nb_critique = nb_non_encaisse = 0
+        nb_conforme = nb_attention = nb_critique = nb_non_encaisse = nb_retard = 0
 
     taux_conformite = round(100 * nb_conforme / total, 1) if total > 0 else 0
 
@@ -1276,6 +1288,7 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
         ["Attention", nb_attention],
         ["Critiques", nb_critique],
         ["Produits NON encaissés", nb_non_encaisse],
+        ["Paiements en retard (à rapprocher)", nb_retard],
         ["Taux de conformité (%)", taux_conformite],
         ["Omissions possibles", len(df_omissions) if not df_omissions.empty else 0],
         ["Quittances rappel", len(df_rappels) if not df_rappels.empty else 0],
