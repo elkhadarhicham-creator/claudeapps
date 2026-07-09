@@ -1470,8 +1470,22 @@ def controler_attestations_scannees(df_analysis, df_compagnies, attestations_dis
                 att = police
             traiter_ligne(att, police, ligne.get("assure", "") or "(quittance de rappel)")
 
+    # 3) Contrats PRODUITS chez la compagnie (rapport MATU...) même NON encaissés.
+    #    Objectif : vérifier que CHAQUE attestation produite est scannée
+    #    (ex: EMT CAR produit mais pas encore encaissé).
+    if df_compagnies is not None and not df_compagnies.empty and "attestation" in df_compagnies.columns:
+        for _, l in df_compagnies.iterrows():
+            annulee = normaliser_texte(str(l.get("annulee", "")))
+            if annulee in ("VRAI", "TRUE", "OUI", "1", "ANNULE"):
+                continue
+            att = str(l.get("attestation", "") or "").strip()
+            pol = str(l.get("police", "") or "").strip()
+            if not att and not pol:
+                continue
+            traiter_ligne(att, pol, l.get("client", ""))
+
     if not controle:
-        log("Aucune ligne d'encaissement à contrôler.")
+        log("Aucune ligne à contrôler.")
         return pd.DataFrame()
 
     total = nb_trouvees + nb_manquantes
