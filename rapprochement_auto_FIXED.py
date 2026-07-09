@@ -1225,7 +1225,7 @@ def _ecrire_dataframe(feuille, df, colonne_statut=None, ligne_depart=1):
     feuille.freeze_panes = feuille.cell(row=ligne_entete + 1, column=1).coordinate
 
 
-def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, periode_controlee=None, df_controle_att=None):
+def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, periode_controlee=None, df_controle_att=None, resume_financier=None):
     classeur = Workbook()
 
     texte_periode = (
@@ -1292,6 +1292,26 @@ def generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, 
         ["Taux de conformité (%)", taux_conformite],
         ["Omissions possibles", len(df_omissions) if not df_omissions.empty else 0],
         ["Quittances rappel", len(df_rappels) if not df_rappels.empty else 0],
+    ]
+
+    # RÉSUMÉ FINANCIER DE LA JOURNÉE
+    rf = resume_financier or {}
+    # Montant des primes produites mais non encaissées
+    if not df_resultat.empty and "Statut global" in df_resultat.columns and "Prime Analysis" in df_resultat.columns:
+        primes_ne = pd.to_numeric(
+            df_resultat.loc[df_resultat["Statut global"] == "NON ENCAISSÉ", "Prime Analysis"],
+            errors="coerce").fillna(0).sum()
+    else:
+        primes_ne = 0.0
+    total_encaisse = rf.get("total_encaisse", 0.0)
+    lignes_synthese += [
+        [],
+        ["RÉSUMÉ FINANCIER DE LA JOURNÉE", ""],
+        ["Chiffre d'affaires encaissé (DH)", round(total_encaisse, 2)],
+        ["  dont espèces (DH)", rf.get("especes", 0.0)],
+        ["  dont chèque / banque (DH)", rf.get("cheque", 0.0)],
+        ["Reste produit NON encaissé (DH)", round(float(primes_ne), 2)],
+        ["Chiffre d'affaires total produit (DH)", round(total_encaisse + float(primes_ne), 2)],
     ]
 
     # Statistiques du contrôle des attestations scannées
@@ -1792,6 +1812,22 @@ def main():
     # Enrichir les quittances de rappel avec le nom d'assuré (via le rapport compagnie, par police)
     df_rappels = enrichir_rappels_avec_assure(df_rappels, df_compagnies)
 
+    # Résumé financier calculé sur l'encaissement BRUT (avant intégration des
+    # sous-quittances, pour ne pas compter deux fois les chèques groupés).
+    def _somme(df, col):
+        if df is None or df.empty or col not in df.columns:
+            return 0.0
+        return float(pd.to_numeric(df[col], errors="coerce").fillna(0).sum())
+
+    total_especes = _somme(df_analysis, "especes")
+    total_cheque = _somme(df_analysis, "cheque")
+    total_banque = _somme(df_analysis, "banque")
+    resume_financier = {
+        "especes": round(total_especes, 2),
+        "cheque": round(total_cheque + total_banque, 2),
+        "total_encaisse": round(total_especes + total_cheque + total_banque, 2),
+    }
+
     # OPTION 1 : intégrer les sous-quittances des chèques groupés comme vrais
     # contrats, et neutraliser les lignes de paiement 'CAR'.
     df_analysis = integrer_cheques_groupes(df_analysis, df_rappels, df_compagnies)
@@ -1810,7 +1846,7 @@ def main():
     # Génération du rapport Excel
     nom_fichier_sortie = _construire_nom_fichier_sortie(periode_controlee)
     chemin_sortie = os.path.join(output_path, nom_fichier_sortie)
-    generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, periode_controlee, df_controle_att)
+    generer_rapport_excel(df_resultat, df_omissions, df_rappels, chemin_sortie, periode_controlee, df_controle_att, resume_financier)
 
     ecrire_journal(output_path)
 
