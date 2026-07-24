@@ -285,6 +285,52 @@ def demander_date_controle(valeur_config):
     return date_choisie
 
 
+def demander_periode_controle(valeur_config):
+    """
+    Demande une PÉRIODE (date de début → date de fin).
+    Si la date de fin est vide, on contrôle un seul jour (= date de début).
+    Retourne (date_debut, date_fin) — deux objets date.
+    """
+    valeur_defaut = _resoudre_date_controle(valeur_config)
+    suggestion = valeur_defaut.strftime("%d/%m/%Y")
+
+    print()
+    print("=" * 70)
+    try:
+        rep_debut = input(f"Date de DÉBUT ? (JJ/MM/AAAA) [Entrée = {suggestion}] : ").strip()
+    except EOFError:
+        rep_debut = ""
+    d1 = parser_date(rep_debut) if rep_debut else None
+    date_debut = d1.date() if d1 else valeur_defaut
+
+    try:
+        rep_fin = input(f"Date de FIN ?   (JJ/MM/AAAA) [Entrée = même jour {date_debut.strftime('%d/%m/%Y')}] : ").strip()
+    except EOFError:
+        rep_fin = ""
+    d2 = parser_date(rep_fin) if rep_fin else None
+    date_fin = d2.date() if d2 else date_debut
+    print("=" * 70)
+
+    if date_fin < date_debut:
+        date_debut, date_fin = date_fin, date_debut
+
+    if date_debut == date_fin:
+        log(f"Jour à contrôler : {date_debut.strftime('%d/%m/%Y')}")
+    else:
+        log(f"Période à contrôler : du {date_debut.strftime('%d/%m/%Y')} au {date_fin.strftime('%d/%m/%Y')}")
+    return date_debut, date_fin
+
+
+def lister_jours_periode(date_debut, date_fin):
+    """Retourne la liste des dates du début à la fin (incluses)."""
+    jours = []
+    jour = date_debut
+    while jour <= date_fin:
+        jours.append(jour)
+        jour = jour + timedelta(days=1)
+    return jours
+
+
 def trouver_fichier_pour_date(dossier, motifs, date_cible):
     if not os.path.isdir(dossier):
         log(f"ATTENTION : dossier introuvable -> {dossier}")
@@ -1162,8 +1208,11 @@ def rapprocher(df_analysis, scans_jour, scans_tous, df_compagnies, tolerance_pri
 def _construire_nom_fichier_sortie(periode_controlee):
     horodatage_generation = datetime.now().strftime("%Y-%m-%d_%Hh%M")
     if periode_controlee:
-        date_controlee = periode_controlee[0].replace("/", "-")
-        return f"Rapprochement_{date_controlee}_genere_{horodatage_generation}.xlsx"
+        debut = periode_controlee[0].replace("/", "-")
+        fin = periode_controlee[1].replace("/", "-") if len(periode_controlee) > 1 else debut
+        if debut == fin:
+            return f"Rapprochement_{debut}_genere_{horodatage_generation}.xlsx"
+        return f"Rapprochement_{debut}_au_{fin}_genere_{horodatage_generation}.xlsx"
     return f"Rapprochement_DATE-INCONNUE_genere_{horodatage_generation}.xlsx"
 
 
@@ -1716,14 +1765,9 @@ def main():
     tolerance_prime = float(config["Tolerances"].get("tolerance_prime", "2.0"))
     seuil_nom = float(config["Tolerances"].get("seuil_similarite_nom", "80"))
 
-    date_cible = demander_date_controle(config["Controle"].get("date_controle", "auto"))
+    date_debut, date_fin = demander_periode_controle(config["Controle"].get("date_controle", "auto"))
+    date_cible = date_debut  # compatibilité (scans datés)
     filtrer_scans_par_date = config["Controle"].get("filtrer_scans_par_date", "oui").strip().lower() in ("oui", "yes", "true", "1")
-
-    # Convertir la date en format DD.MM.YYYY pour les sources
-    date_search = None
-    if date_cible and SOURCES_DISPONIBLES:
-        date_str = date_cible.strftime("%d.%m.%Y") if hasattr(date_cible, 'strftime') else str(date_cible)
-        date_search = date_str.replace("/", ".") if "/" in date_str else date_str
 
     df_analysis = pd.DataFrame()
     df_rappels = pd.DataFrame()
@@ -1734,45 +1778,47 @@ def main():
     if SOURCES_DISPONIBLES:
         log("✅ Utilisation des sources configurées (Google Drive + Réseau)")
 
-        # Chercher encaissements
-        chemin_pdf = SourcesData.chercher_encaissements(date_search)
-        if chemin_pdf:
-            df_analysis, df_rappels, periode_controlee = lire_pdf_encaissements(str(chemin_pdf))
-        else:
-            log("ARRÊT PARTIEL : aucun PDF d'encaissements trouvé.")
-
-        # Les scans = attestations trouvées sur le réseau \\KARIMA\images analisis
+        # Les scans = attestations trouvées sur le réseau (une seule lecture)
         scans_jour, scans_tous = {}, {}
         try:
             attestations_reseau = SourcesData.chercher_attestations() or {}
             scans_tous = {cle: chemin.name for cle, chemin in attestations_reseau.items()}
             log(f"{len(scans_tous)} attestation(s) scannée(s) disponibles sur le réseau.")
-
-            # Déterminer les scans datés du jour contrôlé (via la date du fichier)
-            if date_cible is not None and not df_analysis.empty and "attestation" in df_analysis.columns:
-                for att in df_analysis["attestation"].dropna():
-                    cle = normaliser_cle(str(att))
-                    chemin_att = attestations_reseau.get(cle)
-                    if chemin_att:
-                        try:
-                            date_fichier = datetime.fromtimestamp(chemin_att.stat().st_mtime).date()
-                            if date_fichier == date_cible:
-                                scans_jour[cle] = chemin_att.name
-                        except Exception:
-                            pass
         except Exception as e:
             log(f"ATTENTION : impossible de lire les attestations réseau : {e}")
             attestations_reseau = None
 
-        # Chercher rapports compagnies
-        rapports = SourcesData.chercher_rapports_compagnies(date_search)
+        # Boucler sur chaque jour de la période : cumuler encaissements + compagnies
+        jours = lister_jours_periode(date_debut, date_fin)
+        morceaux_analysis, morceaux_rappels, morceaux_cies = [], [], []
+        for jour in jours:
+            date_search = jour.strftime("%d.%m.%Y")
+            log(f"\n----- Jour {jour.strftime('%d/%m/%Y')} -----")
 
-        morceaux_cies = []
-        for nom_cie, chemin_cie in rapports.items():
-            if chemin_cie:
-                df_cie = lire_rapport_compagnie(str(chemin_cie), nom_cie)
-                if not df_cie.empty:
-                    morceaux_cies.append(df_cie)
+            chemin_pdf = SourcesData.chercher_encaissements(date_search)
+            if chemin_pdf:
+                a_j, r_j, per_j = lire_pdf_encaissements(str(chemin_pdf))
+                if a_j is not None and not a_j.empty:
+                    morceaux_analysis.append(a_j)
+                if r_j is not None and not r_j.empty:
+                    morceaux_rappels.append(r_j)
+                if per_j and periode_controlee is None:
+                    periode_controlee = per_j
+            else:
+                log(f"  (pas d'encaissement pour le {jour.strftime('%d/%m/%Y')})")
+
+            rapports = SourcesData.chercher_rapports_compagnies(date_search)
+            for nom_cie, chemin_cie in rapports.items():
+                if chemin_cie:
+                    df_cie = lire_rapport_compagnie(str(chemin_cie), nom_cie)
+                    if not df_cie.empty:
+                        morceaux_cies.append(df_cie)
+
+        df_analysis = pd.concat(morceaux_analysis, ignore_index=True) if morceaux_analysis else pd.DataFrame()
+        df_rappels = pd.concat(morceaux_rappels, ignore_index=True) if morceaux_rappels else pd.DataFrame()
+
+        # Période affichée = début → fin réels demandés
+        periode_controlee = (date_debut.strftime("%d/%m/%y"), date_fin.strftime("%d/%m/%y"))
     else:
         # ANCIENNE APPROCHE: utiliser les chemins de config
         log("⚠️ config_sources.py non disponible, utilisation des chemins config")

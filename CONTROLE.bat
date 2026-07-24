@@ -7,10 +7,12 @@ echo    CONTROLE QUOTIDIEN - RAPPROCHEMENT ASSURANCES
 echo  ================================================================
 echo.
 echo    Ce programme va :
-echo      1. Lire l'etat des encaissements (G:\Mon Drive)
-echo      2. Lire les rapports des compagnies (MATU, SANLAM, WAFA, MAROC ASSISTANCE)
+echo      1. Demander une DATE ou une PERIODE (date de debut -^> date de fin)
+echo      2. Lire les encaissements et rapports compagnies de la periode
 echo      3. Verifier les attestations scannees (\\KARIMA\images analisis)
 echo      4. Generer le rapport Excel dans le dossier Rapports_Generes
+echo.
+echo    Astuce : pour un seul jour, laissez la date de FIN vide (Entree).
 echo.
 echo  ================================================================
 echo.
