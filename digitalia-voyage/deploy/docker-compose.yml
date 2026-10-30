@@ -1,0 +1,24 @@
+# Site Digitalia Assurance Voyage + Caddy (HTTPS automatique Let's Encrypt)
+services:
+  site:
+    build: ..
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATA_DIR: /data
+      MAI_SCENARIO: /data/mai_scenario.json
+    volumes:
+      - donnees:/data
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAINE: ${DOMAINE}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [site]
+volumes:
+  donnees:
+  caddy_data:

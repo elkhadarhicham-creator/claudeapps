@@ -32,6 +32,8 @@ Tests : `.venv/bin/python -m pytest -q tests`. Les tests font tout le parcours, 
 
 ## Mise en ligne
 
+Guide pas à pas (Hetzner, environ 4 € par mois, HTTPS automatique) : `deploy/MISE_EN_LIGNE.md`. Le script `deploy/installer.sh` installe ou met à jour le site sur un serveur Ubuntu.
+
 Avec Docker, sur un serveur au Maroc ou en Europe :
 
 ```bash

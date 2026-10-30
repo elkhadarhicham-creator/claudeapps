@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.13-slim-bookworm
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 DATA_DIR=/data
 COPY requirements.txt .
