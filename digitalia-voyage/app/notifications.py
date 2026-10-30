@@ -97,7 +97,7 @@ def fiche_digitalia(s: dict) -> dict:
     return {
         "reference": s["ref"], "statut": s["statut"], "canal": "site_web",
         "numero_police": s.get("numero_police"), "date_souscription": s.get("cree_le"),
-        "date_emission": s.get("emise_le"), "mis_a_jour_le": s.get("maj_le") or s.get("cree_le"), "branche": "Assistance voyage",
+        "date_emission": s.get("emise_le"), "mis_a_jour_le": s.get("maj_le") or s.get("cree_le"), "version": s.get("seq"), "branche": "Assistance voyage",
         "compagnie": config.COMPAGNIE, "produit": s["produit"],
         "date_effet": s["date_effet"], "date_echeance": s["date_echeance"], "prime_ttc": s["prime_ttc"],
         "encaissement": {"mode": "carte_bancaire", "montant": s["prime_ttc"], "statut": "accepte",
@@ -106,6 +106,10 @@ def fiche_digitalia(s: dict) -> dict:
         "souscripteur": {"telephone_whatsapp": s["telephone"], "email": s.get("email")},
         "assures": s["assures"],
         "consentements": s["consentements"],
+        "documents": {
+            "recu": f"/api/digitalia/souscriptions/{s['ref']}/recu.pdf" if s["statut"] in ("payee", "emise", "annulee") else None,
+            "attestation": f"/api/digitalia/souscriptions/{s['ref']}/attestation.pdf" if s.get("attestation_fichier") else None,
+        },
     }
 
 
@@ -120,8 +124,8 @@ def envoyer_digitalia(s: dict) -> bool:
         ok = r.status_code < 300
     except httpx.HTTPError:
         ok = False
-    # maj_le inchangé : l'état de l'envoi ne doit pas faire réapparaître la fiche dans la reprise
-    db.update_souscription(s["ref"], webhook_statut="ok" if ok else "erreur", maj_le=s.get("maj_le") or s["cree_le"])
+    # Modification technique : la fiche ne doit pas réapparaître dans la reprise par Digitalia
+    db.update_souscription(s["ref"], _signaler=False, webhook_statut="ok" if ok else "erreur")
     db.log(s["ref"], "digitalia_ok" if ok else "digitalia_erreur")
     return ok
 

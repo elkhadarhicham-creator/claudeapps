@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS souscriptions (
   webhook_statut TEXT,
   digitalia_importe_le TEXT,
   maj_le TEXT,
+  seq INTEGER,                     -- compteur de modifications (reprise par Digitalia)
   ip TEXT,
   cree_le TEXT NOT NULL,
   payee_le TEXT,
@@ -125,18 +126,22 @@ def insert_souscription(d: dict) -> None:
     for k in JSON_FIELDS:
         if k in d and not isinstance(d[k], str) and d[k] is not None:
             d[k] = json.dumps(d[k], ensure_ascii=False)
-    cols = ",".join(d)
     with tx() as c:
+        d["seq"] = c.execute("SELECT COALESCE(MAX(seq), 0) + 1 FROM souscriptions").fetchone()[0]
+        cols = ",".join(d)
         c.execute(f"INSERT INTO souscriptions({cols}) VALUES ({','.join('?' * len(d))})", tuple(d.values()))
 
 
-def update_souscription(ref: str, **fields) -> None:
+def update_souscription(ref: str, _signaler: bool = True, **fields) -> None:
+    """_signaler=False : modification technique qui ne doit pas être renvoyée à Digitalia."""
     for k in JSON_FIELDS:
         if k in fields and fields[k] is not None and not isinstance(fields[k], str):
             fields[k] = json.dumps(fields[k], ensure_ascii=False)
-    fields.setdefault("maj_le", now())
-    sets = ",".join(f"{k}=?" for k in fields)
     with tx() as c:
+        if _signaler:
+            fields.setdefault("maj_le", now())
+            fields["seq"] = c.execute("SELECT COALESCE(MAX(seq), 0) + 1 FROM souscriptions").fetchone()[0]
+        sets = ",".join(f"{k}=?" for k in fields)
         c.execute(f"UPDATE souscriptions SET {sets} WHERE ref=?", (*fields.values(), ref))
 
 
@@ -157,13 +162,12 @@ def list_souscriptions(statut: str | None = None, q: str | None = None, limit: i
 
 def souscriptions_depuis(depuis: str | None, non_importees: bool, limit: int) -> list[dict]:
     """Souscriptions payées ou émises, triées par date de mise à jour (synchronisation incrémentale)."""
-    ts, _, ref = (depuis or "").partition("|")
-    sql = ("SELECT * FROM souscriptions WHERE statut IN ('payee','emise','annulee') "
-           "AND (COALESCE(maj_le, cree_le) > ? OR (COALESCE(maj_le, cree_le) = ? AND ref > ?))")
-    args: list = [ts, ts, ref]
+    curseur = int(depuis) if (depuis or "").isdigit() else 0
+    sql = "SELECT * FROM souscriptions WHERE statut IN ('payee','emise','annulee') AND seq > ?"
+    args: list = [curseur]
     if non_importees:
         sql += " AND digitalia_importe_le IS NULL"
-    sql += " ORDER BY COALESCE(maj_le, cree_le), ref LIMIT ?"
+    sql += " ORDER BY seq LIMIT ?"
     args.append(limit)
     with _lock:
         rows = conn().execute(sql, args).fetchall()

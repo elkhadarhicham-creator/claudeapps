@@ -606,8 +606,21 @@ def digitalia_souscriptions(depuis: str | None = None, non_importees: bool = Fal
     limite = max(1, min(limite, 1000))
     lignes = db.souscriptions_depuis(depuis, non_importees, limite)
     fiches = [notifications.fiche_digitalia(s) for s in lignes]
-    curseur = f"{fiches[-1]['mis_a_jour_le']}|{fiches[-1]['reference']}" if fiches else depuis
+    curseur = str(lignes[-1]["seq"]) if lignes else (depuis or "0")
     return {"souscriptions": fiches, "curseur": curseur, "suite": len(fiches) == limite}
+
+
+@app.get("/api/digitalia/souscriptions/{ref}/{doc}.pdf", dependencies=[Depends(cle_digitalia)])
+def digitalia_document(ref: str, doc: Literal["recu", "attestation"]):
+    """Reçu (généré) ou attestation de la compagnie, pour le dossier client dans Digitalia."""
+    s = db.get_souscription(ref)
+    if not s or s["statut"] not in ("payee", "emise", "annulee"):
+        raise HTTPException(404)
+    if doc == "recu":
+        return Response(documents.recu_pdf(s), media_type="application/pdf")
+    if not s.get("attestation_fichier"):
+        raise HTTPException(404)
+    return FileResponse(config.DATA_DIR / "attestations" / s["attestation_fichier"], media_type="application/pdf")
 
 
 class AccuseIn(BaseModel):

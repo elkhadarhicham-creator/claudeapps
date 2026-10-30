@@ -71,6 +71,8 @@ En cas d'échec, une capture d'écran du portail est visible dans la fiche admin
 - `GET /api/digitalia/souscriptions?non_importees=true` renvoie seulement ce qui n'a pas encore été importé.
 - `POST /api/digitalia/accuse` avec `{"references": ["DGV-…"]}` confirme l'import.
 
+**Robot côté cabinet** : le dossier `robot_digitalia/` contient le robot à installer à côté de Digitalia, sur le PC direction. Il passe toutes les 15 minutes : il récupère les souscriptions, les range dans la table `site_souscriptions` de la base Digitalia et télécharge le reçu et l'attestation. Il les verse ensuite dans les clients, contrats et encaissements via `integration_digitalia.py`. Les consignes pour faire écrire ce branchement par Claude sur le PC sont dans `robot_digitalia/CONSIGNES_CLAUDE_PC.md`.
+
 Le script `digitalia_sync.py` fait tout cela et produit un fichier JSON prêt à importer :
 `python digitalia_sync.py --site https://votre-site --cle VOTRE_CLE`
 
