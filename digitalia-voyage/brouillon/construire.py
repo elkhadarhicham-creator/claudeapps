@@ -24,19 +24,29 @@ MAQUETTE = r'''
     +"Noms et prénoms en majuscules latines, tels qu'écrits sur la pièce. Le verso de la CIN porte l'adresse. "
     +"Sur un passeport marocain, le numéro de CIN figure souvent comme « numéro personnel ». "
     +"Laisse une chaîne vide pour tout champ absent ou illisible : n'invente rien. Si l'image n'est pas une pièce d'identité, mets lisible à false.";
+  var SANS_APERCU="La lecture de photo n'est pas disponible dans cet affichage. Ouvrez le lien dans le navigateur (Chrome ou Safari), connecté à claude.ai.";
+  var SANS_IMAGES="Cette application ne peut pas encore envoyer de photo à Claude. Ouvrez le lien dans le navigateur (Chrome ou Safari), connecté à claude.ai.";
   var _lecteur=null;
   function lecteur(){
     if(!_lecteur)_lecteur=(window.claude&&claude.use?claude.use("sample"):Promise.resolve(null)).then(function(s){
-      if(!s)return null;return s.limits().then(function(l){return l&&l.images?s:null},function(){return null})}).catch(function(){return null});
+      if(!s)return {s:null,raison:SANS_APERCU};
+      return s.limits().then(function(l){return l&&l.images?{s:s}:{s:null,raison:SANS_IMAGES}},function(){return {s:s}})
+    }).catch(function(){return {s:null,raison:SANS_APERCU}});
     return _lecteur}
   function api(url,opts){
     var corps={};try{corps=JSON.parse((opts&&opts.body)||"{}")}catch(e){}
-    if(url.indexOf("/api/config")===0)return lecteur().then(function(l){return {ocr:!!l,paiement_demo:true,whatsapp:"212708295052"}});
+    if(url.indexOf("/api/config")===0)return Promise.resolve({ocr:true,paiement_demo:true,whatsapp:"212708295052"});
     if(url.indexOf("/api/ocr")===0)return lecteur().then(function(l){
-      if(!l){var e=new Error("indisponible");e.status=503;e.code="indisponible";throw e}
-      return l.json(PROMPT_PIECE,{images:[opts.body.get("fichier")],modelTier:"default"}).then(function(r){
+      if(!l.s){var e=new Error(l.raison);e.status=503;e.code="maquette";throw e}
+      return l.s.json(PROMPT_PIECE,{images:[opts.body.get("fichier")],modelTier:"default"}).then(function(r){
         return r&&r.lisible?{ok:true,data:r}:{ok:false,code:"illisible"}
-      },function(err){var e=new Error(err.code||"erreur");e.code=err.code==="image_rejected"?"image":err.code;e.status=err.code==="rate_limited"?429:422;throw e})});
+      },function(err){var c=err&&err.code,e;
+        if(c==="not_granted")e=new Error("Lecture refusée : rechargez la page et acceptez la demande d'autorisation de Claude.");
+        else if(c==="images_unavailable")e=new Error(SANS_IMAGES);
+        else if(c==="image_rejected")e=new Error("Photo non acceptée : essayez une autre photo (JPEG ou PNG).");
+        else if(c==="rate_limited")e=new Error("Trop de lectures d'affilée : réessayez dans une minute.");
+        else e=new Error("Lecture impossible ("+(c||"erreur")+") : réessayez ou saisissez les champs.");
+        e.code="maquette";e.status=422;throw e})});
     if(url.indexOf("/api/devis")===0)return Promise.resolve({ok:true});
     if(url.indexOf("/api/souscriptions")===0){
       var e=new Error("Maquette : sur le site en ligne, ce bouton enregistre la souscription puis ouvre la page bancaire 3-D Secure du CMI.");

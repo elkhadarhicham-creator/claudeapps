@@ -136,7 +136,7 @@
       msg.className="s-msg ok";msg.textContent=(r.data.type==="PASSEPORT"?T("Passeport"):T("CIN"))+" — "+n+" "+T("champs remplis. Vérifiez-les.");
     }).catch(function(e){
       msg.className="s-msg bad";
-      msg.textContent=e.status===429?T("Trop de tentatives, réessayez plus tard."):(e.code==="image"||e.code==="format"?T("Photo non acceptée : essayez un autre fichier."):T("Lecture impossible pour le moment : saisissez les champs."));
+      msg.textContent=e.code==="maquette"?e.message:e.status===429?T("Trop de tentatives, réessayez plus tard."):(e.code==="image"||e.code==="format"?T("Photo non acceptée : essayez un autre fichier."):T("Lecture impossible pour le moment : saisissez les champs."));
     }).then(function(){bar.remove()});
   }
 
