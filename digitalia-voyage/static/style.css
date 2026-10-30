@@ -20,7 +20,7 @@
   --ok:#5cc597; --warn:#f0a457; color-scheme:dark;
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f);font-size:15.5px;line-height:1.6}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:15.5px;line-height:1.6}
 .wrap{max-width:1160px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
 h1,h2,h3{margin:0;line-height:1.12;text-wrap:balance}
 p{margin:0}
@@ -201,7 +201,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .pane[hidden]{display:none}
 .offer-pick{display:flex;flex-direction:column;gap:10px}
 .opt{position:relative;display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:12px 14px;cursor:pointer}
-.opt input{margin-top:5px;accent-color:var(--prune)}
+.opt input{width:auto;flex:none;padding:0;margin-top:5px;accent-color:var(--prune)}
 .opt:has(input:checked){border-color:var(--prune3);background:var(--tint)}
 .opt .o-body{flex:1;min-width:0}
 .opt b{display:block;font-weight:600;font-size:.95rem}
