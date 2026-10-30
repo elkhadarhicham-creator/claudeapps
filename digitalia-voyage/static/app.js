@@ -90,7 +90,7 @@
     nTrav++;
     var d=document.createElement("div");d.className="trav";
     d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
-      +'<div class="scan"><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier CIN / passeport</label><span class="s-msg">Ou saisissez les champs ci-dessous.</span></div>'
+      +'<div class="scan"><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier CIN / passeport</label><span class="s-msg">Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>';
@@ -130,7 +130,9 @@
     }).then(function(r){
       if(!r.ok){msg.className="s-msg bad";msg.textContent=T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
       var n=0;["nom","prenom","naissance","cin","passeport","exp_passeport","adresse"].forEach(function(k){
-        var v=r.data[k];if(v){var inp=box.querySelector('[data-k="'+k+'"]');if(inp){inp.value=inp.classList.contains("date-fr")?isoVersFr(v):v;n++}}});
+        var v=r.data[k];if(v&&typeof v==="string"){var inp=box.querySelector('[data-k="'+k+'"]');
+          if(inp&&inp.classList.contains("date-fr")){if(!/^\d{4}-\d\d-\d\d$/.test(v))return;v=isoVersFr(v)}
+          if(inp){inp.value=v;n++}}});
       msg.className="s-msg ok";msg.textContent=(r.data.type==="PASSEPORT"?T("Passeport"):T("CIN"))+" — "+n+" "+T("champs remplis. Vérifiez-les.");
     }).catch(function(e){
       msg.className="s-msg bad";
@@ -217,7 +219,7 @@
   api("/api/config").then(function(c){
     CFG=c;$("demoNote").hidden=!c.paiement_demo;
     if(c.aujourdhui){today=c.aujourdhui;initDates()}
-    document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelector(".scan label").style.display="";d.querySelector(".s-msg").textContent=T("Ou saisissez les champs ci-dessous.")}});
+    document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelector(".scan label").style.display="";d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
   }).catch(function(){});
 
   majOffre();show(1);

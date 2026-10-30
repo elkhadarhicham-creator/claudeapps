@@ -610,6 +610,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Trop de tentatives, réessayez plus tard.":["محاولات كثيرة، أعد المحاولة لاحقًا.","بزاف ديال المحاولات، عاود من بعد."],
   "Photo trop lourde : 8 Mo maximum.":["الصورة كبيرة جدًا: 8 ميغا كحد أقصى.","التصويرة تقيلة: 8 ميغا ماكسيموم."],
   "date invalide, format JJ/MM/AAAA":["تاريخ غير صحيح، الصيغة يوم/شهر/سنة","التاريخ ماشي صحيح، كتبو بحال 31/12/1990"],
+  "Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.":["الوجه الأمامي للاسم وتاريخ الازدياد، والخلفي للعنوان. أو املأ الخانات أدناه.","القدّام للسمية وتاريخ الزيادة، واللور للعنوان. ولا عمّر الخانات اللي لتحت."],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],
@@ -675,10 +676,26 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   ];
   var wa=function(t){return "https://wa.me/"+CFG.whatsapp+(t?"?text="+encodeURIComponent(t):"")};
 
-  // ── Mode maquette : aucun serveur, réponses simulées
+  // ── Mode maquette : aucun serveur, réponses simulées ; la CIN est lue par Claude depuis la page
+  var PROMPT_PIECE="Cette image doit être une carte nationale d'identité marocaine (CIN, recto ou verso) ou la page d'identité d'un passeport. "
+    +"Lis le texte latin, le texte arabe et la bande MRZ si elle est présente. Réponds uniquement par un objet JSON : "
+    +'{"lisible":true|false,"type":"CIN"|"PASSEPORT"|"AUTRE","nom":"","prenom":"","naissance":"AAAA-MM-JJ","cin":"","passeport":"","exp_passeport":"AAAA-MM-JJ","adresse":""}. '
+    +"Noms et prénoms en majuscules latines, tels qu'écrits sur la pièce. Le verso de la CIN porte l'adresse. "
+    +"Sur un passeport marocain, le numéro de CIN figure souvent comme « numéro personnel ». "
+    +"Laisse une chaîne vide pour tout champ absent ou illisible : n'invente rien. Si l'image n'est pas une pièce d'identité, mets lisible à false.";
+  var _lecteur=null;
+  function lecteur(){
+    if(!_lecteur)_lecteur=(window.claude&&claude.use?claude.use("sample"):Promise.resolve(null)).then(function(s){
+      if(!s)return null;return s.limits().then(function(l){return l&&l.images?s:null},function(){return null})}).catch(function(){return null});
+    return _lecteur}
   function api(url,opts){
     var corps={};try{corps=JSON.parse((opts&&opts.body)||"{}")}catch(e){}
-    if(url.indexOf("/api/config")===0)return Promise.resolve({ocr:false,paiement_demo:true,whatsapp:"212708295052"});
+    if(url.indexOf("/api/config")===0)return lecteur().then(function(l){return {ocr:!!l,paiement_demo:true,whatsapp:"212708295052"}});
+    if(url.indexOf("/api/ocr")===0)return lecteur().then(function(l){
+      if(!l){var e=new Error("indisponible");e.status=503;e.code="indisponible";throw e}
+      return l.json(PROMPT_PIECE,{images:[opts.body.get("fichier")],modelTier:"default"}).then(function(r){
+        return r&&r.lisible?{ok:true,data:r}:{ok:false,code:"illisible"}
+      },function(err){var e=new Error(err.code||"erreur");e.code=err.code==="image_rejected"?"image":err.code;e.status=err.code==="rate_limited"?429:422;throw e})});
     if(url.indexOf("/api/devis")===0)return Promise.resolve({ok:true});
     if(url.indexOf("/api/souscriptions")===0){
       var e=new Error("Maquette : sur le site en ligne, ce bouton enregistre la souscription puis ouvre la page bancaire 3-D Secure du CMI.");
@@ -749,7 +766,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     nTrav++;
     var d=document.createElement("div");d.className="trav";
     d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
-      +'<div class="scan"><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier CIN / passeport</label><span class="s-msg">Ou saisissez les champs ci-dessous.</span></div>'
+      +'<div class="scan"><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier CIN / passeport</label><span class="s-msg">Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>';
@@ -789,7 +806,9 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     }).then(function(r){
       if(!r.ok){msg.className="s-msg bad";msg.textContent=T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
       var n=0;["nom","prenom","naissance","cin","passeport","exp_passeport","adresse"].forEach(function(k){
-        var v=r.data[k];if(v){var inp=box.querySelector('[data-k="'+k+'"]');if(inp){inp.value=inp.classList.contains("date-fr")?isoVersFr(v):v;n++}}});
+        var v=r.data[k];if(v&&typeof v==="string"){var inp=box.querySelector('[data-k="'+k+'"]');
+          if(inp&&inp.classList.contains("date-fr")){if(!/^\d{4}-\d\d-\d\d$/.test(v))return;v=isoVersFr(v)}
+          if(inp){inp.value=v;n++}}});
       msg.className="s-msg ok";msg.textContent=(r.data.type==="PASSEPORT"?T("Passeport"):T("CIN"))+" — "+n+" "+T("champs remplis. Vérifiez-les.");
     }).catch(function(e){
       msg.className="s-msg bad";
@@ -876,7 +895,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   api("/api/config").then(function(c){
     CFG=c;$("demoNote").hidden=!c.paiement_demo;
     if(c.aujourdhui){today=c.aujourdhui;initDates()}
-    document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelector(".scan label").style.display="";d.querySelector(".s-msg").textContent=T("Ou saisissez les champs ci-dessous.")}});
+    document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelector(".scan label").style.display="";d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
   }).catch(function(){});
 
   majOffre();show(1);

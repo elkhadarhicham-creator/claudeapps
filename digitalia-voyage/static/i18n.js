@@ -119,6 +119,7 @@
   "Trop de tentatives, réessayez plus tard.":["محاولات كثيرة، أعد المحاولة لاحقًا.","بزاف ديال المحاولات، عاود من بعد."],
   "Photo trop lourde : 8 Mo maximum.":["الصورة كبيرة جدًا: 8 ميغا كحد أقصى.","التصويرة تقيلة: 8 ميغا ماكسيموم."],
   "date invalide, format JJ/MM/AAAA":["تاريخ غير صحيح، الصيغة يوم/شهر/سنة","التاريخ ماشي صحيح، كتبو بحال 31/12/1990"],
+  "Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.":["الوجه الأمامي للاسم وتاريخ الازدياد، والخلفي للعنوان. أو املأ الخانات أدناه.","القدّام للسمية وتاريخ الزيادة، واللور للعنوان. ولا عمّر الخانات اللي لتحت."],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],
