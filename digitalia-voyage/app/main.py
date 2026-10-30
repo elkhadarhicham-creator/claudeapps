@@ -143,6 +143,11 @@ async def api_ocr(request: Request, fichier: UploadFile = File(...)):
     media = fichier.content_type or ""
     if media == "image/jpg":
         media = "image/jpeg"
+    nom = (fichier.filename or "").lower()
+    if media in ("", "application/octet-stream"):  # certains téléphones n'envoient pas le type
+        media = "application/pdf" if nom.endswith(".pdf") else "image/png" if nom.endswith(".png") else "image/jpeg"
+    if data[:4] == b"%PDF":
+        media = "application/pdf"
     try:
         res = ocr.lire_piece(data, media)
     except ocr.OCRErreur as e:

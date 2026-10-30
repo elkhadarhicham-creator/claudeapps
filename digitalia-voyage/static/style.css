@@ -268,3 +268,4 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 [dir="rtl"] .date-fr{text-align:right}
 .date-fr.bad{border-color:var(--warn)}
 #echeance{background:var(--bg)}
+.scan label.btn.line{background:var(--surface)}

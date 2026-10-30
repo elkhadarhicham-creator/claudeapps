@@ -38,6 +38,8 @@ MAQUETTE = r'''
     if(url.indexOf("/api/config")===0)return Promise.resolve({ocr:true,paiement_demo:true,whatsapp:"212708295052"});
     if(url.indexOf("/api/ocr")===0)return lecteur().then(function(l){
       if(!l.s){var e=new Error(l.raison);e.status=503;e.code="maquette";throw e}
+      var f=opts.body.get("fichier");
+      if(f&&(f.type==="application/pdf"||/\.pdf$/i.test(f.name||""))){var e2=new Error("Les PDF sont lus par le site en ligne. Dans cette maquette, utilisez une photo ou un fichier JPG ou PNG.");e2.status=422;e2.code="maquette";throw e2}
       return l.s.json(PROMPT_PIECE,{images:[opts.body.get("fichier")],modelTier:"default"}).then(function(r){
         return r&&r.lisible?{ok:true,data:r}:{ok:false,code:"illisible"}
       },function(err){var c=err&&err.code,e;

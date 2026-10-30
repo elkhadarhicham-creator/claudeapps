@@ -120,6 +120,10 @@
   "Photo trop lourde : 8 Mo maximum.":["الصورة كبيرة جدًا: 8 ميغا كحد أقصى.","التصويرة تقيلة: 8 ميغا ماكسيموم."],
   "date invalide, format JJ/MM/AAAA":["تاريخ غير صحيح، الصيغة يوم/شهر/سنة","التاريخ ماشي صحيح، كتبو بحال 31/12/1990"],
   "Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.":["الوجه الأمامي للاسم وتاريخ الازدياد، والخلفي للعنوان. أو املأ الخانات أدناه.","القدّام للسمية وتاريخ الزيادة، واللور للعنوان. ولا عمّر الخانات اللي لتحت."],
+  "📷 Photographier":["📷 التقط صورة","📷 صوّر"],"📎 Joindre un fichier":["📎 إرفاق ملف","📎 زيد ملف"],
+  "Format accepté : photo, fichier JPG, PNG ou PDF.":["الصيغ المقبولة: صورة أو ملف JPG أو PNG أو PDF.","الصيغ المقبولة: تصويرة، JPG، PNG ولا PDF."],
+  "Fichier trop lourd : 8 Mo maximum.":["الملف كبير جدًا: 8 ميغا كحد أقصى.","الملف تقيل: 8 ميغا ماكسيموم."],
+  "Fichier non accepté : envoyez une photo nette, un JPG, un PNG ou un PDF.":["الملف غير مقبول: أرسل صورة واضحة أو JPG أو PNG أو PDF.","الملف ما تقبلش: صيفط تصويرة واضحة، JPG، PNG ولا PDF."],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],

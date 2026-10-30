@@ -90,7 +90,7 @@
     nTrav++;
     var d=document.createElement("div");d.className="trav";
     d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
-      +'<div class="scan"><label class="btn"><input type="file" accept="image/*">📷 Photographier CIN / passeport</label><span class="s-msg">Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.</span></div>'
+      +'<div class="scan"><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="s-msg">Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>';
@@ -99,9 +99,9 @@
     var sel=d.querySelector("select");ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;
     if(role==="Souscripteur")sel.disabled=true;else sel.querySelector('option[value="Souscripteur"]').disabled=true;
     var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});
-    var fi=d.querySelector("input[type=file]"),msg=d.querySelector(".s-msg");
-    if(!CFG.ocr){d.querySelector(".scan label").style.display="none";msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
-    fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""});
+    var msg=d.querySelector(".s-msg");
+    if(!CFG.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display="none"});msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
+    d.querySelectorAll(".scan input[type=file]").forEach(function(fi){fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""})});
     $("travList").appendChild(d);renum();
   }
   function renum(){[].forEach.call($("travList").children,function(c,i){c.querySelector(".trav-head b").textContent=T("Assuré")+" "+(i+1)})}
@@ -121,11 +121,14 @@
     });
   }
   function lire(file,box,msg){
-    if(file.size>8*1024*1024){msg.className="s-msg bad";msg.textContent=T("Photo trop lourde : 8 Mo maximum.");return}
+    var pdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name||"");
+    if(!pdf&&!/^image\/(jpeg|png)$/.test(file.type)&&!/\.(jpe?g|png)$/i.test(file.name||"")&&!/^image\//.test(file.type)){
+      msg.className="s-msg bad";msg.textContent=T("Format accepté : photo, fichier JPG, PNG ou PDF.");return}
+    if(file.size>8*1024*1024){msg.className="s-msg bad";msg.textContent=T("Fichier trop lourd : 8 Mo maximum.");return}
     msg.className="s-msg";msg.textContent=T("Lecture en cours…");
     var bar=document.createElement("span");bar.className="bar";box.querySelector(".scan").appendChild(bar);
     reduire(file).then(function(blob){
-      var fd=new FormData();fd.append("fichier",blob,"piece.jpg");
+      var fd=new FormData();fd.append("fichier",blob,pdf?"piece.pdf":"piece.jpg");
       return api("/api/ocr",{method:"POST",body:fd});
     }).then(function(r){
       if(!r.ok){msg.className="s-msg bad";msg.textContent=T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
@@ -136,7 +139,7 @@
       msg.className="s-msg ok";msg.textContent=(r.data.type==="PASSEPORT"?T("Passeport"):T("CIN"))+" — "+n+" "+T("champs remplis. Vérifiez-les.");
     }).catch(function(e){
       msg.className="s-msg bad";
-      msg.textContent=e.code==="maquette"?e.message:e.status===429?T("Trop de tentatives, réessayez plus tard."):(e.code==="image"||e.code==="format"?T("Photo non acceptée : essayez un autre fichier."):T("Lecture impossible pour le moment : saisissez les champs."));
+      msg.textContent=e.code==="maquette"?e.message:e.status===429?T("Trop de tentatives, réessayez plus tard."):(e.code==="image"||e.code==="format"?T("Fichier non accepté : envoyez une photo nette, un JPG, un PNG ou un PDF."):T("Lecture impossible pour le moment : saisissez les champs."));
     }).then(function(){bar.remove()});
   }
 
@@ -219,7 +222,7 @@
   api("/api/config").then(function(c){
     CFG=c;$("demoNote").hidden=!c.paiement_demo;
     if(c.aujourdhui){today=c.aujourdhui;initDates()}
-    document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelector(".scan label").style.display="";d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
+    document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display=""});d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
   }).catch(function(){});
 
   majOffre();show(1);

@@ -13,7 +13,8 @@ from . import config
 log = logging.getLogger("digitalia.ocr")
 
 PROMPT = (
-    "Cette image doit être une carte nationale d'identité marocaine (CIN) ou la page d'identité d'un passeport. "
+    "Ce document (photo ou PDF) doit être une carte nationale d'identité marocaine (CIN, recto ou verso) ou la page d'identité d'un passeport. "
+    "Le verso de la CIN porte l'adresse ; la bande MRZ confirme le nom, la date de naissance et le numéro. "
     "Lis le texte latin, le texte arabe et la bande MRZ si elle est présente, puis remplis les champs. "
     "Noms et prénoms en majuscules latines, tels qu'écrits sur la pièce. Dates au format AAAA-MM-JJ. "
     "Sur un passeport marocain, le numéro de CIN figure souvent comme « numéro personnel ». "
@@ -39,7 +40,7 @@ SCHEMA = {
     "additionalProperties": False,
 }
 
-MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MEDIA_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"}
 
 
 class OCRIndisponible(Exception):
@@ -79,8 +80,9 @@ def lire_piece(image: bytes, media_type: str) -> dict:
             messages=[{
                 "role": "user",
                 "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": media_type,
-                                                 "data": base64.standard_b64encode(image).decode()}},
+                    {"type": "document" if media_type == "application/pdf" else "image",
+                     "source": {"type": "base64", "media_type": media_type,
+                                "data": base64.standard_b64encode(image).decode()}},
                     {"type": "text", "text": PROMPT},
                 ],
             }],

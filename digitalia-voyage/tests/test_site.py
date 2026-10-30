@@ -190,3 +190,31 @@ def test_passeport_facultatif():
     sans_piece[0]["cin"] = ""
     r = souscription(assures=sans_piece)
     assert r.status_code == 422 and "Souscripteur" in r.json()["detail"]["message"]
+
+
+def test_lecture_pdf_et_photo(monkeypatch):
+    """Le serveur accepte JPG, PNG et PDF ; un PDF part en bloc « document »."""
+    from app import config, ocr
+    envoye = []
+
+    class Faux:
+        class beta:
+            class messages:
+                @staticmethod
+                def create(**kw):
+                    envoye.append(kw["messages"][0]["content"][0])
+
+                    class R:
+                        stop_reason = "end_turn"
+                        content = [type("T", (), {"type": "text", "text": '{"lisible":true,"type":"CIN","nom":"X","prenom":"Y",'
+                                                  '"naissance":"1984-08-17","sexe":"M","cin":"A1","passeport":"",'
+                                                  '"exp_passeport":"","adresse":""}'})()]
+                    return R()
+    monkeypatch.setattr(config, "ANTHROPIC_API_KEY", "test")
+    monkeypatch.setattr(ocr, "_client", Faux())
+    pdf = c.post("/api/ocr", files={"fichier": ("cin.pdf", b"%PDF-1.4 cin", "application/octet-stream")})
+    assert pdf.json()["ok"] and envoye[-1]["type"] == "document"
+    jpg = c.post("/api/ocr", files={"fichier": ("cin.jpg", b"\xff\xd8\xff photo", "image/jpeg")})
+    assert jpg.json()["data"]["naissance"] == "1984-08-17" and envoye[-1]["type"] == "image"
+    autre = c.post("/api/ocr", files={"fichier": ("cin.txt", b"texte", "text/plain")})
+    assert autre.status_code == 422

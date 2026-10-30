@@ -284,6 +284,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 [dir="rtl"] .date-fr{text-align:right}
 .date-fr.bad{border-color:var(--warn)}
 #echeance{background:var(--bg)}
+.scan label.btn.line{background:var(--surface)}
 
 </style>
 </head>
@@ -611,6 +612,10 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Photo trop lourde : 8 Mo maximum.":["الصورة كبيرة جدًا: 8 ميغا كحد أقصى.","التصويرة تقيلة: 8 ميغا ماكسيموم."],
   "date invalide, format JJ/MM/AAAA":["تاريخ غير صحيح، الصيغة يوم/شهر/سنة","التاريخ ماشي صحيح، كتبو بحال 31/12/1990"],
   "Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.":["الوجه الأمامي للاسم وتاريخ الازدياد، والخلفي للعنوان. أو املأ الخانات أدناه.","القدّام للسمية وتاريخ الزيادة، واللور للعنوان. ولا عمّر الخانات اللي لتحت."],
+  "📷 Photographier":["📷 التقط صورة","📷 صوّر"],"📎 Joindre un fichier":["📎 إرفاق ملف","📎 زيد ملف"],
+  "Format accepté : photo, fichier JPG, PNG ou PDF.":["الصيغ المقبولة: صورة أو ملف JPG أو PNG أو PDF.","الصيغ المقبولة: تصويرة، JPG، PNG ولا PDF."],
+  "Fichier trop lourd : 8 Mo maximum.":["الملف كبير جدًا: 8 ميغا كحد أقصى.","الملف تقيل: 8 ميغا ماكسيموم."],
+  "Fichier non accepté : envoyez une photo nette, un JPG, un PNG ou un PDF.":["الملف غير مقبول: أرسل صورة واضحة أو JPG أو PNG أو PDF.","الملف ما تقبلش: صيفط تصويرة واضحة، JPG، PNG ولا PDF."],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],
@@ -697,6 +702,8 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     if(url.indexOf("/api/config")===0)return Promise.resolve({ocr:true,paiement_demo:true,whatsapp:"212708295052"});
     if(url.indexOf("/api/ocr")===0)return lecteur().then(function(l){
       if(!l.s){var e=new Error(l.raison);e.status=503;e.code="maquette";throw e}
+      var f=opts.body.get("fichier");
+      if(f&&(f.type==="application/pdf"||/\.pdf$/i.test(f.name||""))){var e2=new Error("Les PDF sont lus par le site en ligne. Dans cette maquette, utilisez une photo ou un fichier JPG ou PNG.");e2.status=422;e2.code="maquette";throw e2}
       return l.s.json(PROMPT_PIECE,{images:[opts.body.get("fichier")],modelTier:"default"}).then(function(r){
         return r&&r.lisible?{ok:true,data:r}:{ok:false,code:"illisible"}
       },function(err){var c=err&&err.code,e;
@@ -776,7 +783,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     nTrav++;
     var d=document.createElement("div");d.className="trav";
     d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
-      +'<div class="scan"><label class="btn"><input type="file" accept="image/*">📷 Photographier CIN / passeport</label><span class="s-msg">Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.</span></div>'
+      +'<div class="scan"><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="s-msg">Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>';
@@ -785,9 +792,9 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     var sel=d.querySelector("select");ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;
     if(role==="Souscripteur")sel.disabled=true;else sel.querySelector('option[value="Souscripteur"]').disabled=true;
     var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});
-    var fi=d.querySelector("input[type=file]"),msg=d.querySelector(".s-msg");
-    if(!CFG.ocr){d.querySelector(".scan label").style.display="none";msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
-    fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""});
+    var msg=d.querySelector(".s-msg");
+    if(!CFG.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display="none"});msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
+    d.querySelectorAll(".scan input[type=file]").forEach(function(fi){fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""})});
     $("travList").appendChild(d);renum();
   }
   function renum(){[].forEach.call($("travList").children,function(c,i){c.querySelector(".trav-head b").textContent=T("Assuré")+" "+(i+1)})}
@@ -807,11 +814,14 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     });
   }
   function lire(file,box,msg){
-    if(file.size>8*1024*1024){msg.className="s-msg bad";msg.textContent=T("Photo trop lourde : 8 Mo maximum.");return}
+    var pdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name||"");
+    if(!pdf&&!/^image\/(jpeg|png)$/.test(file.type)&&!/\.(jpe?g|png)$/i.test(file.name||"")&&!/^image\//.test(file.type)){
+      msg.className="s-msg bad";msg.textContent=T("Format accepté : photo, fichier JPG, PNG ou PDF.");return}
+    if(file.size>8*1024*1024){msg.className="s-msg bad";msg.textContent=T("Fichier trop lourd : 8 Mo maximum.");return}
     msg.className="s-msg";msg.textContent=T("Lecture en cours…");
     var bar=document.createElement("span");bar.className="bar";box.querySelector(".scan").appendChild(bar);
     reduire(file).then(function(blob){
-      var fd=new FormData();fd.append("fichier",blob,"piece.jpg");
+      var fd=new FormData();fd.append("fichier",blob,pdf?"piece.pdf":"piece.jpg");
       return api("/api/ocr",{method:"POST",body:fd});
     }).then(function(r){
       if(!r.ok){msg.className="s-msg bad";msg.textContent=T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
@@ -822,7 +832,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
       msg.className="s-msg ok";msg.textContent=(r.data.type==="PASSEPORT"?T("Passeport"):T("CIN"))+" — "+n+" "+T("champs remplis. Vérifiez-les.");
     }).catch(function(e){
       msg.className="s-msg bad";
-      msg.textContent=e.code==="maquette"?e.message:e.status===429?T("Trop de tentatives, réessayez plus tard."):(e.code==="image"||e.code==="format"?T("Photo non acceptée : essayez un autre fichier."):T("Lecture impossible pour le moment : saisissez les champs."));
+      msg.textContent=e.code==="maquette"?e.message:e.status===429?T("Trop de tentatives, réessayez plus tard."):(e.code==="image"||e.code==="format"?T("Fichier non accepté : envoyez une photo nette, un JPG, un PNG ou un PDF."):T("Lecture impossible pour le moment : saisissez les champs."));
     }).then(function(){bar.remove()});
   }
 
@@ -905,7 +915,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   api("/api/config").then(function(c){
     CFG=c;$("demoNote").hidden=!c.paiement_demo;
     if(c.aujourdhui){today=c.aujourdhui;initDates()}
-    document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelector(".scan label").style.display="";d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
+    document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display=""});d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
   }).catch(function(){});
 
   majOffre();show(1);
