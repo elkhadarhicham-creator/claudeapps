@@ -1,43 +1,51 @@
-# Mettre le site en ligne (Hetzner, environ 4 € par mois)
+# Mettre le site en ligne (OVHcloud : serveur + nom de domaine, un seul panier)
 
-## 1. Ce que vous faites (10 minutes)
+Prix indicatifs relevés en octobre 2026, à vérifier dans le panier :
 
-1. Créez un compte sur **https://www.hetzner.com/cloud**. Hetzner demande une carte bancaire et parfois une pièce d'identité.
-2. Sur le PC direction, ouvrez Claude (onglet Code, dossier `pont_analysis`) et demandez :
-   > Crée-moi une clé SSH pour un serveur et affiche la clé publique.
+- **VPS-1** (2 vCores, 4 Go de mémoire, 40 Go, sauvegarde quotidienne incluse) : environ 3,81 € HT/mois avec engagement 12 mois, environ 4,49 € HT/mois sans engagement ;
+- **nom de domaine .com** : environ 7,99 € HT la 1re année, environ 14 € HT ensuite.
 
-   Copiez la ligne qui commence par `ssh-ed25519`.
-3. Dans la console Hetzner, cliquez sur **Add Server** :
-   - **Location** : Falkenstein ou Nuremberg (Allemagne) ;
-   - **Image** : Ubuntu 24.04 ;
-   - **Type** : le moins cher qui a au moins 4 Go de mémoire, **CAX11** (Arm) ou **CX22** (x86). Les deux conviennent ;
-   - **SSH keys** : collez la clé copiée à l'étape 2 ;
-   - laissez le reste par défaut, puis **Create & Buy now**.
-4. Notez l'**adresse IP** du serveur, par exemple `91.98.12.34`.
-5. Facultatif mais conseillé : créez une clé API sur **https://console.anthropic.com**, pour la lecture automatique des CIN.
+## 1. Ce que vous faites (15 minutes)
+
+1. Allez sur **https://www.ovhcloud.com/fr/vps/** et cliquez sur **Commander** sous **VPS-1** :
+   - **Image** : Ubuntu (la version la plus récente proposée) ;
+   - **Localisation** : France (Gravelines, Roubaix ou Strasbourg) ;
+   - **Engagement** : 12 mois (le moins cher par mois).
+2. Dans le même panier, ajoutez le **nom de domaine** : sur **https://www.ovhcloud.com/fr/domains/**, cherchez par exemple `digitalia-assurance.com` ou `digitalia-voyage.com` et ajoutez-le au panier. Refusez les options payantes : hébergement web, e-mail et DNS Anycast sont inutiles ici.
+3. Payez. OVH vous envoie par e-mail l'**adresse IP** du VPS et le mot de passe de l'utilisateur `ubuntu`.
+4. Dans l'espace client OVH, ouvrez **Noms de domaine → votre domaine → Zone DNS** et ajoutez deux enregistrements **A** vers l'adresse IP du VPS :
+   - sous-domaine vide (domaine nu) ;
+   - sous-domaine `www`.
+5. Facultatif mais conseillé : créez une clé API sur **https://console.anthropic.com** pour la lecture automatique des CIN.
 
 ## 2. Ce que Claude sur le PC fait
 
-Collez ce message dans Claude sur le PC, en remplaçant l'adresse IP et la clé :
+Collez ce message dans Claude sur le PC (onglet Code), en remplaçant l'adresse IP, le domaine et la clé :
 
 ```
-Installe le site Digitalia Assurance Voyage sur mon serveur Hetzner.
-Adresse IP : 91.98.12.34
+Installe le site Digitalia Assurance Voyage sur mon VPS OVH.
+Adresse IP : 51.xx.xx.xx — utilisateur : ubuntu — mot de passe : (celui reçu par e-mail)
+Nom de domaine : www.digitalia-assurance.com
 Clé Anthropic : sk-ant-... (ou « pas encore »)
-Connecte-toi en SSH (root, avec la clé créée tout à l'heure) et lance :
-curl -fsSL https://raw.githubusercontent.com/elkhadarhicham-creator/claudeapps/claude/new-session-mmyzq5/digitalia-voyage/deploy/installer.sh | ANTHROPIC_API_KEY=<clé> bash
-Attends la fin, puis donne-moi l'adresse du site, le mot de passe de l'espace cabinet et la clé du robot Digitalia affichés à la fin.
-Range ensuite la clé du robot dans robot_site_voyage.ini (cle_api) avec l'adresse du site (url).
+1. Connecte-toi en SSH, installe ma clé SSH et désactive ensuite la connexion par mot de passe.
+2. Vérifie que le domaine pointe bien vers l'adresse IP (sinon attends quelques minutes).
+3. Lance :
+curl -fsSL https://raw.githubusercontent.com/elkhadarhicham-creator/claudeapps/claude/new-session-mmyzq5/digitalia-voyage/deploy/installer.sh | sudo DOMAINE=<domaine> ANTHROPIC_API_KEY=<clé> bash
+4. Attends la fin, puis donne-moi l'adresse du site, le mot de passe de l'espace cabinet et la clé du robot Digitalia affichés à la fin.
+5. Range la clé du robot et l'adresse du site dans robot_site_voyage.ini.
 ```
 
-Le script installe Docker, télécharge le site, crée les réglages (mot de passe cabinet, clé Digitalia, clé secrète) et démarre le site avec un certificat HTTPS automatique.
+Le script installe Docker, télécharge le site, crée les réglages (mot de passe cabinet, clé Digitalia, clé secrète), puis démarre le site avec un certificat HTTPS automatique.
 
-Le site est alors en ligne à l'adresse **https://91-98-12-34.sslip.io**, gratuite, construite à partir de l'adresse IP.
+Sans nom de domaine, laissez `DOMAINE` vide : le site prend alors une adresse gratuite basée sur l'adresse IP, par exemple `https://51-xx-xx-xx.sslip.io`.
 
 ## 3. Ensuite
 
-- **Mettre à jour le site** : relancer la même commande `curl … | bash`. Les données et les réglages sont conservés.
-- **Nom de domaine** (plus tard) : faire pointer le domaine vers l'adresse IP du serveur, remplacer `SITE_URL` dans `/opt/digitalia/digitalia-voyage/.env`, puis relancer la commande.
-- **Paiement CMI** : après signature du contrat commerçant, ajouter `CMI_CLIENT_ID` et `CMI_STORE_KEY` dans le même fichier `.env`, puis relancer.
-- **Sauvegardes** : activer « Backups » dans la console Hetzner (+20 % du prix du serveur). Les données sont dans le volume Docker `donnees`.
-- **Réglages modifiables** : tous dans `/opt/digitalia/digitalia-voyage/.env` (voir `.env.example`).
+- **Mettre à jour le site** : relancer la même commande. Les données et les réglages sont conservés.
+- **Paiement CMI** : après signature du contrat commerçant, ajouter `CMI_CLIENT_ID` et `CMI_STORE_KEY` dans `/opt/digitalia/digitalia-voyage/.env`, puis relancer.
+- **Changer de domaine** : modifier `SITE_URL` dans ce même fichier, puis relancer.
+- **Données** : elles sont dans le volume Docker `donnees`. Le VPS-1 inclut une sauvegarde quotidienne.
+
+## Alternative : Hetzner
+
+Hetzner (Allemagne) vend un serveur comparable, CX23 ou CAX11, pour environ 6 €/mois, mais pas de nom de domaine. Le même script fonctionne : il faut se connecter en `root`, et `sudo` est alors inutile.

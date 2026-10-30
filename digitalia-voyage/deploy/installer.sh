@@ -46,8 +46,19 @@ if [ ! -f .env ]; then
 fi
 DOMAINE=$(grep '^SITE_URL=' .env | sed 's#^SITE_URL=https\?://##')
 
-echo "→ Construction et démarrage (5 à 10 minutes la première fois)"
 cd deploy
+# Configuration HTTPS : www.exemple.com sert le site, exemple.com redirige vers www
+{
+  echo "$DOMAINE {"
+  echo "	encode gzip"
+  echo "	reverse_proxy site:8000"
+  echo "}"
+  case "$DOMAINE" in
+    www.*) echo "${DOMAINE#www.} {"; echo "	redir https://$DOMAINE{uri} permanent"; echo "}" ;;
+  esac
+} > Caddyfile.local
+
+echo "→ Construction et démarrage (5 à 10 minutes la première fois)"
 DOMAINE="$DOMAINE" docker compose up -d --build
 for i in $(seq 1 60); do
   if curl -fsS "https://$DOMAINE/sante" >/dev/null 2>&1; then
