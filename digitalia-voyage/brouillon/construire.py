@@ -58,6 +58,9 @@ MAQUETTE = r'''
 app = re.sub(r"  function api\(url,opts\)\{.*?\n  \}\n", lambda m: MAQUETTE.lstrip("\n") + "\n", app, count=1, flags=re.S)
 app = app.replace('if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});', "")
 assert "Mode maquette" in app
+# Dans l'affichage claude.ai, l'ouverture directe de la caméra est bloquée : on laisse le téléphone proposer appareil photo ou galerie
+app = app.replace(' accept="image/*" capture="environment"', ' accept="image/*"')
+assert 'capture="environment"' not in app
 
 html = html.replace('<link rel="stylesheet" href="/static/style.css">', "<style>\n" + css + "\n</style>")
 html = html.replace('<script src="/static/i18n.js" defer></script>\n', "").replace('<script src="/static/app.js" defer></script>\n', "")
