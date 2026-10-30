@@ -224,8 +224,8 @@ def creer_souscription(body: SouscriptionIn, request: Request):
     if liens.count("Enfant") > MAX_ENFANTS:
         erreur("assures", f"{MAX_ENFANTS} enfants au maximum.")
     for i, a in enumerate(body.assures, 1):
-        if not (a.cin or a.passeport):
-            erreur("assures", f"Assuré {i} : numéro de CIN ou de passeport requis.")
+        if a.lien == "Souscripteur" and not (a.cin or a.passeport):
+            erreur("assures", "Souscripteur : numéro de CIN ou de passeport requis.")
         if a.naissance > auj:
             erreur("assures", f"Assuré {i} : date de naissance dans le futur.")
         if a.exp_passeport and a.exp_passeport < body.date_effet:

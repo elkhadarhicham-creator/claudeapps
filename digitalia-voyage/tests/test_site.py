@@ -175,3 +175,18 @@ def test_robot_portail_mai():
     assert saisie["b1Prenom"] == ["ADAM"] and saisie["b1Passeport"] == ["XY998877"]
     s = c.get(f"/api/suivi/{ref}?t={tok}").json()
     assert s["statut"] == "emise" and s["attestation"]
+
+
+def test_passeport_facultatif():
+    base = souscription().json()  # référence : la souscription type passe
+    assert base["ref"]
+    sans_piece = [
+        {"lien": "Souscripteur", "nom": "ALAMI", "prenom": "SARA", "naissance": "1990-01-01", "cin": "AB123456",
+         "passeport": "", "exp_passeport": "", "adresse": ""},
+        {"lien": "Enfant", "nom": "ALAMI", "prenom": "ADAM", "naissance": "2015-05-05", "cin": "", "passeport": "",
+         "exp_passeport": "", "adresse": ""},
+    ]
+    assert souscription(assures=sans_piece).status_code == 200  # enfant sans CIN ni passeport
+    sans_piece[0]["cin"] = ""
+    r = souscription(assures=sans_piece)
+    assert r.status_code == 422 and "Souscripteur" in r.json()["detail"]["message"]
