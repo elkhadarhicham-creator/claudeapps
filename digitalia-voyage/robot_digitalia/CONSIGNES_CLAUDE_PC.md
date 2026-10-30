@@ -42,6 +42,16 @@ Bonjour Claude. Le cabinet a un site de souscription en ligne d'assurance voyage
    - les lignes `integration_erreur` dans la page Contrôles, avec une alerte WhatsApp à Hicham si une souscription payée n'est pas émise après 24 h.
 5. **Reprends l'historique** : `python robot_site_voyage.py --reprise`, d'abord sur une **copie** de la base, puis compare le nombre de souscriptions, le total des primes et les encaissements avec l'export Excel de l'espace cabinet du site (`/admin`).
 
+## Option temps réel (Digitalia est joignable par Tailscale)
+
+Digitalia est une application web sur le port 8080 (`http://100.66.131.67:8080`), joignable par le réseau Tailscale du cabinet. Si le serveur du site rejoint ce réseau Tailscale, le site peut **pousser** chaque souscription à Digitalia à la seconde, au lieu d'attendre le passage du robot :
+
+1. Ajouter à Digitalia une route `POST /api/site-voyage/souscriptions`. Elle reçoit la fiche JSON (même format que le robot) et vérifie l'en-tête `X-Digitalia-Signature`, un HMAC-SHA256 du corps calculé avec la `SECRET_KEY` du site. Elle refuse tout envoi mal signé, puis enregistre la fiche dans `site_souscriptions` et appelle `integrer()`, comme le robot.
+2. Sur le serveur du site, régler `DIGITALIA_WEBHOOK_URL=http://100.66.131.67:8080/api/site-voyage/souscriptions`.
+3. Garder quand même le robot toutes les 15 minutes, en filet de sécurité si le PC était éteint au moment d'un envoi.
+
+Ne jamais ouvrir Digitalia sur internet : elle doit rester derrière Tailscale.
+
 ## Réglages
 
 Au premier lancement, le robot crée `robot_site_voyage.ini` :
