@@ -6,6 +6,16 @@
 
 Bonjour Claude. Le cabinet a un site de souscription en ligne d'assurance voyage : formule famille monde entier à 190 DH, paiement par carte CMI, contrat émis chez Maroc Assistance. Il faut que chaque souscription du site arrive automatiquement dans Digitalia, comme les données de MATU.
 
+## Digitalia sur ce PC
+
+- Application Flask servie par waitress sur `0.0.0.0:8080` : `http://127.0.0.1:8080` sur le PC, `http://100.66.131.67:8080` par Tailscale, connexion sur `/connexion`.
+- Code : `C:\Users\HP\Documents\pont_analysis\app`, lancé par `app.py` avec `pythonw` via le raccourci de démarrage « Application ELKHADDAR ».
+- Bases :
+  - Rabat : `C:\Users\HP\Documents\pont_analysis\cabinet\cabinet.db` ;
+  - Salé : `C:\Users\HP\Documents\pont_analysis\cabinet\sale\cabinet.db`.
+
+Le site ne demande pas d'agence au client. Par défaut, les souscriptions vont dans la base de **Rabat**. Si le cabinet préfère une autre règle (selon l'adresse ou le téléphone du client), demande à Hicham avant de la coder.
+
 ## Ce qui existe déjà
 
 - `robot_site_voyage.py`, à placer dans le dossier de Digitalia. Il n'a besoin d'aucune bibliothèque. À chaque passage :
@@ -17,6 +27,7 @@ Bonjour Claude. Le cabinet a un site de souscription en ligne d'assurance voyage
 
 ## Ce que je te demande
 
+0. **Récupère le robot** : télécharge le dossier `digitalia-voyage/robot_digitalia` du dépôt GitHub `elkhadarhicham-creator/claudeapps`, branche `claude/new-session-mmyzq5`. Place-le dans `C:\Users\HP\Documents\pont_analysis\robot_digitalia\`.
 1. **Lis le code et le schéma de Digitalia** : clients, polices, quittances, encaissements, scans, journal des opérations, robot MATU.
 2. **Écris `integration_digitalia.py`** à partir du modèle, en respectant les règles du cabinet :
    - **Client** : chercher par CIN, puis passeport, puis nom et date de naissance. Ne jamais créer de doublon de CIN (l'audit en a déjà trouvé 22). Sinon, créer le client avec le prochain code « AAAA-NNNNN » et le téléphone WhatsApp.
@@ -36,7 +47,7 @@ Bonjour Claude. Le cabinet a un site de souscription en ligne d'assurance voyage
    - **Commission** : taux Maroc Assistance / Assistance voyage de la table des branches et catégories.
    - **Journal des opérations** : chaque écriture signée « robot site voyage ».
 3. **Robotise** : lance `robot_site_voyage.py` toutes les 15 minutes, avec le même mécanisme que le robot MATU. Si MATU n'a pas de planificateur, utiliser le Planificateur de tâches Windows :
-   `schtasks /Create /SC MINUTE /MO 15 /TN "Digitalia site voyage" /TR "python C:\…\robot_site_voyage.py"`
+   `schtasks /Create /SC MINUTE /MO 15 /TN "Digitalia site voyage" /TR "pythonw C:\Users\HP\Documents\pont_analysis\robot_digitalia\robot_site_voyage.py"`
 4. **Affiche dans Digitalia** :
    - une tuile « Site web » sur le tableau de bord : souscriptions du jour, montant, contrats payés en attente d'émission chez MAI ;
    - les lignes `integration_erreur` dans la page Contrôles, avec une alerte WhatsApp à Hicham si une souscription payée n'est pas émise après 24 h.
@@ -46,7 +57,7 @@ Bonjour Claude. Le cabinet a un site de souscription en ligne d'assurance voyage
 
 Digitalia est une application web sur le port 8080 (`http://100.66.131.67:8080`), joignable par le réseau Tailscale du cabinet. Si le serveur du site rejoint ce réseau Tailscale, le site peut **pousser** chaque souscription à Digitalia à la seconde, au lieu d'attendre le passage du robot :
 
-1. Ajouter à Digitalia une route `POST /api/site-voyage/souscriptions`. Elle reçoit la fiche JSON (même format que le robot) et vérifie l'en-tête `X-Digitalia-Signature`, un HMAC-SHA256 du corps calculé avec la `SECRET_KEY` du site. Elle refuse tout envoi mal signé, puis enregistre la fiche dans `site_souscriptions` et appelle `integrer()`, comme le robot.
+1. Ajouter à l'application Flask de Digitalia une route `POST /api/site-voyage/souscriptions` (un blueprint, exempté de la page `/connexion` mais protégé par la signature). Elle reçoit la fiche JSON (même format que le robot) et vérifie l'en-tête `X-Digitalia-Signature`, un HMAC-SHA256 du corps calculé avec la `SECRET_KEY` du site. Elle refuse tout envoi mal signé, puis enregistre la fiche dans `site_souscriptions` et appelle `integrer()`, comme le robot.
 2. Sur le serveur du site, régler `DIGITALIA_WEBHOOK_URL=http://100.66.131.67:8080/api/site-voyage/souscriptions`.
 3. Garder quand même le robot toutes les 15 minutes, en filet de sécurité si le PC était éteint au moment d'un envoi.
 
@@ -62,9 +73,11 @@ url = https://adresse-du-site
 cle_api = (valeur de DIGITALIA_API_KEY sur le serveur du site)
 
 [digitalia]
-base = C:\…\chemin\de\la\base\digitalia.db
-dossier_documents = C:\…\documents_site_voyage
+base = C:\Users\HP\Documents\pont_analysis\cabinet\cabinet.db
+dossier_documents = C:\Users\HP\Documents\pont_analysis\cabinet\documents_site_voyage
 ```
+
+Digitalia (waitress) et le robot écrivent dans la même base SQLite. Le robot attend jusqu'à 30 s si la base est occupée. Vérifie que Digitalia ouvre la base avec un délai d'attente (`timeout`), et en mode WAL si ce n'est pas déjà le cas, pour éviter les erreurs « database is locked ».
 
 ## Règles à respecter
 
