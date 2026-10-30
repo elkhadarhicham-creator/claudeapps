@@ -118,6 +118,7 @@
   "Le service est momentanément indisponible. Réessayez ou écrivez-nous sur WhatsApp.":["الخدمة غير متاحة مؤقتًا. أعد المحاولة أو راسلنا على واتساب.","الخدمة ما خدماش دابا. عاود جرّب ولا كتب لينا فالواتساب."],
   "Trop de tentatives, réessayez plus tard.":["محاولات كثيرة، أعد المحاولة لاحقًا.","بزاف ديال المحاولات، عاود من بعد."],
   "Photo trop lourde : 8 Mo maximum.":["الصورة كبيرة جدًا: 8 ميغا كحد أقصى.","التصويرة تقيلة: 8 ميغا ماكسيموم."],
+  "date invalide, format JJ/MM/AAAA":["تاريخ غير صحيح، الصيغة يوم/شهر/سنة","التاريخ ماشي صحيح، كتبو بحال 31/12/1990"],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],

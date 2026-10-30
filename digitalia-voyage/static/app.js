@@ -51,9 +51,18 @@
   // ── Dates (heure locale du Maroc côté navigateur)
   function iso(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(j<10?"0":"")+j}
   function fr(s){if(!s)return "—";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+  // Dates toujours au format français JJ/MM/AAAA, quelle que soit la langue de l'appareil
+  function isoVersFr(s){return s?s.slice(8,10)+"/"+s.slice(5,7)+"/"+s.slice(0,4):""}
+  function frVersIso(s){var m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((s||"").trim());if(!m)return "";
+    var d=new Date(+m[3],+m[2]-1,+m[1]);return d.getDate()===+m[1]&&d.getMonth()===+m[2]-1?m[3]+"-"+m[2]+"-"+m[1]:""}
+  function D(id){return frVersIso($(id).value)}
+  document.addEventListener("input",function(e){var el=e.target;if(!el.classList||!el.classList.contains("date-fr"))return;
+    var c=el.value.replace(/\D/g,"").slice(0,8),v=c.slice(0,2);if(c.length>2)v+="/"+c.slice(2,4);if(c.length>4)v+="/"+c.slice(4);
+    if(e.inputType&&e.inputType.indexOf("delete")===0&&/\/$/.test(el.value))v=el.value;el.value=v;
+    el.classList.toggle("bad",v.length===10&&!frVersIso(v))});
   var today=iso(new Date());
-  function initDates(){$("effet").min=today;if(!$("effet").value||$("effet").value<today)$("effet").value=today;majEcheance()}
-  function majEcheance(){var v=$("effet").value;if(!v)return;var d=new Date(v+"T00:00:00");d.setFullYear(d.getFullYear()+1);d.setDate(d.getDate()-1);$("echeance").value=iso(d)}
+  function initDates(){if(!D("effet")||D("effet")<today)$("effet").value=isoVersFr(today);majEcheance()}
+  function majEcheance(){var v=D("effet");if(!v){$("echeance").value="";return}var d=new Date(v+"T00:00:00");d.setFullYear(d.getFullYear()+1);d.setDate(d.getDate()-1);$("echeance").value=isoVersFr(iso(d))}
   $("effet").addEventListener("input",majEcheance);initDates();
 
   // ── Navigation
@@ -83,8 +92,8 @@
     d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
       +'<div class="scan"><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier CIN / passeport</label><span class="s-msg">Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
-      +'<div class="g3"><div class="field"><label>Date de naissance</label><input type="date" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport</label><input data-k="passeport" autocomplete="off"></div></div>'
-      +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input type="date" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>';
+      +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport</label><input data-k="passeport" autocomplete="off"></div></div>'
+      +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>';
     // libellés reliés aux champs (accessibilité)
     d.querySelectorAll(".field").forEach(function(f,i){var id="f"+nTrav+"_"+i;f.querySelector("input").id=id;f.querySelector("label").htmlFor=id});
     var sel=d.querySelector("select");ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;
@@ -121,7 +130,7 @@
     }).then(function(r){
       if(!r.ok){msg.className="s-msg bad";msg.textContent=T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
       var n=0;["nom","prenom","naissance","cin","passeport","exp_passeport","adresse"].forEach(function(k){
-        var v=r.data[k];if(v){var inp=box.querySelector('[data-k="'+k+'"]');if(inp){inp.value=v;n++}}});
+        var v=r.data[k];if(v){var inp=box.querySelector('[data-k="'+k+'"]');if(inp){inp.value=inp.classList.contains("date-fr")?isoVersFr(v):v;n++}}});
       msg.className="s-msg ok";msg.textContent=(r.data.type==="PASSEPORT"?T("Passeport"):T("CIN"))+" — "+n+" "+T("champs remplis. Vérifiez-les.");
     }).catch(function(e){
       msg.className="s-msg bad";
@@ -130,7 +139,7 @@
   }
 
   function assures(){return [].map.call($("travList").children,function(c){
-    var o={lien:c.querySelector("select").value};c.querySelectorAll("[data-k]").forEach(function(i){o[i.dataset.k]=i.value.trim()});return o})}
+    var o={lien:c.querySelector("select").value};c.querySelectorAll("[data-k]").forEach(function(i){o[i.dataset.k]=i.classList.contains("date-fr")?frVersIso(i.value):i.value.trim()});return o})}
 
   // ── Étape 1 → 2 (ou envoi d'une demande de devis)
   $("go2").addEventListener("click",function(){
@@ -139,7 +148,7 @@
     if(!o.prix){
       if(!$("dNom").value.trim())return err("e1",T("Indiquez votre nom."));
       var b=this;b.disabled=true;b.textContent=T("Envoi en cours…");
-      var corps={offre:offre(),nom:$("dNom").value.trim(),telephone:$("tel").value,date_depart:$("effet").value||null,message:$("dMsg").value.trim()};
+      var corps={offre:offre(),nom:$("dNom").value.trim(),telephone:$("tel").value,date_depart:D("effet")||null,message:$("dMsg").value.trim()};
       api("/api/devis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(corps)}).then(function(){
         err("e1");var ok=$("devisOk");ok.innerHTML="";
         var s=document.createElement("span");s.textContent=T("Demande envoyée. Un conseiller vous répond sur WhatsApp.");
@@ -149,27 +158,29 @@
       }).catch(function(e){err("e1",msgErreur(e))}).then(function(){b.disabled=false;majOffre();$("devisOk").hidden=false});
       return;
     }
-    if(!$("effet").value||$("effet").value<today)return err("e1",T("Choisissez une date d'effet à partir d'aujourd'hui."));
+    if(!D("effet")||D("effet")<today)return err("e1",T("Choisissez une date d'effet à partir d'aujourd'hui."));
     err("e1");if(!$("travList").children.length)addTrav("Souscripteur");show(2);
   });
 
   // ── Étape 2 → 3
   $("go3").addEventListener("click",function(){
     var a=assures(),pb=[];
+    [].forEach.call($("travList").children,function(c,i){c.querySelectorAll(".date-fr").forEach(function(el){
+      if(el.value.trim()&&!frVersIso(el.value))pb.push(T("Assuré")+" "+(i+1)+" : "+T("date invalide, format JJ/MM/AAAA"))})});
     a.forEach(function(x,i){
       var n=T("Assuré")+" "+(i+1)+" : ";
       if(!x.nom||!x.prenom||!x.naissance)pb.push(n+T("nom, prénom et date de naissance"));
       else if(!x.cin&&!x.passeport)pb.push(n+T("numéro de CIN ou de passeport"));
       else if(x.naissance>today)pb.push(n+T("date de naissance dans le futur"));
-      if(x.exp_passeport&&x.exp_passeport<$("effet").value)pb.push(n+T("passeport expiré à la date d'effet"));
+      if(x.exp_passeport&&x.exp_passeport<D("effet"))pb.push(n+T("passeport expiré à la date d'effet"));
     });
     if(pb.length)return err("e2",T("À compléter :")+" "+pb.join(" ; "));
     err("e2");
     var o=OFFRES[offre()],dl=$("recapList");dl.innerHTML="";
     function row(k,v){var dt=document.createElement("dt");dt.textContent=k;var dd=document.createElement("dd");dd.textContent=v;dl.append(dt,dd)}
-    row(T("Formule"),T(o.nom));row(T("Période"),fr($("effet").value)+" → "+fr($("echeance").value));row("WhatsApp",$("tel").value);
+    row(T("Formule"),T(o.nom));row(T("Période"),fr(D("effet"))+" → "+fr(D("echeance")));row("WhatsApp",$("tel").value);
     a.forEach(function(x){row(T(x.lien),x.nom+" "+x.prenom+" · "+T("né(e) le")+" "+fr(x.naissance)+(x.passeport?" · "+T("Passeport")+" "+x.passeport:"")+(x.cin?" · "+T("CIN")+" "+x.cin:""))});
-    a.forEach(function(x,i){if(x.exp_passeport&&x.exp_passeport>=$("effet").value&&x.exp_passeport<$("echeance").value)row("⚠",T("Assuré")+" "+(i+1)+" : "+T("le passeport expire avant la fin du contrat (")+fr(x.exp_passeport)+")")});
+    a.forEach(function(x,i){if(x.exp_passeport&&x.exp_passeport>=D("effet")&&x.exp_passeport<D("echeance"))row("⚠",T("Assuré")+" "+(i+1)+" : "+T("le passeport expire avant la fin du contrat (")+fr(x.exp_passeport)+")")});
     show(3);
   });
 
@@ -187,7 +198,7 @@
   }
   $("payBtn").addEventListener("click",function(){
     var b=this;b.disabled=true;b.textContent=T("Redirection vers la banque…");err("e4");
-    var corps={offre:offre(),date_effet:$("effet").value,telephone:$("tel").value,email:$("email").value.trim(),lang:DG.lang(),
+    var corps={offre:offre(),date_effet:D("effet"),telephone:$("tel").value,email:$("email").value.trim(),lang:DG.lang(),
       assures:assures(),consentements:{conditions_generales:$("c1").checked,exactitude:$("c2").checked,loi_09_08:$("c3").checked}};
     api("/api/souscriptions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(corps)}).then(function(r){
       try{localStorage.setItem("dg-derniere",JSON.stringify({ref:r.ref,t:r.token}))}catch(e){}

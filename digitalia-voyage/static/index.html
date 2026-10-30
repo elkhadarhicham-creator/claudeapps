@@ -77,8 +77,8 @@
               <label class="opt"><input type="radio" name="offre" value="ETU"><span class="o-body"><b>Étudiant à l'étranger</b><small>Séjour d'études</small></span><span class="o-price q">sur devis</span></label>
             </div>
             <div class="row">
-              <div class="field"><label for="effet" id="effetLbl">Date d'effet</label><input type="date" id="effet"></div>
-              <div class="field"><label for="echeance">Fin de couverture</label><input type="date" id="echeance" disabled></div>
+              <div class="field"><label for="effet" id="effetLbl">Date d'effet</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" id="effet"></div>
+              <div class="field"><label for="echeance">Fin de couverture</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" id="echeance" readonly tabindex="-1"></div>
             </div>
             <p class="hint">Le contrat prend effet au plus tôt aujourd'hui : une date d'effet antérieure n'est pas possible.</p>
             <div class="row">
