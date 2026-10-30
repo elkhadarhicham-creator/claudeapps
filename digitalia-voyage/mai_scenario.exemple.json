@@ -1,0 +1,37 @@
+{
+  "_lisez_moi": "Modèle à adapter. Copier ce fichier en mai_scenario.json puis remplacer chaque sélecteur par celui relevé avec : playwright codegen https://portail.mai.ma/Souscriptions . Variables disponibles : {MAI_LOGIN} {MAI_PASSWORD} {ref} {date_effet} {date_effet_fr} {date_echeance_fr} {telephone} {email} {prime} {souscripteur.nom} {souscripteur.prenom} {souscripteur.cin} {souscripteur.passeport} {souscripteur.naissance_fr} {souscripteur.adresse} ; dans un bloc repeter : {assure.nom} {assure.prenom} {assure.lien} {assure.naissance_fr} {assure.cin} {assure.passeport} {assure.exp_passeport_fr} {i} (0,1,2…) {n} (1,2,3…). Une étape marquée \"final\": true n'est pas exécutée quand MAI_DRY_RUN=true.",
+  "connexion": [
+    {"action": "goto", "url": "https://portail.mai.ma/"},
+    {"action": "fill", "selector": "#UserName", "valeur": "{MAI_LOGIN}"},
+    {"action": "fill", "selector": "#Password", "valeur": "{MAI_PASSWORD}"},
+    {"action": "click", "selector": "button[type=submit]"},
+    {"action": "wait_url", "contient": "portail.mai.ma"}
+  ],
+  "souscription": [
+    {"action": "goto", "url": "https://portail.mai.ma/Souscriptions"},
+    {"action": "click", "selector": "text=Nouvelle souscription"},
+    {"action": "select", "selector": "#Produit", "valeur": "Famille Monde entier 12 mois", "par": "libelle"},
+    {"action": "fill", "selector": "#DateEffet", "valeur": "{date_effet_fr}"},
+    {"action": "fill", "selector": "#Souscripteur_Nom", "valeur": "{souscripteur.nom}"},
+    {"action": "fill", "selector": "#Souscripteur_Prenom", "valeur": "{souscripteur.prenom}"},
+    {"action": "fill", "selector": "#Souscripteur_CIN", "valeur": "{souscripteur.cin}"},
+    {"action": "fill", "selector": "#Souscripteur_Passeport", "valeur": "{souscripteur.passeport}"},
+    {"action": "fill", "selector": "#Souscripteur_DateNaissance", "valeur": "{souscripteur.naissance_fr}"},
+    {"action": "fill", "selector": "#Souscripteur_Telephone", "valeur": "{telephone}"},
+    {"action": "fill", "selector": "#Souscripteur_Adresse", "valeur": "{souscripteur.adresse}"},
+    {"action": "repeter", "debut": 1, "etapes": [
+      {"action": "click", "selector": "text=Ajouter un bénéficiaire"},
+      {"action": "fill", "selector": "#Beneficiaires_{i}__Nom", "valeur": "{assure.nom}"},
+      {"action": "fill", "selector": "#Beneficiaires_{i}__Prenom", "valeur": "{assure.prenom}"},
+      {"action": "fill", "selector": "#Beneficiaires_{i}__DateNaissance", "valeur": "{assure.naissance_fr}"},
+      {"action": "fill", "selector": "#Beneficiaires_{i}__Passeport", "valeur": "{assure.passeport}"}
+    ]},
+    {"action": "click", "selector": "text=Valider la souscription", "final": true}
+  ],
+  "resultat": [
+    {"action": "lire", "nom": "numero_police", "selector": ".numero-police", "regex": "([A-Z0-9/-]{5,})"}
+  ],
+  "attestation": [
+    {"action": "telecharger", "selector": "text=Imprimer l'attestation"}
+  ]
+}

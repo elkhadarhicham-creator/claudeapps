@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Espace cabinet · Digitalia</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#3f1c37">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/admin.css">
+<script src="/static/admin.js" defer></script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/admin"><img src="/static/icon.svg" width="40" height="40" alt=""><span><b>Digital<span class="ia">ia</span></b><small>Espace cabinet</small></span></a>
+  <nav class="menu" id="menu" hidden><a href="/api/admin/export.csv">Export Excel</a><a href="#" id="sync">Synchroniser Digitalia</a><a href="#" id="logout">Déconnexion</a></nav>
+</div></header>
+
+<main class="wrap adm">
+  <form class="card login" id="login" hidden>
+    <h2>Connexion</h2>
+    <div class="field"><label for="pw">Mot de passe</label><input id="pw" type="password" autocomplete="current-password" required></div>
+    <p class="err" id="eLogin" hidden></p>
+    <button class="btn">Se connecter</button>
+  </form>
+
+  <div id="app" hidden>
+    <p class="demo" id="demoBanner" hidden><b>Paiement en mode démonstration.</b> Ajoutez CMI_CLIENT_ID et CMI_STORE_KEY sur le serveur après signature du contrat commerçant.</p>
+    <div class="tiles" id="tiles"></div>
+    <div class="tabs" role="tablist">
+      <button data-s="payee" class="on">À émettre</button><button data-s="">Toutes</button><button data-s="emise">Émises</button>
+      <button data-s="attente_paiement">En attente</button><button data-s="echec_paiement">Échecs</button><button data-tab="devis">Devis</button>
+    </div>
+    <input class="search" id="q" type="search" placeholder="Rechercher : référence, nom, téléphone, n° de police">
+    <div id="liste" class="liste"></div>
+  </div>
+</main>
+
+<dialog id="fiche"><div class="dlg">
+  <div class="dlg-head"><h2 id="fRef"></h2><button type="button" class="x" id="fClose" aria-label="Fermer">×</button></div>
+  <div id="fBody"></div>
+</div></dialog>
+</body>
+</html>

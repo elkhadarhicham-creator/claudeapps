@@ -1,0 +1,6 @@
+.venv/
+data/
+.env
+mai_scenario.json
+__pycache__/
+.pytest_cache/
