@@ -300,3 +300,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 [dir="rtl"] .slide figcaption{direction:rtl;text-align:right}
 @media (max-width:560px){.sl-nav{display:none}.slide{aspect-ratio:4/3}}
 @media (prefers-reduced-motion:reduce){.slides{transition:none}}
+
+.ancre{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;font-size:.92rem}
+.ancre span{opacity:.75}.ancre s{opacity:.75;text-decoration-thickness:2px;text-decoration-color:var(--or2)}
+.ancre b{background:var(--or);color:var(--prune);border-radius:999px;padding:3px 12px;font-weight:700}

@@ -13,7 +13,7 @@
   var CARDS=[
     {tag:"Souscription en ligne",star:true,name:"Injad Monde · Famille",items:["Souscripteur, conjoint et enfants","Votre voiture incluse","Frais médicaux jusqu’à 350 000 DH, monde entier","1 à 5 ans"],price:"190 DH / an",key:"FAM_MONDE_AN"},
     {tag:"Sur devis",name:"Individuel · Schengen",items:["Un voyageur, 6 mois ou 1 an","Tarif selon l’âge","Frais médicaux 30 000 € minimum, tout l’espace Schengen"],price:null,key:"IND_SCH"},
-    {tag:"Sur devis",name:"Omra / Hajj",items:["Couverture en Arabie saoudite","Rapatriement sanitaire","Formules groupe"],price:null,key:"OMRA"},
+    {tag:"Sur devis",name:"Omra / Hajj",items:["Couverture en Arabie saoudite","Rapatriement vers le Maroc, que l’assurance du visa ne prévoit pas","Formules groupe"],price:null,key:"OMRA"},
     {tag:"Sur devis",name:"Étudiant à l'étranger",items:["Séjour d'études","Frais médicaux et hospitalisation","Rapatriement et assistance"],price:null,key:"ETU"}
   ];
   var wa=function(t){return "https://wa.me/"+CFG.whatsapp+(t?"?text="+encodeURIComponent(t):"")};
