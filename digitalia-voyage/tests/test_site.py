@@ -45,7 +45,7 @@ def payer(r, decision="ok"):
 
 
 def test_pages_publiques():
-    assert "190 DH" in c.get("/").text
+    assert "890 DH" in c.get("/").text
     assert c.get("/api/config").json()["paiement_demo"] is True
     assert "Content-Security-Policy" in c.get("/").headers
 
