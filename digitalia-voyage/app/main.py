@@ -174,8 +174,18 @@ class Assure(BaseModel):
     exp_passeport: date | None = None
     adresse: str = Field("", max_length=200)
     etudiant: bool = False  # enfant de 21 à 25 ans poursuivant ses études au Maroc
+    # Informations du souscripteur demandées par le portail MAI
+    civilite: Literal["", "M.", "Mme"] = ""
+    lieu_naissance: str = Field("", max_length=80)
+    situation_familiale: Literal["", "Célibataire", "Marié(e)", "Divorcé(e)", "Veuf(ve)"] = ""
+    ville: str = Field("", max_length=80)
+    code_postal: str = Field("", max_length=10)
+    profession: str = Field("", max_length=80)
+    mutuelle: str = Field("", max_length=80)       # assurance couvrant le même risque (AMO, CNOPS, mutuelle…)
+    circonstances: str = Field("", max_length=300)  # circonstances susceptibles d'aggraver le risque
 
-    @field_validator("nom", "prenom", "cin", "passeport", "adresse")
+    @field_validator("nom", "prenom", "cin", "passeport", "adresse", "lieu_naissance", "ville", "code_postal",
+                     "profession", "mutuelle", "circonstances")
     @classmethod
     def nettoie(cls, v: str) -> str:
         return " ".join(v.split())
@@ -237,7 +247,9 @@ def creer_souscription(body: SouscriptionIn, request: Request):
         tel_valide(body.telephone)
     except ValueError:
         erreur("telephone", "Numéro WhatsApp invalide.")
-    if body.email and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", body.email):
+    if not body.email:
+        erreur("email", "Adresse e-mail obligatoire : le contrat y est envoyé.")
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", body.email):
         erreur("email", "Adresse e-mail invalide.")
     c = body.consentements
     if not (c.conditions_generales and c.exactitude and c.loi_09_08):
@@ -252,6 +264,14 @@ def creer_souscription(body: SouscriptionIn, request: Request):
     for i, a in enumerate(body.assures, 1):
         if a.lien == "Souscripteur" and not (a.cin or a.passeport):
             erreur("assures", "Souscripteur : numéro de CIN ou de passeport requis.")
+        if a.lien == "Souscripteur":
+            manque = [lib for lib, v in (("civilité", a.civilite), ("lieu de naissance", a.lieu_naissance),
+                                         ("situation familiale", a.situation_familiale), ("adresse", a.adresse),
+                                         ("ville", a.ville), ("code postal", a.code_postal), ("profession", a.profession),
+                                         ("assurance maladie / mutuelle", a.mutuelle),
+                                         ("circonstances aggravant le risque", a.circonstances)) if not v]
+            if manque:
+                erreur("assures", "Souscripteur : " + ", ".join(manque) + " à compléter.")
         if a.naissance > auj:
             erreur("assures", f"Assuré {i} : date de naissance dans le futur.")
         age = age_a(a.naissance, body.date_effet)

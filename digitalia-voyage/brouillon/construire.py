@@ -20,8 +20,8 @@ MAQUETTE = r'''
   // ── Mode maquette : aucun serveur, réponses simulées ; la CIN est lue par Claude depuis la page
   var PROMPT_PIECE="Cette image doit être une carte nationale d'identité marocaine (CIN, recto ou verso) ou la page d'identité d'un passeport. "
     +"Lis le texte latin, le texte arabe et la bande MRZ si elle est présente. Réponds uniquement par un objet JSON : "
-    +'{"lisible":true|false,"type":"CIN"|"PASSEPORT"|"AUTRE","nom":"","prenom":"","naissance":"AAAA-MM-JJ","cin":"","passeport":"","exp_passeport":"AAAA-MM-JJ","adresse":""}. '
-    +"Noms et prénoms en majuscules latines, tels qu'écrits sur la pièce. Le verso de la CIN porte l'adresse. "
+    +'{"lisible":true|false,"type":"CIN"|"PASSEPORT"|"AUTRE","nom":"","prenom":"","naissance":"AAAA-MM-JJ","cin":"","passeport":"","exp_passeport":"AAAA-MM-JJ","adresse":"","ville":"","lieu_naissance":"","sexe":"M"|"F"|""}. '
+    +"Noms et prénoms en majuscules latines, tels qu'écrits sur la pièce. Le recto de la CIN porte le lieu de naissance (né(e) à) ; le verso porte l'adresse : mets sa ville dans ville. "
     +"Sur un passeport marocain, le numéro de CIN figure souvent comme « numéro personnel ». "
     +"Laisse une chaîne vide pour tout champ absent ou illisible : n'invente rien. Si l'image n'est pas une pièce d'identité, mets lisible à false.";
   var SANS_APERCU="La lecture de photo n'est pas disponible dans cet affichage. Ouvrez le lien dans le navigateur (Chrome ou Safari), connecté à claude.ai.";

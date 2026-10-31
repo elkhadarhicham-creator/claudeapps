@@ -12,13 +12,17 @@ c = TestClient(main.app)
 AUJ = main.aujourdhui()
 
 
+COMPLEMENT = {"civilite": "Mme", "lieu_naissance": "RABAT", "situation_familiale": "Marié(e)", "ville": "RABAT",
+              "code_postal": "10080", "profession": "Enseignante", "mutuelle": "CNOPS", "circonstances": "Aucune"}
+
+
 def souscription(**over):
     corps = {
-        "offre": "FAM_MONDE_AN", "date_effet": (AUJ + timedelta(days=1)).isoformat(), "telephone": "06 12 34 56 78", "email": "",
+        "offre": "FAM_MONDE_AN", "date_effet": (AUJ + timedelta(days=1)).isoformat(), "telephone": "06 12 34 56 78", "email": "sara@example.ma",
         "lang": "fr",
         "assures": [
             {"lien": "Souscripteur", "nom": "ALAMI", "prenom": "SARA", "naissance": "1990-01-01", "cin": "AB123456",
-             "passeport": "", "exp_passeport": "", "adresse": "Rabat"},
+             "passeport": "", "exp_passeport": "", "adresse": "12 rue Fès, Agdal", **COMPLEMENT},
             {"lien": "Enfant", "nom": "ALAMI", "prenom": "ADAM", "naissance": "2015-05-05", "cin": "",
              "passeport": "XY998877", "exp_passeport": (AUJ + timedelta(days=900)).isoformat(), "adresse": ""},
         ],
@@ -183,7 +187,7 @@ def test_passeport_facultatif():
     assert base["ref"]
     sans_piece = [
         {"lien": "Souscripteur", "nom": "ALAMI", "prenom": "SARA", "naissance": "1990-01-01", "cin": "AB123456",
-         "passeport": "", "exp_passeport": "", "adresse": ""},
+         "passeport": "", "exp_passeport": "", "adresse": "12 rue Fès", **COMPLEMENT},
         {"lien": "Enfant", "nom": "ALAMI", "prenom": "ADAM", "naissance": "2015-05-05", "cin": "", "passeport": "",
          "exp_passeport": "", "adresse": ""},
     ]
@@ -224,7 +228,7 @@ def test_lecture_pdf_et_photo(monkeypatch):
 def test_regles_injad_monde_famille_et_ages():
     eff = AUJ + timedelta(days=1)
     adulte = {"lien": "Souscripteur", "nom": "A", "prenom": "B", "naissance": f"{eff.year - 40}-01-01", "cin": "X1",
-              "passeport": "", "exp_passeport": "", "adresse": ""}
+              "passeport": "", "exp_passeport": "", "adresse": "12 rue Fès", **COMPLEMENT}
     enfant = {"lien": "Enfant", "nom": "A", "prenom": "C", "naissance": f"{eff.year - 23}-01-01", "cin": "",
               "passeport": "", "exp_passeport": "", "adresse": ""}
     # 21-25 ans : couvert seulement s'il est étudiant au Maroc
@@ -263,3 +267,20 @@ def test_duree_pluriannuelle_et_vehicules():
     assert s["options"]["vehicule"]["immatriculation"] == "12345-A-6" and "2e véhicule" in s["produit"]
     assert souscription(duree_ans=5).json()["prime_ttc"] == 5 * 190
     assert souscription(duree_ans=6).status_code == 422
+
+
+def test_champs_portail_mai_obligatoires_pour_le_souscripteur():
+    assert souscription(email="").json()["detail"]["code"] == "email"
+    for champ in ("lieu_naissance", "code_postal", "profession", "mutuelle", "circonstances"):
+        r = c.post("/api/souscriptions", json={
+            "offre": "FAM_MONDE_AN", "date_effet": (AUJ + timedelta(days=1)).isoformat(), "telephone": "0612345678",
+            "email": "a@b.ma", "assures": [{"lien": "Souscripteur", "nom": "A", "prenom": "B", "naissance": "1990-01-01",
+                                             "cin": "X1", "adresse": "rue", **{**COMPLEMENT, champ: ""}}],
+            "consentements": {"conditions_generales": True, "exactitude": True, "loi_09_08": True}},
+            headers={"x-forwarded-for": f"10.1.0.{time.time_ns() % 250}"})
+        assert r.status_code == 422 and "à compléter" in r.json()["detail"]["message"], champ
+    # les champs passent jusqu'à Digitalia et au robot MAI
+    ref = souscription().json()["ref"]
+    from app import db, mai
+    v = mai.variables(db.get_souscription(ref))
+    assert v["souscripteur.code_postal"] == "10080" and v["souscripteur.civilite"] == "Mme"

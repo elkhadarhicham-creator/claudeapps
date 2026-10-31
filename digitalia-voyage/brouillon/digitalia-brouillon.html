@@ -370,6 +370,9 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .add2:has(> [hidden]){grid-template-columns:1fr}
 .scan .s-titre{flex-basis:100%;margin:0;font-weight:600;font-size:.88rem;color:var(--ink)}
 @media (max-width:400px){.add2{grid-template-columns:1fr}}
+.sous-plus{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px}
+.sous-plus .s-titre{margin:0;font-weight:600;font-size:.92rem}
+.sous-plus .circ-txt{margin-top:8px}
 
 </style>
 </head>
@@ -482,7 +485,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
             <p class="hint">Le contrat prend effet le lendemain du paiement, à midi. Tous les assurés doivent résider à plein temps au Maroc.</p>
             <div class="row">
               <div class="field"><label for="tel">WhatsApp du souscripteur</label><input id="tel" type="tel" autocomplete="tel" placeholder="06 12 34 56 78"></div>
-              <div class="field"><label for="email">E-mail (facultatif)</label><input id="email" type="email" autocomplete="email" placeholder="pour recevoir le contrat"></div>
+              <div class="field"><label for="email">E-mail</label><input id="email" type="email" autocomplete="email" placeholder="pour recevoir le contrat"></div>
             </div>
             <div class="stack" id="devisBox" hidden>
               <p class="hint">Cette formule se fait sur devis : laissez vos coordonnées, un conseiller vous répond sur WhatsApp dans la journée.</p>
@@ -838,6 +841,19 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Remplir avec la CIN ou le passeport":["الملء بالبطاقة الوطنية أو جواز السفر","عمّر بلاكارط ولا الباسبور"],
   "CIN : recto pour le nom et la date de naissance, verso pour l’adresse. Passeport : page avec la photo. Ou saisissez les champs ci-dessous.":["البطاقة: الوجه للاسم وتاريخ الازدياد، الظهر للعنوان. جواز السفر: الصفحة التي بها الصورة. أو أدخل الخانات أدناه.","لاكارط: القدام للسمية وتاريخ الزيادة، اللور للعنوان. الباسبور: الصفحة اللي فيها التصويرة. ولا كتب الخانات لتحت."],
   "Vous (souscripteur)":["أنت (المكتتب)","نتا (المكتتب)"],
+  "Informations pour le contrat":["معلومات العقد","المعلومات ديال العقد"],
+  "Civilité":["اللقب","اللقب"],"Situation familiale":["الحالة العائلية","الحالة العائلية"],
+  "Marié(e)":["متزوج(ة)","مزوج(ة)"],"Célibataire":["أعزب / عزباء","عزري / عزبة"],"Divorcé(e)":["مطلق(ة)","مطلق(ة)"],"Veuf(ve)":["أرمل(ة)","هجّال / هجّالة"],
+  "Lieu de naissance":["مكان الازدياد","بلاصة الزيادة"],"Profession":["المهنة","الخدمة"],"Ville":["المدينة","المدينة"],"Code postal":["الرمز البريدي","الكود البريدي"],
+  "Assurance maladie / mutuelle":["التأمين الصحي / التعاضدية","التأمين الصحي / الميتويل"],
+  "AMO (CNSS)":["AMO (الضمان الاجتماعي)","AMO (CNSS)"],"AMO Tadamon (ex-RAMED)":["AMO تضامن (راميد سابقًا)","AMO تضامن (الراميد)"],
+  "Mutuelle ou assurance groupe privée":["تعاضدية أو تأمين جماعي خاص","ميتويل ولا تأمين ديال الخدمة"],"Aucune":["لا شيء","والو"],
+  "Circonstances pouvant aggraver le risque":["ظروف قد تزيد من الخطر","حوايج يقدرو يزيدو فالخطر"],
+  "Oui : maladie, traitement, grossesse…":["نعم: مرض، علاج، حمل…","إيه: مرض، دوا، حمل…"],"Précisez":["وضّح","وضّح"],
+  "E-mail":["البريد الإلكتروني","الإيميل"],
+  "Indiquez une adresse e-mail valide : le contrat y sera envoyé.":["أدخل بريدًا إلكترونيًا صحيحًا: سيُرسل إليه العقد.","دخل إيميل صحيح: العقد غادي يتصيفط ليه."],
+  "complétez les informations pour le contrat (civilité, situation familiale, lieu de naissance, profession, adresse, ville, code postal, mutuelle, circonstances)":["أكمل معلومات العقد (اللقب، الحالة العائلية، مكان الازدياد، المهنة، العنوان، المدينة، الرمز البريدي، التأمين الصحي، الظروف)","كمّل المعلومات ديال العقد (اللقب، الحالة العائلية، بلاصة الزيادة، الخدمة، العنوان، المدينة، الكود البريدي، الميتويل، الظروف)"],
+  "Contrat":["العقد","العقد"],"né(e) à":["مزداد(ة) بـ","مزيود(ة) ف"],"Mutuelle":["التعاضدية","الميتويل"],
   "Visa Schengen":["تأشيرة شنغن","الفيزا ديال شنغن"],
   "Valable pour le visa Schengen":["صالح لتأشيرة شنغن","صالح للفيزا ديال شنغن"],
   "Plus de 30 000 € de frais médicaux, dans tous les pays Schengen.":["أكثر من 30 000 يورو من المصاريف الطبية، في جميع دول شنغن.","كثر من 30 000 أورو ديال المصاريف الطبية، فجميع دول شنغن."],
@@ -929,8 +945,8 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   // ── Mode maquette : aucun serveur, réponses simulées ; la CIN est lue par Claude depuis la page
   var PROMPT_PIECE="Cette image doit être une carte nationale d'identité marocaine (CIN, recto ou verso) ou la page d'identité d'un passeport. "
     +"Lis le texte latin, le texte arabe et la bande MRZ si elle est présente. Réponds uniquement par un objet JSON : "
-    +'{"lisible":true|false,"type":"CIN"|"PASSEPORT"|"AUTRE","nom":"","prenom":"","naissance":"AAAA-MM-JJ","cin":"","passeport":"","exp_passeport":"AAAA-MM-JJ","adresse":""}. '
-    +"Noms et prénoms en majuscules latines, tels qu'écrits sur la pièce. Le verso de la CIN porte l'adresse. "
+    +'{"lisible":true|false,"type":"CIN"|"PASSEPORT"|"AUTRE","nom":"","prenom":"","naissance":"AAAA-MM-JJ","cin":"","passeport":"","exp_passeport":"AAAA-MM-JJ","adresse":"","ville":"","lieu_naissance":"","sexe":"M"|"F"|""}. '
+    +"Noms et prénoms en majuscules latines, tels qu'écrits sur la pièce. Le recto de la CIN porte le lieu de naissance (né(e) à) ; le verso porte l'adresse : mets sa ville dans ville. "
     +"Sur un passeport marocain, le numéro de CIN figure souvent comme « numéro personnel ». "
     +"Laisse une chaîne vide pour tout champ absent ou illisible : n'invente rien. Si l'image n'est pas une pièce d'identité, mets lisible à false.";
   var SANS_APERCU="La lecture de photo n'est pas disponible dans cet affichage. Ouvrez le lien dans le navigateur (Chrome ou Safari), connecté à claude.ai.";
@@ -1054,13 +1070,16 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<label class="consent etu" hidden><input type="checkbox" data-k="etudiant"> <span>Étudiant(e) au Maroc (obligatoire de 21 à 25 ans)</span></label>'
-      +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>';
+      +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>'
+      +(role==="Souscripteur"?'<div class="sous-plus"><p class="s-titre">Informations pour le contrat</p>'+'<div class="row"><div class="field"><label>Civilité</label><select data-k="civilite"><option value="">—</option><option value="M.">M.</option><option value="Mme">Mme</option></select></div>'+'<div class="field"><label>Situation familiale</label><select data-k="situation_familiale"><option value="">—</option><option>Marié(e)</option><option>Célibataire</option><option>Divorcé(e)</option><option>Veuf(ve)</option></select></div></div>'+'<div class="row"><div class="field"><label>Lieu de naissance</label><input data-k="lieu_naissance" autocomplete="off"></div><div class="field"><label>Profession</label><input data-k="profession" autocomplete="organization-title"></div></div>'+'<div class="row"><div class="field"><label>Ville</label><input data-k="ville" autocomplete="address-level2"></div><div class="field"><label>Code postal</label><input data-k="code_postal" inputmode="numeric" maxlength="10" autocomplete="postal-code"></div></div>'+'<div class="field"><label>Assurance maladie / mutuelle</label><select data-k="mutuelle"><option value="">—</option><option>AMO (CNSS)</option><option>CNOPS</option><option>AMO Tadamon (ex-RAMED)</option><option>Mutuelle ou assurance groupe privée</option><option>Aucune</option></select></div>'+'<div class="field"><label>Circonstances pouvant aggraver le risque</label><select class="circ-sel"><option value="">—</option><option value="Aucune">Aucune</option><option value="oui">Oui : maladie, traitement, grossesse…</option></select><input class="circ-txt" data-k="circonstances" placeholder="Précisez" hidden autocomplete="off"></div>'+'</div>':"");
     // libellés reliés aux champs (accessibilité)
-    d.querySelectorAll(".field").forEach(function(f,i){var id="f"+nTrav+"_"+i;f.querySelector("input").id=id;f.querySelector("label").htmlFor=id});
+    d.querySelectorAll(".field").forEach(function(f,i){var id="f"+nTrav+"_"+i;f.querySelector("input,select").id=id;f.querySelector("label").htmlFor=id});
     var sel=d.querySelector("select");
     function majEtu(){d.querySelector(".etu").hidden=sel.value!=="Enfant"}ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;majEtu();sel.addEventListener("change",majEtu);
     if(role==="Souscripteur")sel.disabled=true;else sel.querySelector('option[value="Souscripteur"]').disabled=true;
     var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});sel.addEventListener("change",renum);
+    var cs=d.querySelector(".circ-sel");if(cs){var ct=d.querySelector(".circ-txt");cs.addEventListener("change",function(){
+      ct.hidden=cs.value!=="oui";ct.value=cs.value==="Aucune"?"Aucune":"";if(!ct.hidden)ct.focus()})}
     var msg=d.querySelector(".s-msg");
     if(!CFG.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display="none"});msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
     d.querySelectorAll(".scan input[type=file]").forEach(function(fi){fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""})});
@@ -1068,7 +1087,8 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   }
   function renum(){var e=0,cj=false;[].forEach.call($("travList").children,function(c){var r=c.querySelector("select").value;
       if(r==="Conjoint(e)")cj=true;c.querySelector(".trav-head b").textContent=r==="Souscripteur"?T("Vous (souscripteur)"):r==="Enfant"?T("Enfant")+" "+(++e):T("Conjoint(e)")});
-    var b=$("addConj");if(b)b.hidden=cj}
+    var b=$("addConj");if(b)b.hidden=cj;
+    var sf=$("travList").querySelector('[data-k="situation_familiale"]');if(sf&&cj&&!sf.value)sf.value="Marié(e)"}
   $("addConj").addEventListener("click",function(){addTrav("Conjoint(e)");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
   $("addEnf").addEventListener("click",function(){addTrav("Enfant");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
 
@@ -1096,7 +1116,9 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
       return api("/api/ocr",{method:"POST",body:fd});
     }).then(function(r){
       if(!r.ok){msg.className="s-msg bad";msg.textContent=T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
-      var n=0;["nom","prenom","naissance","cin","passeport","exp_passeport","adresse"].forEach(function(k){
+      var n=0;
+      if(r.data.sexe){var cv=box.querySelector('[data-k="civilite"]');if(cv&&!cv.value){cv.value=r.data.sexe==="F"?"Mme":"M.";n++}}
+      ["nom","prenom","naissance","cin","passeport","exp_passeport","adresse","ville","lieu_naissance"].forEach(function(k){
         var v=r.data[k];if(v&&typeof v==="string"){var inp=box.querySelector('[data-k="'+k+'"]');
           if(inp&&inp.classList.contains("date-fr")){if(!/^\d{4}-\d\d-\d\d$/.test(v))return;v=isoVersFr(v)}
           if(inp){inp.value=v;n++}}});
@@ -1115,6 +1137,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   $("go2").addEventListener("click",function(){
     var o=OFFRES[offre()],tel=$("tel").value.replace(/\D/g,"");
     if(tel.length<9)return err("e1",T("Indiquez un numéro WhatsApp valide : l'attestation y sera envoyée."));
+    if(o.prix&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($("email").value.trim()))return err("e1",T("Indiquez une adresse e-mail valide : le contrat y sera envoyé."));
     if(!o.prix){
       if(!$("dNom").value.trim())return err("e1",T("Indiquez votre nom."));
       var b=this;b.disabled=true;b.textContent=T("Envoi en cours…");
@@ -1142,6 +1165,8 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
       var n=T("Assuré")+" "+(i+1)+" : ";
       if(!x.nom||!x.prenom||!x.naissance)pb.push(n+T("nom, prénom et date de naissance"));
       else if(x.lien==="Souscripteur"&&!x.cin&&!x.passeport)pb.push(n+T("numéro de CIN ou de passeport"));
+      else if(x.lien==="Souscripteur"&&(!x.civilite||!x.situation_familiale||!x.lieu_naissance||!x.profession||!x.adresse||!x.ville||!x.code_postal||!x.mutuelle||!x.circonstances))
+        pb.push(n+T("complétez les informations pour le contrat (civilité, situation familiale, lieu de naissance, profession, adresse, ville, code postal, mutuelle, circonstances)"));
       else if(x.naissance>today)pb.push(n+T("date de naissance dans le futur"));
       else{var ag=ageA(x.naissance,D("effet"));
         if(x.lien==="Enfant"&&ag>=(CFG.age_max_enfant||21)){
@@ -1160,6 +1185,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     if(senior())row(T("Tarif"),T("prime familiale + 70 ans"));
     row(T("Période"),fr(D("effet"))+" → "+fr(D("echeance")));row("WhatsApp",$("tel").value);
     a.forEach(function(x){row(T(x.lien),x.nom+" "+x.prenom+" · "+T("né(e) le")+" "+fr(x.naissance)+(x.passeport?" · "+T("Passeport")+" "+x.passeport:"")+(x.cin?" · "+T("CIN")+" "+x.cin:""))});
+    var so=a[0];if(so&&so.lien==="Souscripteur")row(T("Contrat"),[so.civilite,so.situation_familiale,so.profession,T("né(e) à")+" "+so.lieu_naissance,so.adresse+", "+so.code_postal+" "+so.ville,T("Mutuelle")+" : "+so.mutuelle].join(" · "));
     a.forEach(function(x,i){if(x.exp_passeport&&x.exp_passeport>=D("effet")&&x.exp_passeport<D("echeance"))row("⚠",T("Assuré")+" "+(i+1)+" : "+T("le passeport expire avant la fin du contrat (")+fr(x.exp_passeport)+")")});
     majPrix();show(3);
   });

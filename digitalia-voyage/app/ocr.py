@@ -14,7 +14,7 @@ log = logging.getLogger("digitalia.ocr")
 
 PROMPT = (
     "Ce document (photo ou PDF) doit être une carte nationale d'identité marocaine (CIN, recto ou verso) ou la page d'identité d'un passeport. "
-    "Le verso de la CIN porte l'adresse ; la bande MRZ confirme le nom, la date de naissance et le numéro. "
+    "Le recto de la CIN porte le lieu de naissance (« né(e) à ») ; le verso porte l'adresse : mets la ville de l'adresse dans « ville ». la bande MRZ confirme le nom, la date de naissance et le numéro. "
     "Lis le texte latin, le texte arabe et la bande MRZ si elle est présente, puis remplis les champs. "
     "Noms et prénoms en majuscules latines, tels qu'écrits sur la pièce. Dates au format AAAA-MM-JJ. "
     "Sur un passeport marocain, le numéro de CIN figure souvent comme « numéro personnel ». "
@@ -35,8 +35,10 @@ SCHEMA = {
         "passeport": {"type": "string"},
         "exp_passeport": {"type": "string"},
         "adresse": {"type": "string"},
+        "ville": {"type": "string"},
+        "lieu_naissance": {"type": "string"},
     },
-    "required": ["lisible", "type", "nom", "prenom", "naissance", "sexe", "cin", "passeport", "exp_passeport", "adresse"],
+    "required": ["lisible", "type", "nom", "prenom", "naissance", "sexe", "cin", "passeport", "exp_passeport", "adresse", "ville", "lieu_naissance"],
     "additionalProperties": False,
 }
 

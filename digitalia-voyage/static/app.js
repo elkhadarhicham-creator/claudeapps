@@ -116,13 +116,16 @@
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<label class="consent etu" hidden><input type="checkbox" data-k="etudiant"> <span>Étudiant(e) au Maroc (obligatoire de 21 à 25 ans)</span></label>'
-      +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>';
+      +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>'
+      +(role==="Souscripteur"?'<div class="sous-plus"><p class="s-titre">Informations pour le contrat</p>'+'<div class="row"><div class="field"><label>Civilité</label><select data-k="civilite"><option value="">—</option><option value="M.">M.</option><option value="Mme">Mme</option></select></div>'+'<div class="field"><label>Situation familiale</label><select data-k="situation_familiale"><option value="">—</option><option>Marié(e)</option><option>Célibataire</option><option>Divorcé(e)</option><option>Veuf(ve)</option></select></div></div>'+'<div class="row"><div class="field"><label>Lieu de naissance</label><input data-k="lieu_naissance" autocomplete="off"></div><div class="field"><label>Profession</label><input data-k="profession" autocomplete="organization-title"></div></div>'+'<div class="row"><div class="field"><label>Ville</label><input data-k="ville" autocomplete="address-level2"></div><div class="field"><label>Code postal</label><input data-k="code_postal" inputmode="numeric" maxlength="10" autocomplete="postal-code"></div></div>'+'<div class="field"><label>Assurance maladie / mutuelle</label><select data-k="mutuelle"><option value="">—</option><option>AMO (CNSS)</option><option>CNOPS</option><option>AMO Tadamon (ex-RAMED)</option><option>Mutuelle ou assurance groupe privée</option><option>Aucune</option></select></div>'+'<div class="field"><label>Circonstances pouvant aggraver le risque</label><select class="circ-sel"><option value="">—</option><option value="Aucune">Aucune</option><option value="oui">Oui : maladie, traitement, grossesse…</option></select><input class="circ-txt" data-k="circonstances" placeholder="Précisez" hidden autocomplete="off"></div>'+'</div>':"");
     // libellés reliés aux champs (accessibilité)
-    d.querySelectorAll(".field").forEach(function(f,i){var id="f"+nTrav+"_"+i;f.querySelector("input").id=id;f.querySelector("label").htmlFor=id});
+    d.querySelectorAll(".field").forEach(function(f,i){var id="f"+nTrav+"_"+i;f.querySelector("input,select").id=id;f.querySelector("label").htmlFor=id});
     var sel=d.querySelector("select");
     function majEtu(){d.querySelector(".etu").hidden=sel.value!=="Enfant"}ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;majEtu();sel.addEventListener("change",majEtu);
     if(role==="Souscripteur")sel.disabled=true;else sel.querySelector('option[value="Souscripteur"]').disabled=true;
     var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});sel.addEventListener("change",renum);
+    var cs=d.querySelector(".circ-sel");if(cs){var ct=d.querySelector(".circ-txt");cs.addEventListener("change",function(){
+      ct.hidden=cs.value!=="oui";ct.value=cs.value==="Aucune"?"Aucune":"";if(!ct.hidden)ct.focus()})}
     var msg=d.querySelector(".s-msg");
     if(!CFG.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display="none"});msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
     d.querySelectorAll(".scan input[type=file]").forEach(function(fi){fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""})});
@@ -130,7 +133,8 @@
   }
   function renum(){var e=0,cj=false;[].forEach.call($("travList").children,function(c){var r=c.querySelector("select").value;
       if(r==="Conjoint(e)")cj=true;c.querySelector(".trav-head b").textContent=r==="Souscripteur"?T("Vous (souscripteur)"):r==="Enfant"?T("Enfant")+" "+(++e):T("Conjoint(e)")});
-    var b=$("addConj");if(b)b.hidden=cj}
+    var b=$("addConj");if(b)b.hidden=cj;
+    var sf=$("travList").querySelector('[data-k="situation_familiale"]');if(sf&&cj&&!sf.value)sf.value="Marié(e)"}
   $("addConj").addEventListener("click",function(){addTrav("Conjoint(e)");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
   $("addEnf").addEventListener("click",function(){addTrav("Enfant");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
 
@@ -158,7 +162,9 @@
       return api("/api/ocr",{method:"POST",body:fd});
     }).then(function(r){
       if(!r.ok){msg.className="s-msg bad";msg.textContent=T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
-      var n=0;["nom","prenom","naissance","cin","passeport","exp_passeport","adresse"].forEach(function(k){
+      var n=0;
+      if(r.data.sexe){var cv=box.querySelector('[data-k="civilite"]');if(cv&&!cv.value){cv.value=r.data.sexe==="F"?"Mme":"M.";n++}}
+      ["nom","prenom","naissance","cin","passeport","exp_passeport","adresse","ville","lieu_naissance"].forEach(function(k){
         var v=r.data[k];if(v&&typeof v==="string"){var inp=box.querySelector('[data-k="'+k+'"]');
           if(inp&&inp.classList.contains("date-fr")){if(!/^\d{4}-\d\d-\d\d$/.test(v))return;v=isoVersFr(v)}
           if(inp){inp.value=v;n++}}});
@@ -177,6 +183,7 @@
   $("go2").addEventListener("click",function(){
     var o=OFFRES[offre()],tel=$("tel").value.replace(/\D/g,"");
     if(tel.length<9)return err("e1",T("Indiquez un numéro WhatsApp valide : l'attestation y sera envoyée."));
+    if(o.prix&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($("email").value.trim()))return err("e1",T("Indiquez une adresse e-mail valide : le contrat y sera envoyé."));
     if(!o.prix){
       if(!$("dNom").value.trim())return err("e1",T("Indiquez votre nom."));
       var b=this;b.disabled=true;b.textContent=T("Envoi en cours…");
@@ -204,6 +211,8 @@
       var n=T("Assuré")+" "+(i+1)+" : ";
       if(!x.nom||!x.prenom||!x.naissance)pb.push(n+T("nom, prénom et date de naissance"));
       else if(x.lien==="Souscripteur"&&!x.cin&&!x.passeport)pb.push(n+T("numéro de CIN ou de passeport"));
+      else if(x.lien==="Souscripteur"&&(!x.civilite||!x.situation_familiale||!x.lieu_naissance||!x.profession||!x.adresse||!x.ville||!x.code_postal||!x.mutuelle||!x.circonstances))
+        pb.push(n+T("complétez les informations pour le contrat (civilité, situation familiale, lieu de naissance, profession, adresse, ville, code postal, mutuelle, circonstances)"));
       else if(x.naissance>today)pb.push(n+T("date de naissance dans le futur"));
       else{var ag=ageA(x.naissance,D("effet"));
         if(x.lien==="Enfant"&&ag>=(CFG.age_max_enfant||21)){
@@ -222,6 +231,7 @@
     if(senior())row(T("Tarif"),T("prime familiale + 70 ans"));
     row(T("Période"),fr(D("effet"))+" → "+fr(D("echeance")));row("WhatsApp",$("tel").value);
     a.forEach(function(x){row(T(x.lien),x.nom+" "+x.prenom+" · "+T("né(e) le")+" "+fr(x.naissance)+(x.passeport?" · "+T("Passeport")+" "+x.passeport:"")+(x.cin?" · "+T("CIN")+" "+x.cin:""))});
+    var so=a[0];if(so&&so.lien==="Souscripteur")row(T("Contrat"),[so.civilite,so.situation_familiale,so.profession,T("né(e) à")+" "+so.lieu_naissance,so.adresse+", "+so.code_postal+" "+so.ville,T("Mutuelle")+" : "+so.mutuelle].join(" · "));
     a.forEach(function(x,i){if(x.exp_passeport&&x.exp_passeport>=D("effet")&&x.exp_passeport<D("echeance"))row("⚠",T("Assuré")+" "+(i+1)+" : "+T("le passeport expire avant la fin du contrat (")+fr(x.exp_passeport)+")")});
     majPrix();show(3);
   });

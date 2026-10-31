@@ -78,7 +78,9 @@
       ["Payée le",s.payee_le&&fr(s.payee_le)],["N° police",s.numero_police]]));B.appendChild(c);
     s.assures.forEach(function(a,i){var x=sec("Assuré "+(i+1)+" · "+a.lien);
       x.appendChild(kvs([["Nom",a.nom],["Prénom",a.prenom],["Naissance",fr(a.naissance)],["CIN",a.cin],["Passeport",a.passeport],
-        ["Fin passeport",a.exp_passeport&&fr(a.exp_passeport)],["Adresse",a.adresse]]));B.appendChild(x)});
+        ["Fin passeport",a.exp_passeport&&fr(a.exp_passeport)],["Civilité",a.civilite],["Lieu de naissance",a.lieu_naissance],
+        ["Situation familiale",a.situation_familiale],["Profession",a.profession],["Adresse",a.adresse],["Ville",a.ville],["Code postal",a.code_postal],
+        ["Mutuelle",a.mutuelle],["Circonstances aggravantes",a.circonstances]]));B.appendChild(x)});
     var act=sec("Actions"),acts=el("div","acts");
     var w=el("a","btn gold","Envoyer sur WhatsApp");w.href=s.whatsapp_lien;w.target="_blank";w.rel="noopener";acts.appendChild(w);
     var sv=el("a","btn line","Page de suivi client");sv.href=s.lien_suivi;sv.target="_blank";sv.rel="noopener";acts.appendChild(sv);
