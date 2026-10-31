@@ -34,7 +34,7 @@ Tests de souscription dans un vrai navigateur (famille complète, paiement refus
 
 ## Mise en ligne
 
-Guide pas à pas (Hetzner, environ 4 € par mois, HTTPS automatique) : `deploy/MISE_EN_LIGNE.md`. Le script `deploy/installer.sh` installe ou met à jour le site sur un serveur Ubuntu.
+Guide pas à pas (Hostinger VPS KVM 1 + domaine digitaliassurance.com, HTTPS automatique) : `deploy/MISE_EN_LIGNE.md`. Le script `deploy/installer.sh` installe ou met à jour le site sur un serveur Ubuntu.
 
 Avec Docker, sur un serveur au Maroc ou en Europe :
 
