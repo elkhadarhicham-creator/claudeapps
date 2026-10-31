@@ -11,7 +11,7 @@ OFFRES = {
         "famille": True,
         "en_ligne": True,
         "zone": "Monde entier",
-        "durees_ans": [1, 2, 3, 4],
+        "durees_ans": [1, 2, 3, 4, 5],
     },
     "IND_SCH": {"code": "IND_SCH", "nom": "Individuel · Schengen", "prix": None, "en_ligne": False},
     "OMRA": {"code": "OMRA", "nom": "Omra / Hajj", "prix": None, "en_ligne": False},

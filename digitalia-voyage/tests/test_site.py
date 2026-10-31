@@ -250,4 +250,5 @@ def test_duree_pluriannuelle_et_assistance_auto():
     assert r.json()["prime_ttc"] == 2 * 190 + 2 * OPTION_AUTO["prix_an"]
     s = db.get_souscription(r.json()["ref"])
     assert s["options"]["assistance_auto"]["immatriculation"] == "12345-A-6" and "Assistance auto" in s["produit"]
-    assert souscription(duree_ans=5).status_code == 422
+    assert souscription(duree_ans=5).json()["prime_ttc"] == 950.0
+    assert souscription(duree_ans=6).status_code == 422

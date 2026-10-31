@@ -203,7 +203,7 @@ class Vehicule(BaseModel):
 
 class SouscriptionIn(BaseModel):
     offre: str
-    duree_ans: int = Field(1, ge=1, le=4)
+    duree_ans: int = Field(1, ge=1, le=5)
     option_auto: bool = False
     vehicule: Vehicule | None = None
     date_effet: date
