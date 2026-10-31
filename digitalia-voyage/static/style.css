@@ -307,14 +307,14 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 
 /* Bandeau de confiance */
 .trust{background:var(--surface);border-bottom:1px solid var(--line)}
-.trust ul{list-style:none;margin-block:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding-block:14px}
+.trust ul{list-style:none;margin-block:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding-block:14px}
 .trust li{display:flex;gap:10px;align-items:center;min-width:0}
 .trust svg{flex:none;width:34px;height:34px;padding:7px;border-radius:10px;background:var(--tint);stroke:var(--prune3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .trust span{display:flex;flex-direction:column;font-size:.78rem;color:var(--quiet);line-height:1.3}
 .trust b{color:var(--ink);font-size:.86rem;font-weight:600}
 :root[data-theme="dark"] .trust svg{stroke:var(--or2)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .trust svg{stroke:var(--or2)}}
-@media (max-width:920px){.trust ul{grid-template-columns:1fr 1fr}}
+@media (max-width:560px){.trust ul{grid-template-columns:1fr}}
 /* Comment ça marche */
 .etapes{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;counter-reset:e}
 .etapes li{counter-increment:e;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 20px;display:flex;flex-direction:column;gap:8px;transition:transform .25s,box-shadow .25s}
