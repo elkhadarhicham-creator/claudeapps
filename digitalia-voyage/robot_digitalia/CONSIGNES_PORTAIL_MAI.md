@@ -6,6 +6,14 @@
 
 Bonjour Claude. Le site « Digitalia Assurance Voyage » (dépôt GitHub `elkhadarhicham-creator/claudeapps`, branche `claude/new-session-mmyzq5`, dossier `digitalia-voyage`) contient un robot qui saisit les contrats Injad Monde sur le portail intermédiaire de Maroc Assistance. Il lui manque le **scénario** : les sélecteurs exacts des écrans du portail. Il faut l'écrire avec Hicham, en enregistrant une vraie saisie.
 
+## Navigation décrite par Hicham
+
+1. Page de connexion : identifiant et mot de passe (enregistrés dans le navigateur), bouton « Connexion ».
+2. Une bannière s'affiche après la connexion : un clic à l'extérieur la ferme.
+3. Un bouton donne les conditions générales et les fiches produit : inutile pour la souscription.
+4. Menu par les trois traits (☰) → « Souscription » → « Nouvelle souscription ».
+   Ce menu ne répond pas toujours du premier coup : prévoir une attente de son ouverture, ou aller directement à l'adresse de la page de nouvelle souscription une fois relevée.
+
 ## Étapes
 
 1. Récupère le dossier `digitalia-voyage` du dépôt. Lis `app/mai.py` (actions possibles : goto, fill, type, select, check, click, press, wait, wait_url, pause, repeter, lire, telecharger) et `mai_scenario.exemple.json` (forme du fichier et variables disponibles).
