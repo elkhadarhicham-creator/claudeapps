@@ -264,6 +264,28 @@
     document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display=""});d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
   }).catch(function(){});
 
+  // ── Carrousel d'images : défilement automatique, flèches, points, glissement au doigt
+  (function(){
+    var box=$("slider");if(!box)return;
+    var track=$("slides"),slides=track.children,n=slides.length,i=0,timer=null,dots=$("dots");
+    var calme=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for(var k=0;k<n;k++)(function(k){var b=document.createElement("button");b.type="button";b.setAttribute("role","tab");
+      b.setAttribute("aria-label",(k+1)+" / "+n);b.addEventListener("click",function(){aller(k);relancer()});dots.appendChild(b)})(k);
+    function aller(k){i=(k+n)%n;track.style.transform="translateX("+(-i*100)+"%)";
+      [].forEach.call(dots.children,function(d,j){d.setAttribute("aria-selected",String(j===i))});
+      [].forEach.call(slides,function(s,j){s.setAttribute("aria-hidden",String(j!==i))})}
+    function relancer(){clearInterval(timer);if(!calme&&!document.hidden)timer=setInterval(function(){aller(i+1)},5000)}
+    box.querySelector(".prev").addEventListener("click",function(){aller(i-1);relancer()});
+    box.querySelector(".next").addEventListener("click",function(){aller(i+1);relancer()});
+    box.addEventListener("mouseenter",function(){clearInterval(timer)});box.addEventListener("mouseleave",relancer);
+    document.addEventListener("visibilitychange",relancer);
+    var x0=null;box.addEventListener("touchstart",function(e){x0=e.touches[0].clientX;clearInterval(timer)},{passive:true});
+    box.addEventListener("touchend",function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;
+      if(Math.abs(dx)>40)aller(i+(dx<0?1:-1));relancer()},{passive:true});
+    DG.onLang(function(){aller(i)});
+    aller(0);relancer();
+  })();
+
   majOffre();majPrix();show(1);
   if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});
 })();

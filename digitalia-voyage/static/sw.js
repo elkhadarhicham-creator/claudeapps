@@ -1,6 +1,6 @@
 /* Service worker : met en cache la coquille du site (installation sur l'écran d'accueil, ouverture rapide).
    Les appels /api, /paiement et /documents passent toujours par le réseau. */
-const C="dg-v1",SHELL=["/","/static/style.css","/static/i18n.js","/static/app.js","/static/icon.svg"];
+const C="dg-v2",SHELL=["/","/static/style.css","/static/i18n.js","/static/app.js","/static/icon.svg","/static/slides/monde.svg","/static/slides/voiture.svg","/static/slides/famille.svg","/static/slides/assistance.svg"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(SHELL)));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim()});
 self.addEventListener("fetch",e=>{

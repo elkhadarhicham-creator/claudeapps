@@ -296,6 +296,27 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   .tbl td.y,.tbl td.c{font-size:.88rem}
 }
 
+/* Carrousel d'images */
+.slider{position:relative;overflow:hidden;background:var(--prune);touch-action:pan-y}
+.slides{display:flex;transition:transform .7s cubic-bezier(.4,.1,.2,1)}
+.slide{flex:0 0 100%;margin:0;position:relative;aspect-ratio:12/5;max-height:440px;min-height:220px}
+.slide img{width:100%;height:100%;object-fit:cover;display:block}
+.slide figcaption{position:absolute;left:0;right:0;bottom:0;padding:48px max(16px,env(safe-area-inset-left,0px)) 34px;
+  background:linear-gradient(transparent,rgba(30,10,28,.78));color:#fff;display:flex;flex-direction:column;gap:4px}
+.slide figcaption b{font-size:clamp(1.15rem,3.2vw,1.9rem);font-weight:700;letter-spacing:-.01em;max-width:1160px;margin-inline:auto;width:100%}
+.slide figcaption span{font-size:clamp(.85rem,1.8vw,1.05rem);opacity:.9;max-width:1160px;margin-inline:auto;width:100%}
+.sl-nav{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;
+  background:rgba(255,255,255,.18);color:#fff;font-size:1.8rem;line-height:1;cursor:pointer;backdrop-filter:blur(4px)}
+.sl-nav:hover{background:rgba(255,255,255,.32)}
+.sl-nav.prev{left:12px}.sl-nav.next{right:12px}
+.dots{position:absolute;bottom:12px;left:0;right:0;display:flex;justify-content:center;gap:8px}
+.dots button{width:9px;height:9px;border-radius:999px;border:0;padding:0;background:rgba(255,255,255,.45);cursor:pointer;transition:width .3s}
+.dots button[aria-selected="true"]{width:26px;background:var(--or)}
+.slides{direction:ltr}
+[dir="rtl"] .slide figcaption{direction:rtl;text-align:right}
+@media (max-width:560px){.sl-nav{display:none}.slide{aspect-ratio:4/3}}
+@media (prefers-reduced-motion:reduce){.slides{transition:none}}
+
 </style>
 </head>
 <body>
@@ -329,6 +350,17 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 </header>
 
 <main>
+  <section class="slider" id="slider" aria-roledescription="carrousel" aria-label="Injad Monde en images">
+    <div class="slides" id="slides">
+      <figure class="slide" aria-roledescription="diapositive"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDUwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgc2xpY2UiPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImMiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMzZjFjMzciLz48c3RvcCBvZmZzZXQ9Ii42NSIgc3RvcC1jb2xvcj0iIzhhNDU3OSIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iI2UwYTkzYSIvPjwvbGluZWFyR3JhZGllbnQ+CjxyYWRpYWxHcmFkaWVudCBpZD0iZyIgY3g9Ii4zOCIgY3k9Ii4zNSIgcj0iLjciPjxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iIzRhOGZiOCIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzFmNGY3MyIvPjwvcmFkaWFsR3JhZGllbnQ+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9InVybCgjYykiLz4KPGcgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjciPjxjaXJjbGUgY3g9IjkwIiBjeT0iNjAiIHI9IjIiLz48Y2lyY2xlIGN4PSIyNjAiIGN5PSI0MCIgcj0iMS41Ii8+PGNpcmNsZSBjeD0iNDIwIiBjeT0iOTAiIHI9IjIiLz48Y2lyY2xlIGN4PSIxMDUwIiBjeT0iNzAiIHI9IjIiLz48Y2lyY2xlIGN4PSIxMTMwIiBjeT0iMTQwIiByPSIxLjUiLz48Y2lyY2xlIGN4PSI3MDAiIGN5PSIzMCIgcj0iMS41Ii8+PC9nPgo8Y2lyY2xlIGN4PSI4NjAiIGN5PSIzMzAiIHI9IjE5MCIgZmlsbD0idXJsKCNnKSIvPgo8ZyBmaWxsPSIjN2JjMTdlIiBvcGFjaXR5PSIuOSI+PHBhdGggZD0iTTc2MCAyMzBjNDAtMzAgOTAtMjAgMTEwIDEwcy0xMCA2MC00MCA3MC01MCA0MC04MCAyMC0zMC03MCAxMC0xMDB6Ii8+PHBhdGggZD0iTTkwMCAzMDBjMzAtMTAgNzAgMCA4MCAzMHMtMjAgNzAtNTAgODAtNjAtMTAtNjAtNDAgMC02MCAzMC03MHoiLz48cGF0aCBkPSJNODIwIDQyMGMyMC0xMCA1MCAwIDUwIDIwcy0zMCAzMC01MCAyMC0yMC0zMCAwLTQweiIvPjwvZz4KPGNpcmNsZSBjeD0iODYwIiBjeT0iMzMwIiByPSIxOTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZDk3YSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSI2IDEwIiBvcGFjaXR5PSIuNyIvPgo8cGF0aCBkPSJNMTgwIDQwMCBRIDUyMCAxMjAgMTA4MCAxNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtZGFzaGFycmF5PSIxMCAxMiIgb3BhY2l0eT0iLjgiLz4KPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTA0MCAxNTApIHJvdGF0ZSgtOCkiPjxwYXRoIGQ9Ik0tNjAgMCBMNDAgLTYgTDcwIDAgTDQwIDYgWiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0wIC00IEwtMjAgLTQwIEwtOCAtNDAgTDIyIC00IFogTTAgNCBMLTIwIDQwIEwtOCA0MCBMMjIgNCBaIiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTS01MiAtMiBMLTYyIC0yMCBMLTU1IC0yMCBMLTQ0IC0yIFoiIGZpbGw9IiNmZmYiLz48L2c+CjxnIGZpbGw9IiNmZmQ5N2EiPjxjaXJjbGUgY3g9IjE4MCIgY3k9IjQwMCIgcj0iOSIvPjwvZz4KPC9zdmc+Cg==" alt="Un avion autour du globe" width="1200" height="500"><figcaption><b>Le monde entier</b><span>Frais médicaux jusqu’à 350 000 DH et rapatriement, partout.</span></figcaption></figure>
+      <figure class="slide" aria-roledescription="diapositive"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDUwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgc2xpY2UiPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9InMiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmNmMwNmIiLz48c3RvcCBvZmZzZXQ9Ii41NSIgc3RvcC1jb2xvcj0iI2U5OGE1YyIvPjxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzhhNDU3OSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI1MDAiIGZpbGw9InVybCgjcykiLz4KPGNpcmNsZSBjeD0iOTAwIiBjeT0iMjMwIiByPSI4MCIgZmlsbD0iI2ZmZDk3YSIgb3BhY2l0eT0iLjkiLz4KPHBhdGggZD0iTTAgMzMwIEwyMjAgMjEwIEwzODAgMzAwIEw1NjAgMTgwIEw3NjAgMzAwIEw5NjAgMjIwIEwxMjAwIDMyMCBMMTIwMCA1MDAgTDAgNTAwWiIgZmlsbD0iIzViMmE0ZiIgb3BhY2l0eT0iLjg1Ii8+CjxwYXRoIGQ9Ik0wIDM4MCBMMzAwIDMwMCBMNTIwIDM2MCBMODAwIDI5MCBMMTIwMCAzNzAgTDEyMDAgNTAwIEwwIDUwMFoiIGZpbGw9IiMzZjFjMzciLz4KPHBhdGggZD0iTTU2MCA1MDAgTDY0MCAzNjAgTDY2MCAzNjAgTDc2MCA1MDBaIiBmaWxsPSIjMmExMjI2Ii8+CjxwYXRoIGQ9Ik02NTAgMzgwIEw2NTIgNDAwIE02NTUgNDIwIEw2NTggNDUwIE02NjIgNDcwIEw2NjUgNTAwIiBzdHJva2U9IiNmZmQ5N2EiIHN0cm9rZS13aWR0aD0iNSIvPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg0NzAgMzk1KSI+CjxwYXRoIGQ9Ik0wIDQwIFE1IDEwIDQwIDYgTDgwIC0xOCBRMTAwIC0yOCAxNDAgLTI2IEwxOTAgLTI0IFEyMTUgLTIyIDIzMiA2IEwyNjIgMTQgUTI4MCAxOCAyODAgNDAgTDI4MCA1MiBMMCA1MloiIGZpbGw9IiNlMGE5M2EiLz4KPHBhdGggZD0iTTkwIC0xMiBMMTM2IC0xNiBMMTQwIDYgTDcyIDZaIE0xNTAgLTE2IEwxODggLTE0IFEyMDQgLTEyIDIxNCA2IEwxNTIgNloiIGZpbGw9IiNjZmU4ZjUiLz4KPGNpcmNsZSBjeD0iNjAiIGN5PSI1NCIgcj0iMjIiIGZpbGw9IiMxZDFiMmUiLz48Y2lyY2xlIGN4PSI2MCIgY3k9IjU0IiByPSI5IiBmaWxsPSIjYmJiIi8+CjxjaXJjbGUgY3g9IjIyMCIgY3k9IjU0IiByPSIyMiIgZmlsbD0iIzFkMWIyZSIvPjxjaXJjbGUgY3g9IjIyMCIgY3k9IjU0IiByPSI5IiBmaWxsPSIjYmJiIi8+CjxyZWN0IHg9IjI2OCIgeT0iMjQiIHdpZHRoPSIxMiIgaGVpZ2h0PSI4IiByeD0iMiIgZmlsbD0iI2ZmZjhkMCIvPgo8L2c+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE1MCAxMjApIiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuOSI+PHBhdGggZD0iTTAgMCBoNjAgdjQwIGgtNjB6IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMyIvPjx0ZXh0IHg9IjMwIiB5PSIyNyIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iMTgiPkVVPC90ZXh0PjwvZz4KPC9zdmc+Cg==" alt="Une voiture sur la route vers l’Europe" width="1200" height="500" loading="lazy"><figcaption><b>Votre voiture incluse</b><span>Dépannage, remorquage et rapatriement au Maroc, au Maghreb et en Europe.</span></figcaption></figure>
+      <figure class="slide" aria-roledescription="diapositive"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDUwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgc2xpY2UiPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImIiIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiM1YjJhNGYiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZjFjMzciLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTAwIiBmaWxsPSJ1cmwoI2IpIi8+CjxyZWN0IHg9IjAiIHk9IjM4MCIgd2lkdGg9IjEyMDAiIGhlaWdodD0iMTIwIiBmaWxsPSIjMmMxNDI4Ii8+CjxnIGZpbGw9IiNmZmZmZmYiIG9wYWNpdHk9Ii4wOCI+PHJlY3QgeD0iNjAiIHk9IjYwIiB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIyMCIgcng9IjEwIi8+PHJlY3QgeD0iNDAwIiB5PSI2MCIgd2lkdGg9IjMwMCIgaGVpZ2h0PSIyMjAiIHJ4PSIxMCIvPjxyZWN0IHg9Ijc0MCIgeT0iNjAiIHdpZHRoPSIzMDAiIGhlaWdodD0iMjIwIiByeD0iMTAiLz48L2c+CjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcwMCAzODApIj4KPGcgZmlsbD0iI2UwYTkzYSI+PGNpcmNsZSBjeD0iMCIgY3k9Ii0yMzAiIHI9IjM0Ii8+PHBhdGggZD0iTS01MCAwIEwtNDYgLTE1MCBRLTQ0IC0xOTAgMCAtMTkyIFE0NCAtMTkwIDQ2IC0xNTAgTDUwIDBaIi8+PC9nPgo8ZyBmaWxsPSIjZmZkOTdhIj48Y2lyY2xlIGN4PSIxMTAiIGN5PSItMjEwIiByPSIzMCIvPjxwYXRoIGQ9Ik02OCAwIEw3MiAtMTMyIFE3NCAtMTcwIDExMCAtMTcwIFExNDYgLTE3MCAxNDggLTEzMiBMMTUyIDBaIi8+PC9nPgo8ZyBmaWxsPSIjY2ZlOGY1Ij48Y2lyY2xlIGN4PSItMTEwIiBjeT0iLTE0MCIgcj0iMjQiLz48cGF0aCBkPSJNLTE0MiAwIEwtMTQwIC04NiBRLTEzOCAtMTE0IC0xMTAgLTExNCBRLTgyIC0xMTQgLTgwIC04NiBMLTc4IDBaIi8+PC9nPgo8ZyBmaWxsPSIjZjJiNmNmIj48Y2lyY2xlIGN4PSIyMTAiIGN5PSItMTIwIiByPSIyMCIvPjxwYXRoIGQ9Ik0xODQgMCBMMTg2IC03MiBRMTg4IC05NiAyMTAgLTk2IFEyMzIgLTk2IDIzNCAtNzIgTDIzNiAwWiIvPjwvZz4KPHJlY3QgeD0iMjUwIiB5PSItNzAiIHdpZHRoPSI3MCIgaGVpZ2h0PSI3MCIgcng9IjgiIGZpbGw9IiM4YTQ1NzkiLz48cmVjdCB4PSIyNzUiIHk9Ii04NiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE4IiByeD0iNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGE0NTc5IiBzdHJva2Utd2lkdGg9IjUiLz4KPC9nPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNzAgMzAwKSI+PHJlY3Qgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxMjAiIHJ4PSIxMCIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjk1Ii8+PHJlY3QgeD0iMTQiIHk9IjE2IiB3aWR0aD0iNzAiIGhlaWdodD0iODgiIHJ4PSI2IiBmaWxsPSIjOGE0NTc5Ii8+PHJlY3QgeD0iOTgiIHk9IjI0IiB3aWR0aD0iODAiIGhlaWdodD0iMTAiIHJ4PSI0IiBmaWxsPSIjM2YxYzM3Ii8+PHJlY3QgeD0iOTgiIHk9IjQ2IiB3aWR0aD0iNjAiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNiM2FhYzAiLz48cmVjdCB4PSI5OCIgeT0iNjQiIHdpZHRoPSI3MCIgaGVpZ2h0PSI4IiByeD0iNCIgZmlsbD0iI2IzYWFjMCIvPjxjaXJjbGUgY3g9IjQ5IiBjeT0iNTAiIHI9IjE4IiBmaWxsPSIjZmZkOTdhIi8+PC9nPgo8L3N2Zz4K" alt="Une famille prête à partir" width="1200" height="500" loading="lazy"><figcaption><b>Toute la famille, un seul contrat</b><span>Conjoint et enfants, 190 DH par an.</span></figcaption></figure>
+      <figure class="slide" aria-roledescription="diapositive"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDUwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ieE1pZFlNaWQgc2xpY2UiPgo8ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Im4iIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiMxZjRmNzMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzZjFjMzciLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iNTAwIiBmaWxsPSJ1cmwoI24pIi8+CjxnIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZDk3YSIgc3Ryb2tlLXdpZHRoPSIzIiBvcGFjaXR5PSIuNSI+PGNpcmNsZSBjeD0iODIwIiBjeT0iMjUwIiByPSIxMjAiLz48Y2lyY2xlIGN4PSI4MjAiIGN5PSIyNTAiIHI9IjE3MCIgb3BhY2l0eT0iLjYiLz48Y2lyY2xlIGN4PSI4MjAiIGN5PSIyNTAiIHI9IjIyMCIgb3BhY2l0eT0iLjM1Ii8+PC9nPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSg3NjAgMTQwKSI+PHJlY3Qgd2lkdGg9IjEyMCIgaGVpZ2h0PSIyMjAiIHJ4PSIxOCIgZmlsbD0iI2ZmZiIvPjxyZWN0IHg9IjEwIiB5PSIyMiIgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxNjYiIHJ4PSI2IiBmaWxsPSIjZTlmM2ZhIi8+PGNpcmNsZSBjeD0iNjAiIGN5PSIyMDQiIHI9IjgiIGZpbGw9IiNiM2FhYzAiLz4KPHBhdGggZD0iTTMwIDcwIGg2MCBNMzAgOTIgaDQ0IE0zMCAxMTQgaDUyIiBzdHJva2U9IiMxZjRmNzMiIHN0cm9rZS13aWR0aD0iOCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+PGNpcmNsZSBjeD0iODQiIGN5PSIxNTAiIHI9IjE2IiBmaWxsPSIjMWY3YTUyIi8+PHBhdGggZD0iTTc2IDE1MCBsNiA2IGwxMCAtMTIiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSI0IiBmaWxsPSJub25lIi8+PC9nPgo8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgzMzAgMjUwKSIgZmlsbD0iI2ZmZiI+PGNpcmNsZSByPSI5MCIgZmlsbD0iI2UwYTkzYSIvPjx0ZXh0IHk9Ii04IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsc2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjgwMCIgZm9udC1zaXplPSI1NiIgZmlsbD0iIzNmMWMzNyI+MjQvNzwvdGV4dD48dGV4dCB5PSIzNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZvbnQtc2l6ZT0iMjAiIGZpbGw9IiMzZjFjMzciPkFTU0lTVEFOQ0U8L3RleHQ+PC9nPgo8cGF0aCBkPSJNMTIwIDQyMCBoOTgwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgb3BhY2l0eT0iLjIiLz4KPC9zdmc+Cg==" alt="Assistance par téléphone 24 heures sur 24" width="1200" height="500" loading="lazy"><figcaption><b>Assistance 24h/24, 7j/7</b><span>Un médecin et un conseiller au bout du fil, où que vous soyez.</span></figcaption></figure>
+    </div>
+    <button class="sl-nav prev" type="button" aria-label="Image précédente">‹</button>
+    <button class="sl-nav next" type="button" aria-label="Image suivante">›</button>
+    <div class="dots" id="dots" role="tablist" aria-label="Choisir une image"></div>
+  </section>
   <section class="hero" id="souscrire">
     <div class="wrap">
       <div class="hero-copy">
@@ -710,6 +742,10 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Si un assuré a 70 ans ou plus :":["إذا كان أحد المؤمَّن لهم يبلغ 70 سنة أو أكثر:","إلا كان شي واحد عندو 70 عام ولا كثر:"],
   "70 ans ou plus : tarif sur devis, contactez-nous sur WhatsApp":["70 سنة أو أكثر: السعر حسب العرض، راسلنا على واتساب","70 عام ولا كثر: الثمن بالدوفي، كتب لينا فالواتساب"],
   "Le souscripteur, son conjoint et leurs enfants célibataires à charge de moins de 21 ans, ou jusqu’à 25 ans s’ils font leurs études au Maroc. Tous doivent résider à plein temps au Maroc. Le forfait est de 190 DH par an, voiture comprise. Si un assuré a 70 ans ou plus, demandez le tarif sur WhatsApp. Pour ajouter un parent (ascendant), demandez un devis sur WhatsApp.":["المكتتب وزوجه وأبناؤهما العزاب المتكفَّل بهم دون 21 سنة، أو حتى 25 سنة إن كانوا يدرسون في المغرب. يجب أن يقيم الجميع بصفة دائمة في المغرب. الباقة 190 درهمًا في السنة مع السيارة. إذا كان أحد المؤمَّن لهم يبلغ 70 سنة أو أكثر، اطلب السعر عبر واتساب. لإضافة أحد الوالدين، اطلب عرضًا عبر واتساب.","مول العقد، المرا ولا الراجل ديالو، والدراري اللي ما مزوجينش وعلى كتافهم تحت 21 عام، ولا حتى 25 إلا كانو كيقراو فالمغرب. كاع خاصهم يكونو ساكنين فالمغرب ديما. العرض 190 درهم فالعام مع الطوموبيل. إلا كان شي واحد عندو 70 عام ولا كثر، طلب الثمن فالواتساب. باش تزيد الوالدين، طلب الدوفي فالواتساب."],
+  "Le monde entier":["العالم كله","العالم كامل"],"Frais médicaux jusqu’à 350 000 DH et rapatriement, partout.":["مصاريف طبية حتى 350 000 درهم والترحيل، في كل مكان.","مصاريف الطبيب حتى 350 000 درهم والرجوع للمغرب، فين ما كنتي."],
+  "Votre voiture incluse":["سيارتك مشمولة","الطوموبيل ديالك داخلة"],"Dépannage, remorquage et rapatriement au Maroc, au Maghreb et en Europe.":["إصلاح وسحب وإرجاع في المغرب والمغرب العربي وأوروبا.","الإصلاح، الجرّ والرجوع فالمغرب، المغرب العربي وأوروبا."],
+  "Toute la famille, un seul contrat":["العائلة كلها، عقد واحد","العائلة كاملة، عقد واحد"],"Conjoint et enfants, 190 DH par an.":["الزوج(ة) والأبناء، 190 درهمًا في السنة.","المرا ولا الراجل والدراري، 190 درهم فالعام."],
+  "Assistance 24h/24, 7j/7":["مساعدة 24/24، 7/7","مساعدة 24/24، 7/7"],"Un médecin et un conseiller au bout du fil, où que vous soyez.":["طبيب ومستشار على الهاتف، أينما كنت.","طبيب ومستشار فالتيليفون، فين ما كنتي."],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],
@@ -1050,6 +1086,28 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     if(c.aujourdhui){today=c.aujourdhui;initDates()}
     document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display=""});d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
   }).catch(function(){});
+
+  // ── Carrousel d'images : défilement automatique, flèches, points, glissement au doigt
+  (function(){
+    var box=$("slider");if(!box)return;
+    var track=$("slides"),slides=track.children,n=slides.length,i=0,timer=null,dots=$("dots");
+    var calme=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for(var k=0;k<n;k++)(function(k){var b=document.createElement("button");b.type="button";b.setAttribute("role","tab");
+      b.setAttribute("aria-label",(k+1)+" / "+n);b.addEventListener("click",function(){aller(k);relancer()});dots.appendChild(b)})(k);
+    function aller(k){i=(k+n)%n;track.style.transform="translateX("+(-i*100)+"%)";
+      [].forEach.call(dots.children,function(d,j){d.setAttribute("aria-selected",String(j===i))});
+      [].forEach.call(slides,function(s,j){s.setAttribute("aria-hidden",String(j!==i))})}
+    function relancer(){clearInterval(timer);if(!calme&&!document.hidden)timer=setInterval(function(){aller(i+1)},5000)}
+    box.querySelector(".prev").addEventListener("click",function(){aller(i-1);relancer()});
+    box.querySelector(".next").addEventListener("click",function(){aller(i+1);relancer()});
+    box.addEventListener("mouseenter",function(){clearInterval(timer)});box.addEventListener("mouseleave",relancer);
+    document.addEventListener("visibilitychange",relancer);
+    var x0=null;box.addEventListener("touchstart",function(e){x0=e.touches[0].clientX;clearInterval(timer)},{passive:true});
+    box.addEventListener("touchend",function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;
+      if(Math.abs(dx)>40)aller(i+(dx<0?1:-1));relancer()},{passive:true});
+    DG.onLang(function(){aller(i)});
+    aller(0);relancer();
+  })();
 
   majOffre();majPrix();show(1);
   

@@ -67,6 +67,9 @@ html = html.replace('<script src="/static/i18n.js" defer></script>\n', "").repla
 html = html.replace('<link rel="manifest" href="/manifest.webmanifest">\n', "")
 html = html.replace('href="/static/icon.svg"', f'href="{icone}"').replace('src="/static/icon.svg"', f'src="{icone}"')
 html = html.replace('href="/static/conditions.html"', 'href="#garanties"')
+for svg in (ST / "slides").glob("*.svg"):  # images du carrousel intégrées au fichier
+    html = html.replace(f'src="/static/slides/{svg.name}"',
+                        'src="data:image/svg+xml;base64,' + base64.b64encode(svg.read_bytes()).decode() + '"')
 bandeau = ('<div style="background:#e0a93a;color:#3f1c37;font:600 13px/1.4 Poppins,system-ui,sans-serif;'
            'text-align:center;padding:8px 16px">Brouillon (maquette) : les paiements et devis ne sont pas envoyés.</div>\n')
 html = html.replace("<body>\n", "<body>\n" + bandeau, 1)

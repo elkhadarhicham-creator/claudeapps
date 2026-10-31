@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMid slice">
+<defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6c06b"/><stop offset=".55" stop-color="#e98a5c"/><stop offset="1" stop-color="#8a4579"/></linearGradient></defs>
+<rect width="1200" height="500" fill="url(#s)"/>
+<circle cx="900" cy="230" r="80" fill="#ffd97a" opacity=".9"/>
+<path d="M0 330 L220 210 L380 300 L560 180 L760 300 L960 220 L1200 320 L1200 500 L0 500Z" fill="#5b2a4f" opacity=".85"/>
+<path d="M0 380 L300 300 L520 360 L800 290 L1200 370 L1200 500 L0 500Z" fill="#3f1c37"/>
+<path d="M560 500 L640 360 L660 360 L760 500Z" fill="#2a1226"/>
+<path d="M650 380 L652 400 M655 420 L658 450 M662 470 L665 500" stroke="#ffd97a" stroke-width="5"/>
+<g transform="translate(470 395)">
+<path d="M0 40 Q5 10 40 6 L80 -18 Q100 -28 140 -26 L190 -24 Q215 -22 232 6 L262 14 Q280 18 280 40 L280 52 L0 52Z" fill="#e0a93a"/>
+<path d="M90 -12 L136 -16 L140 6 L72 6Z M150 -16 L188 -14 Q204 -12 214 6 L152 6Z" fill="#cfe8f5"/>
+<circle cx="60" cy="54" r="22" fill="#1d1b2e"/><circle cx="60" cy="54" r="9" fill="#bbb"/>
+<circle cx="220" cy="54" r="22" fill="#1d1b2e"/><circle cx="220" cy="54" r="9" fill="#bbb"/>
+<rect x="268" y="24" width="12" height="8" rx="2" fill="#fff8d0"/>
+</g>
+<g transform="translate(150 120)" fill="#fff" opacity=".9"><path d="M0 0 h60 v40 h-60z" fill="none" stroke="#fff" stroke-width="3"/><text x="30" y="27" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="18">EU</text></g>
+</svg>
