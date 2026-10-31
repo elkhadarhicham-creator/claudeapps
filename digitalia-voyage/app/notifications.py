@@ -12,7 +12,7 @@ from email.message import EmailMessage
 
 import httpx
 
-from . import config, db
+from . import config, db, pieces
 
 log = logging.getLogger("digitalia.notif")
 
@@ -114,6 +114,9 @@ def fiche_digitalia(s: dict) -> dict:
         "documents": {
             "recu": f"/api/digitalia/souscriptions/{s['ref']}/recu.pdf" if s["statut"] in ("payee", "emise", "annulee") else None,
             "attestation": f"/api/digitalia/souscriptions/{s['ref']}/attestation.pdf" if s.get("attestation_fichier") else None,
+            # Copies CIN / passeport : présentes jusqu'à l'accusé de réception de Digitalia
+            "pieces": [{**p, "url": f"/api/digitalia/souscriptions/{s['ref']}/pieces/{p['nom']}"}
+                       for p in pieces.presentes(s)] if s["statut"] in ("payee", "emise", "annulee") else [],
         },
     }
 

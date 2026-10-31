@@ -80,7 +80,12 @@
       x.appendChild(kvs([["Nom",a.nom],["Prénom",a.prenom],["Naissance",fr(a.naissance)],["CIN",a.cin],["Passeport",a.passeport],
         ["Fin passeport",a.exp_passeport&&fr(a.exp_passeport)],["Civilité",a.civilite],["Lieu de naissance",a.lieu_naissance],
         ["Situation familiale",a.situation_familiale],["Profession",a.profession],["Adresse",a.adresse],["Ville",a.ville],["Code postal",a.code_postal],
-        ["Mutuelle",a.mutuelle],["Circonstances aggravantes",a.circonstances]]));B.appendChild(x)});
+        ["Mutuelle",a.mutuelle],["Circonstances aggravantes",a.circonstances]]));
+      var pj=(s.pieces_presentes||[]).filter(function(p){return p.assure===i+1});
+      if(pj.length){var lp=el("p","pieces");lp.append("Pièces : ");pj.forEach(function(p,k){var l=el("a",null,(a.cin?"CIN":"Pièce")+" "+(k+1));
+        l.href="/api/admin/souscriptions/"+encodeURIComponent(s.ref)+"/pieces/"+encodeURIComponent(p.nom);l.target="_blank";l.rel="noopener";lp.append(l," ")});x.appendChild(lp)}
+      else if((a.pieces||[]).length)x.appendChild(el("p","pieces",a.pieces.length+" pièce(s) transmise(s) à Digitalia puis effacée(s) du site."));
+      B.appendChild(x)});
     var act=sec("Actions"),acts=el("div","acts");
     var w=el("a","btn gold","Envoyer sur WhatsApp");w.href=s.whatsapp_lien;w.target="_blank";w.rel="noopener";acts.appendChild(w);
     var sv=el("a","btn line","Page de suivi client");sv.href=s.lien_suivi;sv.target="_blank";sv.rel="noopener";acts.appendChild(sv);

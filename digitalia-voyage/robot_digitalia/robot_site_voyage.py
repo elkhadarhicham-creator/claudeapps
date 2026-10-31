@@ -5,10 +5,12 @@ Tourne sur le PC du cabinet, à côté de Digitalia (dossier pont_analysis), com
 À chaque passage :
   1. récupère sur le site les souscriptions nouvelles ou modifiées (payées, émises, annulées) ;
   2. les enregistre dans la base de Digitalia, table « site_souscriptions » (une ligne par souscription) ;
-  3. télécharge le reçu et l'attestation de la compagnie dans le dossier des documents ;
+  3. télécharge le reçu, l'attestation de la compagnie et les copies des CIN / passeports
+     (dossier « pieces_identite ») dans le dossier des documents ;
   4. appelle integration_digitalia.integrer(...) s'il existe (versement dans clients, contrats,
      encaissements : voir CONSIGNES_CLAUDE_PC.md) ;
-  5. confirme l'import au site.
+  5. confirme l'import au site, qui efface alors les copies des pièces d'identité de son côté.
+     Une souscription dont une copie n'a pas pu être téléchargée n'est pas confirmée : elle revient au passage suivant.
 
 Aucune bibliothèque à installer : Python 3.9+ suffit. Ne touche jamais à Analysis.
 
@@ -57,6 +59,7 @@ CREATE TABLE IF NOT EXISTS site_souscriptions (
   assures_json TEXT NOT NULL,         -- liste complète des assurés
   fiche_json TEXT NOT NULL,           -- fiche brute reçue du site
   fichier_recu TEXT, fichier_attestation TEXT,
+  fichiers_pieces TEXT,               -- copies CIN / passeport (liste JSON de chemins)
   mis_a_jour_site TEXT,
   version_site INTEGER,              -- augmente à chaque modification sur le site
   recu_le TEXT NOT NULL,              -- 1re réception par le robot
@@ -152,6 +155,7 @@ def enregistrer(conn: sqlite3.Connection, f: dict, docs: dict) -> bool:
         "souscripteur_adresse": sous.get("adresse"),
         "assures_json": json.dumps(f["assures"], ensure_ascii=False), "fiche_json": json.dumps(f, ensure_ascii=False),
         "fichier_recu": docs.get("recu"), "fichier_attestation": docs.get("attestation"),
+        "fichiers_pieces": json.dumps(docs["pieces"], ensure_ascii=False) if docs.get("pieces") else None,
         "mis_a_jour_site": f.get("mis_a_jour_le"), "version_site": f.get("version"),
     }
     avant = conn.execute("SELECT version_site, statut, fichier_attestation FROM site_souscriptions WHERE reference=?",
@@ -166,6 +170,8 @@ def enregistrer(conn: sqlite3.Connection, f: dict, docs: dict) -> bool:
     if change:
         ligne["maj_le"] = t
         ligne["integre_le"] = None  # à reverser dans Digitalia (ex. n° de police arrivé)
+    if not ligne["fichiers_pieces"]:  # copies déjà reçues puis effacées du site : on garde les chemins
+        del ligne["fichiers_pieces"]
     sets = ",".join(f"{k}=?" for k in ligne)
     conn.execute(f"UPDATE site_souscriptions SET {sets} WHERE reference=?", (*ligne.values(), f["reference"]))
     return change
@@ -187,39 +193,68 @@ def passage(r: dict, reprise: bool = False) -> dict:
     docs_dir.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(r["base"], timeout=30)
     conn.executescript(TABLE)
+    try:  # bases créées avant l'ajout des copies de pièces
+        conn.execute("ALTER TABLE site_souscriptions ADD COLUMN fichiers_pieces TEXT")
+    except sqlite3.OperationalError:
+        pass
     integrer = charger_integration()
     cur = None if reprise else (conn.execute("SELECT valeur FROM site_robot_etat WHERE cle='curseur'").fetchone() or [None])[0]
     bilan = {"recues": 0, "nouvelles_ou_modifiees": 0, "integrees": 0, "erreurs": 0}
     refs = []
+
+    def traiter(f):
+        bilan["recues"] += 1
+        ref = nom_fichier(f["reference"])
+        fichiers = {}
+        d = f.get("documents") or {}
+        if d.get("recu"):
+            dest = docs_dir / f"{ref}-recu.pdf"
+            if dest.exists() or site.fichier(d["recu"], dest):
+                fichiers["recu"] = str(dest)
+        if d.get("attestation"):
+            base_nom = nom_fichier(f.get("numero_police") or f["reference"])
+            dest = docs_dir / f"{base_nom}-attestation.pdf"
+            if site.fichier(d["attestation"], dest):
+                fichiers["attestation"] = str(dest)
+        complet = True
+        if d.get("pieces"):
+            pdir = docs_dir / "pieces_identite"
+            pdir.mkdir(exist_ok=True)
+            fichiers["pieces"] = []
+            for p in d["pieces"]:
+                dest = pdir / nom_fichier(p["nom"])
+                if dest.exists() or site.fichier(p["url"], dest):
+                    fichiers["pieces"].append(str(dest))
+                else:
+                    complet = False
+        with conn:
+            if enregistrer(conn, f, fichiers):
+                bilan["nouvelles_ou_modifiees"] += 1
+        if complet:
+            refs.append(f["reference"])
+        else:
+            log.warning("%s : copie de pièce non téléchargée, import non confirmé (nouvel essai au prochain passage)", ref)
+
     while True:
         params = {"limite": 200}
         if cur:
             params["depuis"] = cur
         page = site.json("/api/digitalia/souscriptions", params)
         for f in page["souscriptions"]:
-            bilan["recues"] += 1
-            ref = nom_fichier(f["reference"])
-            fichiers = {}
-            d = f.get("documents") or {}
-            if d.get("recu"):
-                dest = docs_dir / f"{ref}-recu.pdf"
-                if dest.exists() or site.fichier(d["recu"], dest):
-                    fichiers["recu"] = str(dest)
-            if d.get("attestation"):
-                base_nom = nom_fichier(f.get("numero_police") or f["reference"])
-                dest = docs_dir / f"{base_nom}-attestation.pdf"
-                if site.fichier(d["attestation"], dest):
-                    fichiers["attestation"] = str(dest)
-            with conn:
-                if enregistrer(conn, f, fichiers):
-                    bilan["nouvelles_ou_modifiees"] += 1
-            refs.append(f["reference"])
+            traiter(f)
         cur = page["curseur"]
         with conn:  # curseur sauvé page par page : une coupure ne fait rien perdre
             conn.execute("INSERT OR REPLACE INTO site_robot_etat(cle, valeur) VALUES ('curseur', ?)", (cur,))
             conn.execute("INSERT OR REPLACE INTO site_robot_etat(cle, valeur) VALUES ('dernier_passage', ?)", (maintenant(),))
         if not page["suite"]:
             break
+
+    # Souscriptions pas encore confirmées (ex. copie de pièce non téléchargée au passage précédent)
+    if not reprise:
+        deja = set(refs)
+        for f in site.json("/api/digitalia/souscriptions", {"non_importees": "true", "limite": 200})["souscriptions"]:
+            if f["reference"] not in deja:
+                traiter(f)
 
     if integrer:
         a_faire = conn.execute("SELECT reference FROM site_souscriptions WHERE integre_le IS NULL ORDER BY recu_le").fetchall()

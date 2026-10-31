@@ -373,6 +373,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .sous-plus{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px}
 .sous-plus .s-titre{margin:0;font-weight:600;font-size:.92rem}
 .sous-plus .circ-txt{margin-top:8px}
+.scan .pj{flex-basis:100%;font-size:.82rem;font-weight:600;color:var(--ok)}
 
 </style>
 </head>
@@ -516,7 +517,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
             <div class="total"><span>Total TTC</span><b id="totalTxt"></b></div>
             <label class="consent"><input type="checkbox" id="c1"> <span>J'ai lu les conditions générales et particulières du contrat et j'accepte leurs garanties, plafonds et exclusions. <a href="#garanties" target="_blank" rel="noopener" class="cg">Lire les conditions</a></span></label>
             <label class="consent"><input type="checkbox" id="c2"> Je certifie l’exactitude des informations saisies et que tous les assurés résident à plein temps au Maroc.</label>
-            <label class="consent"><input type="checkbox" id="c3"> J'accepte le traitement de mes données par le cabinet et la compagnie pour l'émission du contrat (loi 09-08).</label>
+            <label class="consent"><input type="checkbox" id="c3"> J'accepte le traitement de mes données et de la copie de mes pièces d'identité par le cabinet et la compagnie pour l'émission et la gestion du contrat (loi 09-08).</label>
             <p class="err" id="e3" hidden></p>
             <div class="nav"><button class="btn line" type="button" data-back="2">Retour</button><button class="btn" type="button" id="go4">Passer au paiement</button></div>
           </div>
@@ -608,7 +609,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
       <div class="faq">
         <details open><summary>Qui est couvert par la formule famille ?</summary><p>Le souscripteur, son conjoint et leurs enfants célibataires à charge de moins de 21 ans, ou jusqu’à 25 ans s’ils font leurs études au Maroc. Tous doivent résider à plein temps au Maroc. Le forfait est de 190 DH par an, voiture comprise. Si un assuré a 70 ans ou plus, demandez le tarif sur WhatsApp. Pour ajouter un parent (ascendant), demandez un devis sur WhatsApp.</p></details>
         <details><summary>Quelle voiture est couverte ?</summary><p>Une voiture de tourisme immatriculée au Maroc, dont la carte grise est au nom d’un assuré, couverte par une assurance automobile et non utilisée pour du transport payant. Les pannes d’un véhicule de plus de 10 ans ne sont pas couvertes. Un deuxième véhicule coûte 100 DH de plus par an.</p></details>
-        <details><summary>Pourquoi photographier la CIN ou le passeport ?</summary><p>Pour remplir le contrat sans erreur : nom, prénom, date de naissance et numéro de pièce figurent sur l'attestation demandée par le consulat. Les photos servent uniquement à l'émission de votre contrat.</p></details>
+        <details><summary>Pourquoi photographier la CIN ou le passeport ?</summary><p>Pour remplir le contrat sans erreur : nom, prénom, date de naissance et numéro de pièce figurent sur l'attestation demandée par le consulat. Une copie est rangée dans votre dossier client au cabinet, puis effacée du site. Elle sert uniquement à l'émission et à la gestion de votre contrat.</p></details>
         <details><summary>Le paiement par carte est-il sûr ?</summary><p>Le paiement se fait sur la page 3-D Secure de la banque. Notre site ne voit jamais votre numéro de carte.</p></details>
         <details><summary>Mon attestation sera-t-elle acceptée au dépôt du visa (TLScontact, VFS, BLS) ?</summary><p>Oui, Injad Monde est valable pour le visa Schengen : frais médicaux jusqu’à 350 000 DH (plus de 30 000 €), validité dans tous les pays Schengen, hospitalisation et rapatriement compris. L’attestation indique le nom de chaque assuré et les dates de couverture. Vérifiez seulement que la date d’effet couvre bien votre voyage.</p></details>
         <details><summary>Que se passe-t-il si mon visa est refusé ?</summary><p>Injad Monde est un contrat d’assistance : il ne comprend pas de garantie d’annulation et ne rembourse pas un refus de visa. Une fois l’attestation émise, le contrat ne peut plus être annulé. Si vous attendez encore la décision du consulat, choisissez une date d’effet proche de votre départ, ou contactez-nous avant de payer.</p></details>
@@ -678,7 +679,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Total TTC":["المجموع شامل الضرائب","المجموع"],"190,00 DH":["190,00 درهم","190,00 درهم"],
   "J'ai lu les conditions générales et particulières du contrat et j'accepte leurs garanties, plafonds et exclusions.":["قرأت الشروط العامة والخاصة للعقد وأقبل ضماناتها وسقوفها واستثناءاتها.","قريت الشروط العامة والخاصة ديال العقد، وموافق على الضمانات والحدود والحوايج اللي ما داخلينش."],
   "Je certifie l'exactitude des informations saisies.":["أشهد بصحة المعلومات المدخلة.","كنأكد بلي المعلومات اللي عطيت صحيحة."],
-  "J'accepte le traitement de mes données par le cabinet et la compagnie pour l'émission du contrat (loi 09-08).":["أوافق على معالجة معطياتي من طرف المكتب والشركة لإصدار العقد (القانون 09-08).","موافق يستعملو المكتب والشركة المعلومات ديالي باش يخرجو العقد (القانون 09-08)."],
+  "J'accepte le traitement de mes données et de la copie de mes pièces d'identité par le cabinet et la compagnie pour l'émission et la gestion du contrat (loi 09-08).":["أوافق على معالجة معطياتي ونسخة وثائق هويتي من طرف المكتب والشركة لإصدار العقد وتدبيره (القانون 09-08).","موافق على معالجة المعطيات ديالي والنسخة ديال الوراق ديالي من طرف المكتب والشركة باش يخرج العقد ويتسيّر (القانون 09-08)."],
   "Passer au paiement":["الانتقال إلى الأداء","دوز للخلاص"],
   "Paiement sécurisé par carte bancaire":["أداء آمن بالبطاقة البنكية","خلاص مضمون بالكارط البنكية"],
   "Vous serez redirigé vers la page de paiement 3-D Secure de la banque. Vos données de carte ne transitent jamais par notre site.":["سيتم توجيهك إلى صفحة الأداء الآمنة 3-D Secure الخاصة بالبنك. لا تمر معطيات بطاقتك أبدًا عبر موقعنا.","غادي تمشي للصفحة ديال الخلاص 3-D Secure ديال البنكة. المعلومات ديال الكارط ديالك عمرها ما كتدوز من السيت ديالنا."],
@@ -709,7 +710,6 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Qui est couvert par la formule famille ?":["من يشمله عرض العائلة؟","شكون داخل فعرض العائلة؟"],
   "Le souscripteur, son conjoint et leurs enfants à charge, dans les limites d'âge prévues par le contrat. Ajoutez chaque membre à l'étape « Assurés ».":["المكتتب وزوجه وأبناؤهما المتكفَّل بهم، في حدود السن المنصوص عليها في العقد. أضف كل فرد في مرحلة «المؤمَّن لهم».","مول العقد، المرا ولا الراجل ديالو، والدراري اللي على كتافهم، فحدود السن اللي فالعقد. زيد كل واحد فالمرحلة ديال «المأمّنين»."],
   "Pourquoi photographier la CIN ou le passeport ?":["لماذا تصوير البطاقة الوطنية أو جواز السفر؟","علاش نصوّر لاكارط ولا الباسبور؟"],
-  "Pour remplir le contrat sans erreur : nom, prénom, date de naissance et numéro de pièce figurent sur l'attestation demandée par le consulat. Les photos servent uniquement à l'émission de votre contrat.":["لملء العقد دون أخطاء: الاسم العائلي والشخصي وتاريخ الازدياد ورقم الوثيقة تظهر في الشهادة التي تطلبها القنصلية. تُستعمل الصور فقط لإصدار عقدك.","باش يتعمر العقد بلا غلط: السمية، الكنية، تاريخ الزيادة ونمرة الوثيقة كيبانو فالأتيستاسيون اللي كتطلب القنصلية. التصاور كيتستعملو غير باش يخرج العقد ديالك."],
   "Le paiement par carte est-il sûr ?":["هل الأداء بالبطاقة آمن؟","واش الخلاص بالكارط مضمون؟"],
   "Le paiement se fait sur la page 3-D Secure de la banque. Notre site ne voit jamais votre numéro de carte.":["يتم الأداء على صفحة 3-D Secure الخاصة بالبنك. موقعنا لا يرى أبدًا رقم بطاقتك.","الخلاص كيدوز فالصفحة 3-D Secure ديال البنكة. السيت ديالنا عمرو ما كيشوف النمرة ديال الكارط ديالك."],
   "Que se passe-t-il si mon visa est refusé ?":["ماذا يحدث إذا رُفضت تأشيرتي؟","شنو كيوقع إلا تّرفضات الفيزا؟"],
@@ -854,6 +854,10 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Indiquez une adresse e-mail valide : le contrat y sera envoyé.":["أدخل بريدًا إلكترونيًا صحيحًا: سيُرسل إليه العقد.","دخل إيميل صحيح: العقد غادي يتصيفط ليه."],
   "complétez les informations pour le contrat (civilité, situation familiale, lieu de naissance, profession, adresse, ville, code postal, mutuelle, circonstances)":["أكمل معلومات العقد (اللقب، الحالة العائلية، مكان الازدياد، المهنة، العنوان، المدينة، الرمز البريدي، التأمين الصحي، الظروف)","كمّل المعلومات ديال العقد (اللقب، الحالة العائلية، بلاصة الزيادة، الخدمة، العنوان، المدينة، الكود البريدي، الميتويل، الظروف)"],
   "Contrat":["العقد","العقد"],"né(e) à":["مزداد(ة) بـ","مزيود(ة) ف"],"Mutuelle":["التعاضدية","الميتويل"],
+  "Pour remplir le contrat sans erreur : nom, prénom, date de naissance et numéro de pièce figurent sur l'attestation demandée par le consulat. Une copie est rangée dans votre dossier client au cabinet, puis effacée du site. Elle sert uniquement à l'émission et à la gestion de votre contrat.":["لملء العقد دون أخطاء: الاسم والنسب وتاريخ الازدياد ورقم الوثيقة تظهر في الشهادة التي تطلبها القنصلية. تُحفظ نسخة في ملفكم لدى المكتب، ثم تُحذف من الموقع. لا تُستعمل إلا لإصدار عقدكم وتدبيره.","باش يتعمّر العقد بلا غلط: السمية والكنية وتاريخ الزيادة ورقم الوثيقة كيبانو فالأتيستاسيون اللي كتطلبها القنصلية. نسخة كتتحط فالدوسي ديالك عند المكتب، ومن بعد كتتمسح من السيت. ما كتخدم غير باش يخرج العقد ويتسيّر."],
+  "Joignez la CIN ou le passeport, puis saisissez les champs ci-dessous.":["أرفق البطاقة الوطنية أو جواز السفر، ثم املأ الخانات أدناه.","زيد لاكارط ولا الباسبور، ومن بعد عمّر الخانات لتحت."],
+  "Copie jointe. Saisissez les champs ci-dessous.":["تم إرفاق النسخة. املأ الخانات أدناه.","النسخة تزادت. عمّر الخانات لتحت."],
+  "copie jointe au dossier":["نسخة مرفقة بالملف","نسخة مزيودة فالدوسي"],"copies jointes au dossier":["نسخ مرفقة بالملف","نسخ مزيودين فالدوسي"],
   "Visa Schengen":["تأشيرة شنغن","الفيزا ديال شنغن"],
   "Valable pour le visa Schengen":["صالح لتأشيرة شنغن","صالح للفيزا ديال شنغن"],
   "Plus de 30 000 € de frais médicaux, dans tous les pays Schengen.":["أكثر من 30 000 يورو من المصاريف الطبية، في جميع دول شنغن.","كثر من 30 000 أورو ديال المصاريف الطبية، فجميع دول شنغن."],
@@ -966,7 +970,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
       var f=opts.body.get("fichier");
       if(f&&(f.type==="application/pdf"||/\.pdf$/i.test(f.name||""))){var e2=new Error("Les PDF sont lus par le site en ligne. Dans cette maquette, utilisez une photo ou un fichier JPG ou PNG.");e2.status=422;e2.code="maquette";throw e2}
       return l.s.json(PROMPT_PIECE,{images:[opts.body.get("fichier")],modelTier:"default"}).then(function(r){
-        return r&&r.lisible?{ok:true,data:r}:{ok:false,code:"illisible"}
+        var pid="maquette"+Date.now();return r&&r.lisible?{ok:true,data:r,piece_id:pid}:{ok:false,code:"illisible",piece_id:pid}
       },function(err){var c=err&&err.code,e;
         if(c==="not_granted")e=new Error("Lecture refusée : rechargez la page et acceptez la demande d'autorisation de Claude.");
         else if(c==="images_unavailable")e=new Error(SANS_IMAGES);
@@ -1066,7 +1070,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     nTrav++;
     var d=document.createElement("div");d.className="trav";
     d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
-      +'<div class="scan"><p class="s-titre">Remplir avec la CIN ou le passeport</p><label class="btn"><input type="file" accept="image/*">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="s-msg">CIN : recto pour le nom et la date de naissance, verso pour l’adresse. Passeport : page avec la photo. Ou saisissez les champs ci-dessous.</span></div>'
+      +'<div class="scan"><p class="s-titre">Remplir avec la CIN ou le passeport</p><label class="btn"><input type="file" accept="image/*">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="pj" hidden></span><span class="s-msg">CIN : recto pour le nom et la date de naissance, verso pour l’adresse. Passeport : page avec la photo. Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<label class="consent etu" hidden><input type="checkbox" data-k="etudiant"> <span>Étudiant(e) au Maroc (obligatoire de 21 à 25 ans)</span></label>'
@@ -1081,7 +1085,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     var cs=d.querySelector(".circ-sel");if(cs){var ct=d.querySelector(".circ-txt");cs.addEventListener("change",function(){
       ct.hidden=cs.value!=="oui";ct.value=cs.value==="Aucune"?"Aucune":"";if(!ct.hidden)ct.focus()})}
     var msg=d.querySelector(".s-msg");
-    if(!CFG.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display="none"});msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
+    if(!CFG.ocr)msg.textContent=T("Joignez la CIN ou le passeport, puis saisissez les champs ci-dessous.");
     d.querySelectorAll(".scan input[type=file]").forEach(function(fi){fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""})});
     $("travList").appendChild(d);renum();
   }
@@ -1092,7 +1096,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   $("addConj").addEventListener("click",function(){addTrav("Conjoint(e)");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
   $("addEnf").addEventListener("click",function(){addTrav("Enfant");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
 
-  // ── Lecture de la pièce d'identité (serveur → Claude). Photo réduite avant envoi, jamais conservée.
+  // ── Lecture de la pièce d'identité (serveur → Claude). Photo réduite avant envoi ; la copie va au dossier client dans Digitalia.
   function reduire(file){
     return new Promise(function(ok){
       if(!/^image\/(jpeg|png|webp)$/.test(file.type)||!window.createImageBitmap){ok(file);return}
@@ -1115,7 +1119,9 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
       var fd=new FormData();fd.append("fichier",blob,pdf?"piece.pdf":"piece.jpg");
       return api("/api/ocr",{method:"POST",body:fd});
     }).then(function(r){
-      if(!r.ok){msg.className="s-msg bad";msg.textContent=T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
+      if(r.piece_id){var l=JSON.parse(box.dataset.pieces||"[]");if(l.length<4)l.push(r.piece_id);box.dataset.pieces=JSON.stringify(l);
+        var pj=box.querySelector(".pj");pj.hidden=false;pj.textContent="📎 "+l.length+" "+T(l.length>1?"copies jointes au dossier":"copie jointe au dossier")}
+      if(!r.ok){msg.className="s-msg"+(r.code==="indisponible"?"":" bad");msg.textContent=r.code==="indisponible"?T("Copie jointe. Saisissez les champs ci-dessous."):T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
       var n=0;
       if(r.data.sexe){var cv=box.querySelector('[data-k="civilite"]');if(cv&&!cv.value){cv.value=r.data.sexe==="F"?"Mme":"M.";n++}}
       ["nom","prenom","naissance","cin","passeport","exp_passeport","adresse","ville","lieu_naissance"].forEach(function(k){
@@ -1131,7 +1137,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 
   function assures(){return [].map.call($("travList").children,function(c){
     var o={lien:c.querySelector("select").value};c.querySelectorAll("[data-k]").forEach(function(i){o[i.dataset.k]=i.type==="checkbox"?i.checked:i.classList.contains("date-fr")?frVersIso(i.value):i.value.trim()});
-    if(o.lien!=="Enfant")o.etudiant=false;return o})}
+    if(o.lien!=="Enfant")o.etudiant=false;o.pieces=JSON.parse(c.dataset.pieces||"[]");return o})}
 
   // ── Étape 1 → 2 (ou envoi d'une demande de devis)
   $("go2").addEventListener("click",function(){

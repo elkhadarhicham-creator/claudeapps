@@ -13,7 +13,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-from . import cmi, config, db, documents, mai, notifications, ocr, securite
+from . import cmi, config, db, documents, mai, notifications, ocr, pieces, securite
 from .offres import (AGE_MAX_ENFANT, AGE_MAX_ENFANT_ETUDIANT, AGE_SENIOR, LIENS, MAX_ENFANTS, OFFRES, VEHICULE2,
                      age_a, libelle_duree, tarif)
 
@@ -34,6 +34,8 @@ def demarrage():
     limite = (datetime.now(config.TZ) - timedelta(days=30)).isoformat()
     with db.tx() as c:
         c.execute("DELETE FROM souscriptions WHERE statut IN ('attente_paiement','echec_paiement') AND cree_le < ?", (limite,))
+    pieces.purger_tmp()
+    pieces.purger_impayees(db)
     log.info("Démarrage - paiement %s, lecture IA %s",
              "DÉMONSTRATION" if config.PAYMENT_DEMO else "CMI réel", "active" if ocr.disponible() else "désactivée")
 
@@ -138,8 +140,7 @@ def api_config():
 
 @app.post("/api/ocr")
 async def api_ocr(request: Request, fichier: UploadFile = File(...)):
-    if not ocr.disponible():
-        return JSONResponse({"ok": False, "code": "indisponible"}, status_code=503)
+    """Garde la copie de la pièce (pour le dossier client dans Digitalia) et la lit avec Claude si possible."""
     if not limite_ocr.ok(ip(request)):
         return JSONResponse({"ok": False, "code": "trop"}, status_code=429)
     data = await fichier.read(8 * 1024 * 1024 + 1)
@@ -153,15 +154,20 @@ async def api_ocr(request: Request, fichier: UploadFile = File(...)):
         media = "application/pdf" if nom.endswith(".pdf") else "image/png" if nom.endswith(".png") else "image/jpeg"
     if data[:4] == b"%PDF":
         media = "application/pdf"
+    if media not in pieces.EXT or not data:
+        return JSONResponse({"ok": False, "code": "format"}, status_code=422)
+    pid = pieces.deposer(data, media)
+    if not ocr.disponible():
+        return {"ok": False, "code": "indisponible", "piece_id": pid}
     try:
         res = ocr.lire_piece(data, media)
     except ocr.OCRErreur as e:
-        return JSONResponse({"ok": False, "code": str(e)}, status_code=422)
+        return {"ok": False, "code": str(e), "piece_id": pid}
     except ocr.OCRIndisponible:
-        return JSONResponse({"ok": False, "code": "indisponible"}, status_code=503)
+        return {"ok": False, "code": "indisponible", "piece_id": pid}
     if not res.get("lisible"):
-        return {"ok": False, "code": "illisible"}
-    return {"ok": True, "data": res}
+        return {"ok": False, "code": "illisible", "piece_id": pid}
+    return {"ok": True, "data": res, "piece_id": pid}
 
 
 class Assure(BaseModel):
@@ -183,6 +189,12 @@ class Assure(BaseModel):
     profession: str = Field("", max_length=80)
     mutuelle: str = Field("", max_length=80)       # assurance couvrant le même risque (AMO, CNOPS, mutuelle…)
     circonstances: str = Field("", max_length=300)  # circonstances susceptibles d'aggraver le risque
+    pieces: list[str] = Field(default_factory=list, max_length=pieces.MAX_PAR_ASSURE)  # copies CIN / passeport
+
+    @field_validator("pieces")
+    @classmethod
+    def ids_pieces(cls, v: list[str]) -> list[str]:
+        return [p for p in v if pieces.ID_RE.match(p)]
 
     @field_validator("nom", "prenom", "cin", "passeport", "adresse", "lieu_naissance", "ville", "code_postal",
                      "profession", "mutuelle", "circonstances")
@@ -310,6 +322,7 @@ def creer_souscription(body: SouscriptionIn, request: Request):
         "consentements": {**c.model_dump(), "horodatage": db.now(), "ip": ip(request)},
         "statut": "attente_paiement", "ip": ip(request), "cree_le": db.now(),
     }
+    pieces.rattacher(ref, s["assures"])
     db.insert_souscription(s)
     db.log(ref, "creee", {"prime": prime, "duree_ans": body.duree_ans, "senior": senior, "vehicule2": bool(body.vehicule2),
                           "assures": len(body.assures)})
@@ -575,6 +588,7 @@ def admin_detail(ref: str):
     s["journal"] = db.journal(ref)
     s["mai"] = mai.etat()
     s["mai_capture"] = (mai.DOSSIER / f"{ref}-erreur.png").exists()
+    s["pieces_presentes"] = pieces.presentes(s)
     s["fiche_digitalia"] = notifications.fiche_digitalia(s)
     full = db.get_souscription(ref)
     s["lien_suivi"] = notifications.lien_suivi(full)
@@ -622,6 +636,14 @@ def admin_capture_mai(ref: str):
     if not f.exists():
         raise HTTPException(404)
     return FileResponse(f, media_type="image/png")
+
+
+@app.get("/api/admin/souscriptions/{ref}/pieces/{nom}", dependencies=[Depends(admin)])
+def admin_piece(ref: str, nom: str):
+    p = pieces.chemin(ref, nom)
+    if not p:
+        raise HTTPException(404)
+    return FileResponse(p, headers={"Cache-Control": "no-store"})
 
 
 @app.post("/api/admin/souscriptions/{ref}/annuler", dependencies=[Depends(admin)])
@@ -694,6 +716,16 @@ def digitalia_document(ref: str, doc: Literal["recu", "attestation"]):
     return FileResponse(config.DATA_DIR / "attestations" / s["attestation_fichier"], media_type="application/pdf")
 
 
+@app.get("/api/digitalia/souscriptions/{ref}/pieces/{nom}", dependencies=[Depends(cle_digitalia)])
+def digitalia_piece(ref: str, nom: str):
+    """Copie de la CIN ou du passeport d'un assuré, pour le dossier client dans Digitalia."""
+    s = db.get_souscription(ref)
+    p = pieces.chemin(ref, nom) if s and s["statut"] in ("payee", "emise", "annulee") else None
+    if not p:
+        raise HTTPException(404)
+    return FileResponse(p, headers={"Cache-Control": "no-store"})
+
+
 class AccuseIn(BaseModel):
     references: list[str] = Field(min_length=1, max_length=1000)
 
@@ -705,6 +737,12 @@ def digitalia_accuse(body: AccuseIn):
         n = 0
         for ref in body.references:
             n += c.execute("UPDATE souscriptions SET digitalia_importe_le=? WHERE ref=?", (db.now(), ref)).rowcount
+    # Les copies de pièces d'identité sont maintenant dans Digitalia : on les efface du site.
+    for ref in body.references:
+        s = db.get_souscription(ref)
+        if s and s["statut"] in ("payee", "emise", "annulee") and pieces.presentes(s):
+            pieces.effacer(ref)
+            db.log(ref, "pieces_effacees_apres_digitalia")
     return {"confirmees": n}
 
 

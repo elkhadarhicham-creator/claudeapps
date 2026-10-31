@@ -6,7 +6,7 @@ import faux_portail
 import pytest
 from fastapi.testclient import TestClient
 
-from app import cmi, db, main
+from app import cmi, db, main, notifications
 
 c = TestClient(main.app)
 AUJ = main.aujourdhui()
@@ -284,3 +284,26 @@ def test_champs_portail_mai_obligatoires_pour_le_souscripteur():
     from app import db, mai
     v = mai.variables(db.get_souscription(ref))
     assert v["souscripteur.code_postal"] == "10080" and v["souscripteur.civilite"] == "Mme"
+
+
+def test_copie_cin_envoyee_a_digitalia_puis_effacee(monkeypatch):
+    from app import ocr, pieces
+    monkeypatch.setattr(ocr, "disponible", lambda: False)  # même sans lecture IA, la copie est gardée
+    jpg = b"\xff\xd8\xff\xe0" + b"0" * 200
+    r = c.post("/api/ocr", files={"fichier": ("cin.jpg", jpg, "image/jpeg")}, headers={"x-forwarded-for": "10.9.9.9"}).json()
+    assert r["code"] == "indisponible" and pieces.ID_RE.match(r["piece_id"])
+    assures = [{"lien": "Souscripteur", "nom": "ALAMI", "prenom": "SARA", "naissance": "1990-01-01", "cin": "AB123456",
+                "adresse": "12 rue Fès", "pieces": [r["piece_id"], "inexistante-0000000000000000"], **COMPLEMENT}]
+    s = souscription(assures=assures)
+    ref = s.json()["ref"]
+    h = {"x-api-key": "cle-digitalia-test"}
+    assert c.get(f"/api/digitalia/souscriptions/{ref}/pieces/{ref}-1-souscripteur-1.jpg", headers=h).status_code == 404  # pas payée
+    payer(s)
+    fiche = notifications.fiche_digitalia(db.get_souscription(ref))
+    (p,) = fiche["documents"]["pieces"]
+    assert c.get(p["url"]).status_code == 401
+    assert c.get(p["url"], headers=h).content == jpg
+    assert c.get(f"/api/digitalia/souscriptions/{ref}/pieces/..%2F..%2Fdigitalia.db", headers=h).status_code == 404
+    c.post("/api/digitalia/accuse", json={"references": [ref]}, headers=h)
+    assert c.get(p["url"], headers=h).status_code == 404  # effacée du site après réception par Digitalia
+    assert not notifications.fiche_digitalia(db.get_souscription(ref))["documents"]["pieces"]

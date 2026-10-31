@@ -112,7 +112,7 @@
     nTrav++;
     var d=document.createElement("div");d.className="trav";
     d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
-      +'<div class="scan"><p class="s-titre">Remplir avec la CIN ou le passeport</p><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="s-msg">CIN : recto pour le nom et la date de naissance, verso pour l’adresse. Passeport : page avec la photo. Ou saisissez les champs ci-dessous.</span></div>'
+      +'<div class="scan"><p class="s-titre">Remplir avec la CIN ou le passeport</p><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="pj" hidden></span><span class="s-msg">CIN : recto pour le nom et la date de naissance, verso pour l’adresse. Passeport : page avec la photo. Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<label class="consent etu" hidden><input type="checkbox" data-k="etudiant"> <span>Étudiant(e) au Maroc (obligatoire de 21 à 25 ans)</span></label>'
@@ -127,7 +127,7 @@
     var cs=d.querySelector(".circ-sel");if(cs){var ct=d.querySelector(".circ-txt");cs.addEventListener("change",function(){
       ct.hidden=cs.value!=="oui";ct.value=cs.value==="Aucune"?"Aucune":"";if(!ct.hidden)ct.focus()})}
     var msg=d.querySelector(".s-msg");
-    if(!CFG.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display="none"});msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
+    if(!CFG.ocr)msg.textContent=T("Joignez la CIN ou le passeport, puis saisissez les champs ci-dessous.");
     d.querySelectorAll(".scan input[type=file]").forEach(function(fi){fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""})});
     $("travList").appendChild(d);renum();
   }
@@ -138,7 +138,7 @@
   $("addConj").addEventListener("click",function(){addTrav("Conjoint(e)");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
   $("addEnf").addEventListener("click",function(){addTrav("Enfant");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
 
-  // ── Lecture de la pièce d'identité (serveur → Claude). Photo réduite avant envoi, jamais conservée.
+  // ── Lecture de la pièce d'identité (serveur → Claude). Photo réduite avant envoi ; la copie va au dossier client dans Digitalia.
   function reduire(file){
     return new Promise(function(ok){
       if(!/^image\/(jpeg|png|webp)$/.test(file.type)||!window.createImageBitmap){ok(file);return}
@@ -161,7 +161,9 @@
       var fd=new FormData();fd.append("fichier",blob,pdf?"piece.pdf":"piece.jpg");
       return api("/api/ocr",{method:"POST",body:fd});
     }).then(function(r){
-      if(!r.ok){msg.className="s-msg bad";msg.textContent=T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
+      if(r.piece_id){var l=JSON.parse(box.dataset.pieces||"[]");if(l.length<4)l.push(r.piece_id);box.dataset.pieces=JSON.stringify(l);
+        var pj=box.querySelector(".pj");pj.hidden=false;pj.textContent="📎 "+l.length+" "+T(l.length>1?"copies jointes au dossier":"copie jointe au dossier")}
+      if(!r.ok){msg.className="s-msg"+(r.code==="indisponible"?"":" bad");msg.textContent=r.code==="indisponible"?T("Copie jointe. Saisissez les champs ci-dessous."):T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
       var n=0;
       if(r.data.sexe){var cv=box.querySelector('[data-k="civilite"]');if(cv&&!cv.value){cv.value=r.data.sexe==="F"?"Mme":"M.";n++}}
       ["nom","prenom","naissance","cin","passeport","exp_passeport","adresse","ville","lieu_naissance"].forEach(function(k){
@@ -177,7 +179,7 @@
 
   function assures(){return [].map.call($("travList").children,function(c){
     var o={lien:c.querySelector("select").value};c.querySelectorAll("[data-k]").forEach(function(i){o[i.dataset.k]=i.type==="checkbox"?i.checked:i.classList.contains("date-fr")?frVersIso(i.value):i.value.trim()});
-    if(o.lien!=="Enfant")o.etudiant=false;return o})}
+    if(o.lien!=="Enfant")o.etudiant=false;o.pieces=JSON.parse(c.dataset.pieces||"[]");return o})}
 
   // ── Étape 1 → 2 (ou envoi d'une demande de devis)
   $("go2").addEventListener("click",function(){

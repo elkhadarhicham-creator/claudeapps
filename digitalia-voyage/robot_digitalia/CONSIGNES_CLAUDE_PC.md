@@ -21,7 +21,7 @@ Le site ne demande pas d'agence au client. Par défaut, les souscriptions vont d
 - `robot_site_voyage.py`, à placer dans le dossier de Digitalia. Il n'a besoin d'aucune bibliothèque. À chaque passage :
   - il récupère les souscriptions payées, émises ou annulées sur le site ;
   - il les enregistre dans la base de Digitalia, table **`site_souscriptions`** (une ligne par souscription) ;
-  - il télécharge le reçu et l'attestation MAI dans `documents_site_voyage\` ;
+  - il télécharge le reçu, l'attestation MAI et les copies des CIN / passeports dans `documents_site_voyage\` ;
   - il appelle `integration_digitalia.integrer(conn, ligne)` s'il existe.
 - `integration_digitalia.exemple.py` : modèle de cette fonction, avec les étapes à suivre.
 
@@ -44,6 +44,7 @@ Le site ne demande pas d'agence au client. Par défaut, les souscriptions vont d
      - il n'entre pas dans la caisse espèces de l'agent : c'est la banque qui verse.
    - **Annulation** (`statut = 'annulee'`) : avenant inverse (signe −1) lié à la quittance d'origine, jamais un simple statut. Si le client a payé, ristourne à rembourser par le CMI.
    - **Scan** : copier `fichier_attestation` dans le dossier des scans de Digitalia, nommé par le n° de police, pour que le contrôle « scan manquant » passe.
+   - **Pièces d'identité** : `fichiers_pieces` (liste JSON de chemins, dans `documents_site_voyage\pieces_identite\`) contient la copie de la CIN ou du passeport de chaque assuré. Les joindre au dossier du client (scans du client, type « CIN » ou « Passeport »). Le site les efface de son côté dès que le robot a confirmé l'import : Digitalia en garde la seule copie, à sauvegarder avec la base.
    - **Commission** : taux Maroc Assistance / Assistance voyage de la table des branches et catégories.
    - **Journal des opérations** : chaque écriture signée « robot site voyage ».
 3. **Robotise** : lance `robot_site_voyage.py` toutes les 15 minutes, avec le même mécanisme que le robot MATU. Si MATU n'a pas de planificateur, utiliser le Planificateur de tâches Windows :

@@ -41,7 +41,7 @@ MAQUETTE = r'''
       var f=opts.body.get("fichier");
       if(f&&(f.type==="application/pdf"||/\.pdf$/i.test(f.name||""))){var e2=new Error("Les PDF sont lus par le site en ligne. Dans cette maquette, utilisez une photo ou un fichier JPG ou PNG.");e2.status=422;e2.code="maquette";throw e2}
       return l.s.json(PROMPT_PIECE,{images:[opts.body.get("fichier")],modelTier:"default"}).then(function(r){
-        return r&&r.lisible?{ok:true,data:r}:{ok:false,code:"illisible"}
+        var pid="maquette"+Date.now();return r&&r.lisible?{ok:true,data:r,piece_id:pid}:{ok:false,code:"illisible",piece_id:pid}
       },function(err){var c=err&&err.code,e;
         if(c==="not_granted")e=new Error("Lecture refusée : rechargez la page et acceptez la demande d'autorisation de Claude.");
         else if(c==="images_unavailable")e=new Error(SANS_IMAGES);

@@ -357,3 +357,4 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .sous-plus{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--line);padding-top:14px}
 .sous-plus .s-titre{margin:0;font-weight:600;font-size:.92rem}
 .sous-plus .circ-txt{margin-top:8px}
+.scan .pj{flex-basis:100%;font-size:.82rem;font-weight:600;color:var(--ok)}
