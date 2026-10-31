@@ -32,6 +32,8 @@ SCENARIO = Path(config.env("MAI_SCENARIO", str(config.BASE_DIR / "mai_scenario.j
 CHROMIUM = config.env("MAI_CHROMIUM_PATH")  # facultatif : chemin d'un Chromium déjà installé
 DRY_RUN = config.env("MAI_DRY_RUN", "false").lower() == "true"  # n'exécute pas les étapes "final"
 TIMEOUT_MS = int(config.env("MAI_TIMEOUT_MS", "30000") or 30000)
+# Tarif à sélectionner sur le portail (relevé du 31/10/2026 : prime client 350 DH, net à payer 265,19 DH)
+TARIF_LIBELLE = config.env("MAI_TARIF_LIBELLE", "NV Tarif IM <70 ANS à 350,00dh")
 DOSSIER = config.DATA_DIR / "mai"
 DOSSIER.mkdir(exist_ok=True)
 
@@ -74,6 +76,7 @@ def variables(s: dict) -> dict:
         "duree_ans": str(s.get("duree_ans") or 1),
         "duree_mai": "1 An" if (s.get("duree_ans") or 1) == 1 else f"{s.get('duree_ans')} Ans",  # libellé du portail
         "telephone_mai": _tel_mai(s["telephone"]),  # 10 chiffres commençant par 0
+        "tarif_mai": TARIF_LIBELLE,  # tarif à choisir sur le portail
         "MAI_LOGIN": LOGIN, "MAI_PASSWORD": PASSWORD,
     }
     for cle in ("vehicule", "vehicule2"):
