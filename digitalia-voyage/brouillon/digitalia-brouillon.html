@@ -374,6 +374,8 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .sous-plus .s-titre{margin:0;font-weight:600;font-size:.92rem}
 .sous-plus .circ-txt{margin-top:8px}
 .scan .pj{flex-basis:100%;font-size:.82rem;font-weight:600;color:var(--ok)}
+/* Plafonds en français : lus de gauche à droite même en arabe */
+[dir="rtl"] td.y{direction:ltr;text-align:right;unicode-bidi:isolate}
 
 </style>
 </head>
@@ -898,10 +900,15 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   for(var k in PLUS)D[k]=PLUS[k];
 
   var LANG="fr",LI={ar:0,da:1},hooks=[];
-  function T(s){return LANG==="fr"||!D[s]?s:D[s][LI[LANG]]}
+  function T(s){return LANG==="fr"||!D[s]?s:montants(D[s][LI[LANG]])}
   var ORIG=new WeakMap();
+  // Montants toujours écrits à la française (« 350 000 DH », « 30 000 € »), isolés de gauche à droite dans le texte arabe
+  var MONTANT=/\d{1,3}(?:[ \u00a0\u202f]\d{3})*(?:[.,]\d+)?[ \u00a0]?(درهمًا|درهماً|درهم|DH|dh|يورو|€)(?![A-Za-z])/g;
+  function montants(s){return s.replace(/[\u2066\u2069]/g,"").replace(MONTANT,function(m,u){
+    var num=m.slice(0,m.length-u.length).trim().replace(/[ \u202f]/g,"\u00a0");return "\u2066"+num+"\u00a0"+(/يورو|€/.test(u)?"€":"DH")+"\u2069"})}
   function trNode(n){var o=ORIG.get(n);if(o===undefined){o=n.data;ORIG.set(n,o)}var k=o.trim();
-    if(LANG==="fr"||!D[k]){if(n.data!==o)n.data=o;return}var v=o.replace(k,D[k][LI[LANG]]);if(n.data!==v)n.data=v}
+    if(LANG==="fr"){if(n.data!==o)n.data=o;return}
+    var v=montants(D[k]?o.replace(k,D[k][LI[LANG]]):o);if(n.data!==v)n.data=v}
   function trAttr(el,a){var key="data-o-"+a;if(!el.hasAttribute(key))el.setAttribute(key,el.getAttribute(a));el.setAttribute(a,T(el.getAttribute(key)))}
   function tr(root){
     var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentNode;
