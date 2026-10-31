@@ -14,7 +14,7 @@ AUJ = main.aujourdhui()
 
 def souscription(**over):
     corps = {
-        "offre": "FAM_MONDE_AN", "date_effet": AUJ.isoformat(), "telephone": "06 12 34 56 78", "email": "",
+        "offre": "FAM_MONDE_AN", "date_effet": (AUJ + timedelta(days=1)).isoformat(), "telephone": "06 12 34 56 78", "email": "",
         "lang": "fr",
         "assures": [
             {"lien": "Souscripteur", "nom": "ALAMI", "prenom": "SARA", "naissance": "1990-01-01", "cin": "AB123456",
@@ -63,7 +63,8 @@ def test_parcours_complet_paiement_suivi_documents():
     assert r.status_code == 200, r.text
     ref, tok = r.json()["ref"], r.json()["token"]
     # échéance = effet + 12 mois - 1 jour
-    attendu = date(AUJ.year + 1, AUJ.month, min(AUJ.day, 28 if AUJ.month == 2 else AUJ.day)) - timedelta(days=1)
+    eff = AUJ + timedelta(days=1)
+    attendu = date(eff.year + 1, eff.month, min(eff.day, 28 if eff.month == 2 else eff.day)) - timedelta(days=1)
     assert r.json()["date_echeance"] == attendu.isoformat()
     assert c.get(f"/api/suivi/{ref}?t={tok}").json()["statut"] == "attente_paiement"
     redir = payer(r)
@@ -220,35 +221,45 @@ def test_lecture_pdf_et_photo(monkeypatch):
     assert autre.status_code == 422
 
 
-def test_limites_age_famille():
-    auj = AUJ
-    vieux = {"lien": "Souscripteur", "nom": "A", "prenom": "B", "naissance": f"{auj.year - 72}-01-01", "cin": "X1",
-             "passeport": "", "exp_passeport": "", "adresse": ""}
-    r = souscription(assures=[vieux])
+def test_regles_injad_monde_famille_et_ages():
+    eff = AUJ + timedelta(days=1)
+    adulte = {"lien": "Souscripteur", "nom": "A", "prenom": "B", "naissance": f"{eff.year - 40}-01-01", "cin": "X1",
+              "passeport": "", "exp_passeport": "", "adresse": ""}
+    enfant = {"lien": "Enfant", "nom": "A", "prenom": "C", "naissance": f"{eff.year - 23}-01-01", "cin": "",
+              "passeport": "", "exp_passeport": "", "adresse": ""}
+    # 21-25 ans : couvert seulement s'il est étudiant au Maroc
+    r = souscription(assures=[adulte, enfant])
+    assert r.status_code == 422 and "étudiant" in r.json()["detail"]["message"].lower()
+    assert souscription(assures=[adulte, dict(enfant, etudiant=True)]).json()["prime_ttc"] == 890.0
+    # plus de 25 ans : refusé même étudiant
+    r = souscription(assures=[adulte, dict(enfant, naissance=f"{eff.year - 27}-01-01", etudiant=True)])
     assert r.status_code == 422 and r.json()["detail"]["code"] == "age"
-    ok = dict(vieux, naissance=f"{auj.year - 40}-01-01")
-    grand = {"lien": "Enfant", "nom": "A", "prenom": "C", "naissance": f"{auj.year - 26}-01-01", "cin": "",
-             "passeport": "", "exp_passeport": "", "adresse": ""}
-    r = souscription(assures=[ok, grand])
-    assert r.status_code == 422 and "25 ans" in r.json()["detail"]["message"]
-    assert souscription(assures=[ok, dict(grand, naissance=f"{auj.year - 20}-01-01")]).status_code == 200
+    # un assuré de 70 ans ou plus : prime familiale + 70 ans
+    vieux = dict(adulte, naissance=f"{eff.year - 72}-01-01")
+    r = souscription(assures=[vieux])
+    assert r.status_code == 200 and r.json()["prime_ttc"] == 1080.0
+    # prise d'effet au plus tôt le lendemain
+    assert souscription(date_effet=AUJ.isoformat()).json()["detail"]["code"] == "date_effet"
 
-
-def test_duree_pluriannuelle_et_assistance_auto():
-    from app.offres import OPTION_AUTO
+def test_duree_pluriannuelle_et_vehicules():
+    from app.offres import VEHICULE2
     r = souscription(duree_ans=3)
-    assert r.status_code == 200 and r.json()["prime_ttc"] == 570.0
-    eff = AUJ
+    assert r.status_code == 200 and r.json()["prime_ttc"] == 3 * 890
+    eff = AUJ + timedelta(days=1)
     attendu = date(eff.year + 3, eff.month, min(eff.day, 28 if eff.month == 2 else eff.day)) - timedelta(days=1)
     assert r.json()["date_echeance"] == attendu.isoformat()
-    assert r.json()["paiement"]["fields"]["amount"] == "570.00"
+    assert r.json()["paiement"]["fields"]["amount"] == "2670.00"
     s = db.get_souscription(r.json()["ref"])
     assert s["duree_ans"] == 3 and "3 ans" in s["produit"]
-    # option auto : véhicule obligatoire, prix ajouté par année
-    assert souscription(duree_ans=2, option_auto=True).json()["detail"]["code"] == "vehicule"
-    r = souscription(duree_ans=2, option_auto=True, vehicule={"immatriculation": "12345-a-6", "marque": "dacia", "modele": "logan"})
-    assert r.json()["prime_ttc"] == 2 * 190 + 2 * OPTION_AUTO["prix_an"]
+    v1 = {"immatriculation": "12345-a-6", "marque": "dacia", "modele": "logan"}
+    v2 = {"immatriculation": "6789-b-1", "marque": "renault", "modele": "clio"}
+    # véhicule inclus sans surcoût
+    assert souscription(vehicule=v1).json()["prime_ttc"] == 890.0
+    # 2e véhicule : surprime par année, et il faut le premier
+    assert souscription(vehicule2=v2).json()["detail"]["code"] == "vehicule"
+    r = souscription(duree_ans=2, vehicule=v1, vehicule2=v2)
+    assert r.json()["prime_ttc"] == 2 * 890 + 2 * VEHICULE2["prix_an"]
     s = db.get_souscription(r.json()["ref"])
-    assert s["options"]["assistance_auto"]["immatriculation"] == "12345-A-6" and "Assistance auto" in s["produit"]
-    assert souscription(duree_ans=5).json()["prime_ttc"] == 950.0
+    assert s["options"]["vehicule"]["immatriculation"] == "12345-A-6" and "2e véhicule" in s["produit"]
+    assert souscription(duree_ans=5).json()["prime_ttc"] == 5 * 890
     assert souscription(duree_ans=6).status_code == 422

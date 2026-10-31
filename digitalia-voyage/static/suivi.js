@@ -21,7 +21,8 @@
     var dl=$("recap");dl.innerHTML="";
     function row(k,v){var dt=document.createElement("dt");dt.textContent=k;var dd=document.createElement("dd");dd.textContent=v;dl.append(dt,dd)}
     row(T("Formule"),T(s.produit));row(T("Période"),fr(s.date_effet)+" → "+fr(s.date_echeance));
-    if(s.vehicule)row(T("Assistance auto"),[s.vehicule.immatriculation,s.vehicule.marque,s.vehicule.modele].filter(Boolean).join(" "));
+    function vh(v){return [v.immatriculation,v.marque,v.modele].filter(Boolean).join(" ")}
+    if(s.vehicule)row(T("Véhicule"),vh(s.vehicule));if(s.vehicule2)row(T("2e véhicule"),vh(s.vehicule2));
     row(T("Prime TTC"),s.prime_ttc.toFixed(2).replace(".",",")+" DH");
     s.assures.forEach(function(a){row(T(a.lien),a.nom+" "+a.prenom)});
     $("dlRecu").hidden=!s.recu;$("dlRecu").href="/documents/"+encodeURIComponent(s.ref)+"/recu.pdf"+q;

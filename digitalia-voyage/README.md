@@ -1,6 +1,6 @@
 # Digitalia Assurance Voyage
 
-Site de souscription en ligne de l'assurance voyage famille (190 DH / an) d'Assurances Elkhaddar, Rabat et Salé.
+Site de souscription en ligne de l'assistance voyage Injad Monde de Maroc Assistance (famille + 1 véhicule, 890 DH / an) d'Assurances Elkhaddar, Rabat et Salé.
 
 ## Ce que fait le site
 

@@ -105,7 +105,10 @@ def fiche_digitalia(s: dict) -> dict:
                          "date": s.get("payee_le")},
         "souscripteur": {"telephone_whatsapp": s["telephone"], "email": s.get("email")},
         "duree_ans": s.get("duree_ans") or 1,
-        "assistance_auto": (s.get("options") or {}).get("assistance_auto"),
+        "produit_compagnie": "INJAD MONDE",
+        "vehicule": (s.get("options") or {}).get("vehicule"),
+        "vehicule2": (s.get("options") or {}).get("vehicule2"),
+        "prime_70_ans": bool((s.get("options") or {}).get("senior")),
         "assures": s["assures"],
         "consentements": s["consentements"],
         "documents": {

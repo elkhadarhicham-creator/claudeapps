@@ -73,10 +73,10 @@ def recu_pdf(s: dict) -> bytes:
     ligne("Formule", s["produit"])
     ligne("Compagnie", config.COMPAGNIE)
     ligne("Période de garantie", f"du {_fr(s['date_effet'])} au {_fr(s['date_echeance'])} inclus")
-    vehicule = (s.get("options") or {}).get("assistance_auto")
-    if vehicule:
-        ligne("Assistance auto", " ".join(x for x in (vehicule.get("immatriculation"), vehicule.get("marque"),
-                                                       vehicule.get("modele")) if x))
+    for cle, titre in (("vehicule", "Véhicule garanti"), ("vehicule2", "2e véhicule")):
+        vh = (s.get("options") or {}).get(cle)
+        if vh:
+            ligne(titre, " ".join(x for x in (vh.get("immatriculation"), vh.get("marque"), vh.get("modele")) if x))
     ligne("Prime TTC payée", f"{s['prime_ttc']:.2f} DH".replace(".", ","), True)
     ligne("Paiement", f"Carte bancaire · transaction {s.get('transaction_id') or '—'}")
     ligne("Payé le", _fr(s.get("payee_le")))

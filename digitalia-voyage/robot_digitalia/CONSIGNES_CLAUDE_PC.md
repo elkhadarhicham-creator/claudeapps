@@ -4,7 +4,7 @@
 
 ---
 
-Bonjour Claude. Le cabinet a un site de souscription en ligne d'assurance voyage : formule famille monde entier à 190 DH, paiement par carte CMI, contrat émis chez Maroc Assistance. Il faut que chaque souscription du site arrive automatiquement dans Digitalia, comme les données de MATU.
+Bonjour Claude. Le cabinet a un site de souscription en ligne d'assurance voyage : formule Injad Monde de Maroc Assistance (famille + 1 véhicule, 890 DH par an, 1 080 DH si un assuré a 70 ans ou plus, +100 DH par 2e véhicule), paiement par carte CMI, contrat émis chez Maroc Assistance. Il faut que chaque souscription du site arrive automatiquement dans Digitalia, comme les données de MATU.
 
 ## Digitalia sur ce PC
 
@@ -34,7 +34,7 @@ Le site ne demande pas d'agence au client. Par défaut, les souscriptions vont d
    - **Contrat** : seulement quand `statut = 'emise'`. Tant que le statut est `payee`, renvoyer `False` : le robot réessaiera.
      - Compagnie Maroc Assistance, branche Assistance voyage.
      - N° de contrôle = n° de police (règle des Risques Divers).
-     - Effet et échéance du site, prime TTC 190 DH.
+     - Effet et échéance du site, prime TTC du site (890 DH par an et par contrat, 1 080 DH « + 70 ans », +100 DH par 2e véhicule), durée de 1 à 5 ans, véhicule(s) inscrit(s) au contrat.
      - **Date de saisie = date du paiement**, puisque la production d'un jour se compte en date de saisie.
      - Origine « site web », assurés en bénéficiaires.
    - **Encaissement** :

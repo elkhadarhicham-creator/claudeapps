@@ -5,13 +5,13 @@
   var $=function(i){return document.getElementById(i)};
   var CFG={ocr:false,paiement_demo:true,whatsapp:"212708295052"};
   var OFFRES={
-    FAM_MONDE_AN:{nom:"Famille · Monde entier",prix:190},
+    FAM_MONDE_AN:{nom:"Injad Monde · Famille + 1 véhicule",prix:890,prix_70:1080},
     IND_SCH:{nom:"Individuel · Schengen",prix:null},
     OMRA:{nom:"Omra / Hajj",prix:null},
     ETU:{nom:"Étudiant à l'étranger",prix:null}
   };
   var CARDS=[
-    {tag:"Promotion · souscription en ligne",star:true,name:"Famille · Monde entier",items:["Souscripteur, conjoint et enfants de moins de 25 ans","Schengen et monde entier","1 à 5 ans, voyages multiples","Assistance 24h/24 et 7j/7"],price:"190 DH / an",key:"FAM_MONDE_AN"},
+    {tag:"Souscription en ligne",star:true,name:"Injad Monde · Famille",items:["Souscripteur, conjoint et enfants","Votre voiture incluse","Frais médicaux jusqu’à 350 000 DH, monde entier","1 à 5 ans"],price:"890 DH / an",key:"FAM_MONDE_AN"},
     {tag:"Sur devis",name:"Individuel · Schengen",items:["Un voyageur, 6 mois ou 1 an","Tarif selon l’âge","Frais médicaux 30 000 € minimum, tout l’espace Schengen"],price:null,key:"IND_SCH"},
     {tag:"Sur devis",name:"Omra / Hajj",items:["Couverture en Arabie saoudite","Rapatriement sanitaire","Formules groupe"],price:null,key:"OMRA"},
     {tag:"Sur devis",name:"Étudiant à l'étranger",items:["Séjour d'études","Frais médicaux et hospitalisation","Rapatriement et assistance"],price:null,key:"ETU"}
@@ -62,23 +62,27 @@
     if(e.inputType&&e.inputType.indexOf("delete")===0&&/\/$/.test(el.value))v=el.value;el.value=v;
     el.classList.toggle("bad",v.length===10&&!frVersIso(v))});
   var today=iso(new Date());
-  function initDates(){if(!D("effet")||D("effet")<today)$("effet").value=isoVersFr(today);majEcheance()}
-  // ── Durée (1 à 4 ans), option assistance auto et prix total
-  var AUTO_PRIX=150;
+  function demain(){var d=new Date(today+"T00:00:00");d.setDate(d.getDate()+1);return iso(d)}
+  function initDates(){if(!D("effet")||D("effet")<=today)$("effet").value=isoVersFr(demain());majEcheance()}
+  // ── Durée (1 à 5 ans), véhicules et prix total (barème Injad Monde)
+  var V2_PRIX=100,AGE_SENIOR=70;
   function duree(){var r=document.querySelector('input[name="duree"]:checked');return r?+r.value:1}
   function dureeTxt(n){return T(n===1?"1 an":n+" ans")}
   function dh(n){return n.toFixed(2).replace(".",",")+" DH"}
-  function total(){var o=OFFRES[offre()]||{};if(!o.prix)return 0;var n=duree();return o.prix*n+($("optAuto").checked?AUTO_PRIX*n:0)}
+  // Prime « + 70 ans » dès qu'un assuré a 70 ans ou plus à la date d'effet
+  function senior(){var e=D("effet");return assures().some(function(x){return x.naissance&&ageA(x.naissance,e)>=AGE_SENIOR})}
+  function total(){var o=OFFRES[offre()]||{};if(!o.prix)return 0;var n=duree();
+    return (senior()&&o.prix_70?o.prix_70:o.prix)*n+($("optV2").checked?V2_PRIX*n:0)}
   function majPrix(){
     var o=OFFRES.FAM_MONDE_AN;
     document.querySelectorAll("#dureePick span[data-d]").forEach(function(s){var n=+s.dataset.d;s.textContent=dureeTxt(n)+" · "+(o.prix*n)+" DH"});
-    $("autoPrix").textContent="+"+AUTO_PRIX+" DH "+T("/ an");
-    $("vehBox").hidden=!$("optAuto").checked;
+    $("v2Prix").textContent="+"+V2_PRIX+" DH "+T("/ an");
+    $("v2Box").hidden=!$("optV2").checked;
     var t=dh(total());$("totalTxt").textContent=t;$("payTxt").textContent=t;
     if(!$("payBtn").disabled)$("payBtn").textContent=T("Payer")+" "+t;
   }
   document.querySelectorAll('input[name="duree"]').forEach(function(r){r.addEventListener("change",function(){majEcheance();majPrix()})});
-  $("optAuto").addEventListener("change",majPrix);
+  $("optV2").addEventListener("change",majPrix);
   function majEcheance(){var v=D("effet");if(!v){$("echeance").value="";return}var d=new Date(v+"T00:00:00");d.setFullYear(d.getFullYear()+duree());d.setDate(d.getDate()-1);$("echeance").value=isoVersFr(iso(d))}
   $("effet").addEventListener("input",majEcheance);initDates();
 
@@ -110,10 +114,12 @@
       +'<div class="scan"><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="s-msg">Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
+      +'<label class="consent etu" hidden><input type="checkbox" data-k="etudiant"> <span>Étudiant(e) au Maroc (obligatoire de 21 à 25 ans)</span></label>'
       +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>';
     // libellés reliés aux champs (accessibilité)
     d.querySelectorAll(".field").forEach(function(f,i){var id="f"+nTrav+"_"+i;f.querySelector("input").id=id;f.querySelector("label").htmlFor=id});
-    var sel=d.querySelector("select");ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;
+    var sel=d.querySelector("select");
+    function majEtu(){d.querySelector(".etu").hidden=sel.value!=="Enfant"}ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;majEtu();sel.addEventListener("change",majEtu);
     if(role==="Souscripteur")sel.disabled=true;else sel.querySelector('option[value="Souscripteur"]').disabled=true;
     var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});
     var msg=d.querySelector(".s-msg");
@@ -161,7 +167,8 @@
   }
 
   function assures(){return [].map.call($("travList").children,function(c){
-    var o={lien:c.querySelector("select").value};c.querySelectorAll("[data-k]").forEach(function(i){o[i.dataset.k]=i.classList.contains("date-fr")?frVersIso(i.value):i.value.trim()});return o})}
+    var o={lien:c.querySelector("select").value};c.querySelectorAll("[data-k]").forEach(function(i){o[i.dataset.k]=i.type==="checkbox"?i.checked:i.classList.contains("date-fr")?frVersIso(i.value):i.value.trim()});
+    if(o.lien!=="Enfant")o.etudiant=false;return o})}
 
   // ── Étape 1 → 2 (ou envoi d'une demande de devis)
   $("go2").addEventListener("click",function(){
@@ -180,8 +187,8 @@
       }).catch(function(e){err("e1",msgErreur(e))}).then(function(){b.disabled=false;majOffre();$("devisOk").hidden=false});
       return;
     }
-    if(!D("effet")||D("effet")<today)return err("e1",T("Choisissez une date d'effet à partir d'aujourd'hui."));
-    if($("optAuto").checked&&$("vImmat").value.trim().length<3)return err("e1",T("Indiquez l’immatriculation du véhicule."));
+    if(!D("effet")||D("effet")<=today)return err("e1",T("Le contrat prend effet au plus tôt demain (le lendemain du paiement)."));
+    if($("optV2").checked&&($("vImmat").value.trim().length<3||$("v2Immat").value.trim().length<3))return err("e1",T("Indiquez l’immatriculation des deux véhicules."));
     err("e1");if(!$("travList").children.length)addTrav("Souscripteur");show(2);
   });
 
@@ -196,8 +203,9 @@
       else if(x.lien==="Souscripteur"&&!x.cin&&!x.passeport)pb.push(n+T("numéro de CIN ou de passeport"));
       else if(x.naissance>today)pb.push(n+T("date de naissance dans le futur"));
       else{var ag=ageA(x.naissance,D("effet"));
-        if(x.lien==="Enfant"&&ag>=(CFG.age_max_enfant||25))pb.push(n+T("un enfant doit avoir moins de 25 ans à la date d'effet (formule individuelle sur devis)"));
-        if(x.lien==="Souscripteur"&&ag>(CFG.age_max_souscripteur||70))pb.push(n+T("formule famille réservée aux souscripteurs de 70 ans et moins : demandez un devis sur WhatsApp"))}
+        if(x.lien==="Enfant"&&ag>=(CFG.age_max_enfant||21)){
+          if(ag>(CFG.age_max_enfant_etudiant||25))pb.push(n+T("un enfant doit avoir moins de 21 ans, ou 25 ans au plus s’il est étudiant (formule individuelle sur devis)"));
+          else if(!x.etudiant)pb.push(n+T("de 21 à 25 ans, cochez « Étudiant(e) au Maroc »"))}}
       if(x.exp_passeport&&x.exp_passeport<D("effet"))pb.push(n+T("passeport expiré à la date d'effet"));
     });
     if(pb.length)return err("e2",T("À compléter :")+" "+pb.join(" ; "));
@@ -205,11 +213,13 @@
     var o=OFFRES[offre()],dl=$("recapList");dl.innerHTML="";
     function row(k,v){var dt=document.createElement("dt");dt.textContent=k;var dd=document.createElement("dd");dd.textContent=v;dl.append(dt,dd)}
     row(T("Formule"),T(o.nom)+" · "+dureeTxt(duree()));
-    if($("optAuto").checked)row(T("Assistance auto"),($("vImmat").value.trim()+" "+$("vMarque").value.trim()).toUpperCase());
+    if($("vImmat").value.trim())row(T("Véhicule"),($("vImmat").value.trim()+" "+$("vMarque").value.trim()).toUpperCase());
+    if($("optV2").checked)row(T("2e véhicule"),($("v2Immat").value.trim()+" "+$("v2Marque").value.trim()).toUpperCase());
+    if(senior())row(T("Tarif"),T("prime familiale + 70 ans"));
     row(T("Période"),fr(D("effet"))+" → "+fr(D("echeance")));row("WhatsApp",$("tel").value);
     a.forEach(function(x){row(T(x.lien),x.nom+" "+x.prenom+" · "+T("né(e) le")+" "+fr(x.naissance)+(x.passeport?" · "+T("Passeport")+" "+x.passeport:"")+(x.cin?" · "+T("CIN")+" "+x.cin:""))});
     a.forEach(function(x,i){if(x.exp_passeport&&x.exp_passeport>=D("effet")&&x.exp_passeport<D("echeance"))row("⚠",T("Assuré")+" "+(i+1)+" : "+T("le passeport expire avant la fin du contrat (")+fr(x.exp_passeport)+")")});
-    show(3);
+    majPrix();show(3);
   });
 
   // ── Étape 3 → 4
@@ -226,8 +236,8 @@
   }
   $("payBtn").addEventListener("click",function(){
     var b=this;b.disabled=true;b.textContent=T("Redirection vers la banque…");err("e4");
-    var corps={offre:offre(),duree_ans:duree(),option_auto:$("optAuto").checked,
-      vehicule:$("optAuto").checked?{immatriculation:$("vImmat").value.trim(),marque:$("vMarque").value.trim(),modele:""}:null,
+    function vh(i,m){return $(i).value.trim()?{immatriculation:$(i).value.trim(),marque:$(m).value.trim(),modele:""}:null}
+    var corps={offre:offre(),duree_ans:duree(),vehicule:vh("vImmat","vMarque"),vehicule2:$("optV2").checked?vh("v2Immat","v2Marque"):null,
       date_effet:D("effet"),telephone:$("tel").value,email:$("email").value.trim(),lang:DG.lang(),
       assures:assures(),consentements:{conditions_generales:$("c1").checked,exactitude:$("c2").checked,loi_09_08:$("c3").checked}};
     api("/api/souscriptions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(corps)}).then(function(r){
@@ -246,8 +256,8 @@
   // ── Configuration serveur (lecture IA disponible, mode démo, numéro WhatsApp)
   api("/api/config").then(function(c){
     CFG=c;$("demoNote").hidden=!c.paiement_demo;
-    if(c.option_auto&&c.option_auto.prix_an)AUTO_PRIX=c.option_auto.prix_an;
-    (c.offres||[]).forEach(function(x){if(OFFRES[x.code]&&x.prix)OFFRES[x.code].prix=x.prix});majPrix();
+    if(c.vehicule2&&c.vehicule2.prix_an)V2_PRIX=c.vehicule2.prix_an;if(c.age_senior)AGE_SENIOR=c.age_senior;
+    (c.offres||[]).forEach(function(x){if(OFFRES[x.code]&&x.prix){OFFRES[x.code].prix=x.prix;OFFRES[x.code].prix_70=x.prix_70}});majPrix();
     if(c.aujourdhui){today=c.aujourdhui;initDates()}
     document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display=""});d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
   }).catch(function(){});

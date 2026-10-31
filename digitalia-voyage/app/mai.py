@@ -65,8 +65,9 @@ def variables(s: dict) -> dict:
         "duree_ans": str(s.get("duree_ans") or 1),
         "MAI_LOGIN": LOGIN, "MAI_PASSWORD": PASSWORD,
     }
-    for k, val in ((s.get("options") or {}).get("assistance_auto") or {}).items():
-        v[f"vehicule.{k}"] = val or ""
+    for cle in ("vehicule", "vehicule2"):
+        for k, val in ((s.get("options") or {}).get(cle) or {}).items():
+            v[f"{cle}.{k}"] = val or ""
     for k, val in sous.items():
         v[f"souscripteur.{k}"] = val or ""
     v["souscripteur.naissance_fr"] = _fr(sous.get("naissance"))

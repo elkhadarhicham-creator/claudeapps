@@ -271,3 +271,11 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .scan label.btn.line{background:var(--surface)}
 .chip span{font-variant-numeric:tabular-nums}
 #dureePick{gap:6px}
+@media (max-width:560px){
+  .tbl table{min-width:0}
+  .tbl thead{display:none}
+  .tbl tr{display:block;border-bottom:1px solid var(--line);padding-block:10px}
+  .tbl tr:last-child{border-bottom:0}
+  .tbl td{display:block;border:0;padding:2px 16px}
+  .tbl td.y,.tbl td.c{font-size:.88rem}
+}

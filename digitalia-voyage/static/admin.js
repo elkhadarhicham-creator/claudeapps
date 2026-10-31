@@ -70,10 +70,11 @@
   function sec(titre){var s=el("div","sec");s.appendChild(el("h3",null,titre));return s}
 
   function ouvrir(ref){api("/api/admin/souscriptions/"+encodeURIComponent(ref)).then(function(s){
-    $("fRef").textContent=s.ref+" · "+(LIB[s.statut]||s.statut);var B=$("fBody");B.innerHTML="";
+    $("fRef").textContent=s.ref+" · "+(LIB[s.statut]||s.statut);
+    function vh(k){var v=s.options&&s.options[k];return v?[v.immatriculation,v.marque,v.modele].filter(Boolean).join(" "):""}var B=$("fBody");B.innerHTML="";
     var c=sec("Contrat");c.appendChild(kvs([["Formule",s.produit],["Date d'effet",fr(s.date_effet)],["Échéance",fr(s.date_echeance)],
       ["Prime TTC",DH(s.prime_ttc)],["Durée",(s.duree_ans||1)+" an(s)"],
-      ["Assistance auto",s.options&&s.options.assistance_auto?[s.options.assistance_auto.immatriculation,s.options.assistance_auto.marque,s.options.assistance_auto.modele].filter(Boolean).join(" "):""],["WhatsApp",s.telephone],["E-mail",s.email],["Transaction",s.transaction_id],["Autorisation",s.auth_code],
+      ["Véhicule",vh("vehicule")],["2e véhicule",vh("vehicule2")],["Prime + 70 ans",s.options&&s.options.senior?"oui":""],["WhatsApp",s.telephone],["E-mail",s.email],["Transaction",s.transaction_id],["Autorisation",s.auth_code],
       ["Payée le",s.payee_le&&fr(s.payee_le)],["N° police",s.numero_police]]));B.appendChild(c);
     s.assures.forEach(function(a,i){var x=sec("Assuré "+(i+1)+" · "+a.lien);
       x.appendChild(kvs([["Nom",a.nom],["Prénom",a.prenom],["Naissance",fr(a.naissance)],["CIN",a.cin],["Passeport",a.passeport],

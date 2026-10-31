@@ -14,8 +14,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from . import cmi, config, db, documents, mai, notifications, ocr, securite
-from .offres import (AGE_MAX_ENFANT, AGE_MAX_SOUSCRIPTEUR, LIENS, MAX_ENFANTS, OFFRES, OPTION_AUTO, age_a,
-                     libelle_duree, tarif)
+from .offres import (AGE_MAX_ENFANT, AGE_MAX_ENFANT_ETUDIANT, AGE_SENIOR, LIENS, MAX_ENFANTS, OFFRES, VEHICULE2,
+                     age_a, libelle_duree, tarif)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("digitalia")
@@ -129,9 +129,10 @@ def api_config():
         "whatsapp": config.WHATSAPP_CABINET,
         "aujourdhui": aujourdhui().isoformat(),
         "offres": list(OFFRES.values()),
-        "option_auto": OPTION_AUTO,
+        "vehicule2": VEHICULE2,
         "age_max_enfant": AGE_MAX_ENFANT,
-        "age_max_souscripteur": AGE_MAX_SOUSCRIPTEUR,
+        "age_max_enfant_etudiant": AGE_MAX_ENFANT_ETUDIANT,
+        "age_senior": AGE_SENIOR,
     }
 
 
@@ -172,6 +173,7 @@ class Assure(BaseModel):
     passeport: str = Field("", max_length=20)
     exp_passeport: date | None = None
     adresse: str = Field("", max_length=200)
+    etudiant: bool = False  # enfant de 21 à 25 ans poursuivant ses études au Maroc
 
     @field_validator("nom", "prenom", "cin", "passeport", "adresse")
     @classmethod
@@ -204,8 +206,8 @@ class Vehicule(BaseModel):
 class SouscriptionIn(BaseModel):
     offre: str
     duree_ans: int = Field(1, ge=1, le=5)
-    option_auto: bool = False
-    vehicule: Vehicule | None = None
+    vehicule: Vehicule | None = None    # véhicule inclus dans le forfait (facultatif)
+    vehicule2: Vehicule | None = None   # deuxième véhicule : surprime
     date_effet: date
     telephone: str = Field(max_length=20)
     email: str = Field("", max_length=120)
@@ -226,8 +228,9 @@ def creer_souscription(body: SouscriptionIn, request: Request):
     if not o or not o.get("en_ligne"):
         erreur("offre", "Cette formule se souscrit sur devis.")
     auj = aujourdhui()
-    if body.date_effet < auj:
-        erreur("date_effet", "La date d'effet ne peut pas être antérieure à aujourd'hui.")
+    # Injad Monde : prise d'effet le lendemain à midi de la date de paiement
+    if body.date_effet <= auj:
+        erreur("date_effet", "Le contrat prend effet au plus tôt demain (le lendemain du paiement, à midi).")
     if body.date_effet > auj + timedelta(days=180):
         erreur("date_effet", "La date d'effet doit être dans les 6 prochains mois.")
     try:
@@ -253,26 +256,30 @@ def creer_souscription(body: SouscriptionIn, request: Request):
             erreur("assures", f"Assuré {i} : date de naissance dans le futur.")
         age = age_a(a.naissance, body.date_effet)
         if a.lien == "Enfant" and age >= AGE_MAX_ENFANT:
-            erreur("age", f"Assuré {i} : un enfant doit avoir moins de {AGE_MAX_ENFANT} ans à la date d'effet. "
-                          "Assurez-le avec une formule individuelle (sur devis).")
-        if a.lien == "Souscripteur" and age > AGE_MAX_SOUSCRIPTEUR:
-            erreur("age", f"Souscripteur : la formule famille en ligne est réservée aux {AGE_MAX_SOUSCRIPTEUR} ans et moins. "
-                          "Contactez-nous sur WhatsApp pour un devis.")
+            if age > AGE_MAX_ENFANT_ETUDIANT:
+                erreur("age", f"Assuré {i} : un enfant doit avoir moins de {AGE_MAX_ENFANT} ans, ou au plus "
+                              f"{AGE_MAX_ENFANT_ETUDIANT} ans s'il est étudiant au Maroc. Formule individuelle sur devis.")
+            if not a.etudiant:
+                erreur("age", f"Assuré {i} : de {AGE_MAX_ENFANT} à {AGE_MAX_ENFANT_ETUDIANT} ans, un enfant n'est couvert "
+                              "que s'il poursuit ses études au Maroc : cochez « Étudiant(e) au Maroc ».")
         if a.exp_passeport and a.exp_passeport < body.date_effet:
             erreur("assures", f"Assuré {i} : passeport expiré à la date d'effet.")
 
     if body.duree_ans not in o.get("durees_ans", [1]):
         erreur("duree", "Durée non proposée pour cette formule.")
-    if body.option_auto and not body.vehicule:
-        erreur("vehicule", "Indiquez l'immatriculation du véhicule pour l'assistance auto.")
+    if body.vehicule2 and not body.vehicule:
+        erreur("vehicule", "Indiquez d'abord le véhicule inclus avant d'ajouter un deuxième véhicule.")
+    senior = any(age_a(a.naissance, body.date_effet) >= AGE_SENIOR for a in body.assures)
     echeance = ajouter_mois(body.date_effet, 12 * body.duree_ans) - timedelta(days=1)
-    prime = tarif(o, body.duree_ans, body.option_auto)
-    produit = f"{o['nom']} · {libelle_duree(body.duree_ans)}" + (f" + {OPTION_AUTO['nom']}" if body.option_auto else "")
+    prime = tarif(o, body.duree_ans, senior, bool(body.vehicule2))
+    produit = (f"{o['nom']} · {libelle_duree(body.duree_ans)}" + (" · + 70 ans" if senior else "")
+               + (f" + {VEHICULE2['nom']}" if body.vehicule2 else ""))
     ref = f"DGV-{auj:%y%m}-{secrets.token_hex(3).upper()}"
     s = {
         "ref": ref, "token": securite.new_token(), "offre": o["code"], "produit": produit,
         "duree_ans": body.duree_ans,
-        "options": {"assistance_auto": body.vehicule.model_dump() if body.option_auto else None},
+        "options": {"vehicule": body.vehicule.model_dump() if body.vehicule else None,
+                    "vehicule2": body.vehicule2.model_dump() if body.vehicule2 else None, "senior": senior},
         "date_effet": body.date_effet.isoformat(), "date_echeance": echeance.isoformat(),
         "prime_ttc": prime, "telephone": body.telephone.strip(), "email": body.email.strip() or None,
         "lang": body.lang,
@@ -281,7 +288,7 @@ def creer_souscription(body: SouscriptionIn, request: Request):
         "statut": "attente_paiement", "ip": ip(request), "cree_le": db.now(),
     }
     db.insert_souscription(s)
-    db.log(ref, "creee", {"prime": prime, "duree_ans": body.duree_ans, "assistance_auto": body.option_auto,
+    db.log(ref, "creee", {"prime": prime, "duree_ans": body.duree_ans, "senior": senior, "vehicule2": bool(body.vehicule2),
                           "assures": len(body.assures)})
     return {"ref": ref, "token": s["token"], "prime_ttc": prime, "date_echeance": s["date_echeance"],
             "paiement": cmi.build_form(db.get_souscription(ref))}
@@ -311,7 +318,8 @@ def api_suivi(ref: str, t: str):
         "date_effet": s["date_effet"], "date_echeance": s["date_echeance"], "prime_ttc": s["prime_ttc"],
         "assures": [{"lien": a["lien"], "nom": a["nom"], "prenom": a["prenom"]} for a in s["assures"]],
         "numero_police": s.get("numero_police"),
-        "vehicule": (s.get("options") or {}).get("assistance_auto"),
+        "vehicule": (s.get("options") or {}).get("vehicule"),
+        "vehicule2": (s.get("options") or {}).get("vehicule2"),
         "recu": s["statut"] in ("payee", "emise"),
         "attestation": bool(s.get("attestation_fichier")),
         "payee_le": s.get("payee_le"),
