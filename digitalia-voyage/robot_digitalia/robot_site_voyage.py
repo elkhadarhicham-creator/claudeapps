@@ -113,7 +113,8 @@ class Site:
         with self._req(chemin, data, "application/json" if data else None) as r:
             return json.loads(r.read().decode("utf-8"))
 
-    def fichier(self, chemin: str, dest: Path) -> bool:
+    def fichier(self, chemin: str, dest: Path, images: bool = False) -> bool:
+        """Télécharge un PDF (ou, avec images=True, aussi une photo JPEG / PNG / WebP / GIF)."""
         try:
             with self._req(chemin) as r:
                 contenu = r.read()
@@ -121,7 +122,8 @@ class Site:
             if e.code == 404:
                 return False
             raise
-        if not contenu.startswith(b"%PDF"):
+        signatures = (b"%PDF",) + ((b"\xff\xd8\xff", b"\x89PNG", b"RIFF", b"GIF8") if images else ())
+        if not contenu.startswith(signatures):
             return False
         tmp = dest.with_suffix(".tmp")
         tmp.write_bytes(contenu)
@@ -223,7 +225,7 @@ def passage(r: dict, reprise: bool = False) -> dict:
             fichiers["pieces"] = []
             for p in d["pieces"]:
                 dest = pdir / nom_fichier(p["nom"])
-                if dest.exists() or site.fichier(p["url"], dest):
+                if dest.exists() or site.fichier(p["url"], dest, images=True):
                     fichiers["pieces"].append(str(dest))
                 else:
                     complet = False

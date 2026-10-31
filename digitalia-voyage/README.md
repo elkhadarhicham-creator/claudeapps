@@ -30,6 +30,8 @@ Site : http://localhost:8000 · Espace cabinet : http://localhost:8000/admin
 
 Tests : `.venv/bin/python -m pytest -q tests`. Les tests font tout le parcours, y compris le robot du portail, sur un faux portail local.
 
+Tests de souscription dans un vrai navigateur (famille complète, paiement refusé puis relancé, contrôles, arabe, espace cabinet, robot MAI, robot Digitalia) : `.venv/bin/python tests/e2e_souscription.py e2e_captures` (26 vérifications, captures d'écran dans `e2e_captures/`).
+
 ## Mise en ligne
 
 Guide pas à pas (Hetzner, environ 4 € par mois, HTTPS automatique) : `deploy/MISE_EN_LIGNE.md`. Le script `deploy/installer.sh` installe ou met à jour le site sur un serveur Ubuntu.
