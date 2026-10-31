@@ -170,6 +170,9 @@ async def api_ocr(request: Request, fichier: UploadFile = File(...)):
     return {"ok": True, "data": res, "piece_id": pid}
 
 
+CIN_RE = re.compile(r"[A-Z]{1,2}[0-9]{1,6}[A-Z]?")  # règle du portail MAI
+
+
 class Assure(BaseModel):
     lien: Literal[LIENS]
     nom: str = Field(min_length=1, max_length=60)
@@ -190,6 +193,16 @@ class Assure(BaseModel):
     mutuelle: str = Field("", max_length=80)       # assurance couvrant le même risque (AMO, CNOPS, mutuelle…)
     circonstances: str = Field("", max_length=300)  # circonstances susceptibles d'aggraver le risque
     pieces: list[str] = Field(default_factory=list, max_length=pieces.MAX_PAR_ASSURE)  # copies CIN / passeport
+    # Assistance déjà souscrite couvrant le même risque (liste du portail MAI)
+    assistance_existante: Literal["", "SANS", "SAHAM ASSISTANCE", "AXA ASSISTANCE", "WAFA IMA ASSISTANCE", "RMA ASSISTANCE"] = ""
+
+    @field_validator("cin")
+    @classmethod
+    def format_cin(cls, v: str) -> str:
+        v = v.replace(" ", "").upper()
+        if v and not CIN_RE.fullmatch(v):
+            raise ValueError("CIN : 1 ou 2 lettres puis des chiffres (ex. AB123456)")
+        return v
 
     @field_validator("pieces")
     @classmethod
@@ -281,6 +294,7 @@ def creer_souscription(body: SouscriptionIn, request: Request):
                                          ("situation familiale", a.situation_familiale), ("adresse", a.adresse),
                                          ("ville", a.ville), ("code postal", a.code_postal), ("profession", a.profession),
                                          ("assurance maladie / mutuelle", a.mutuelle),
+                                         ("autre assistance déjà souscrite", a.assistance_existante),
                                          ("circonstances aggravant le risque", a.circonstances)) if not v]
             if manque:
                 erreur("assures", "Souscripteur : " + ", ".join(manque) + " à compléter.")

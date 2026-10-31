@@ -208,6 +208,8 @@
   "Joignez la CIN ou le passeport, puis saisissez les champs ci-dessous.":["أرفق البطاقة الوطنية أو جواز السفر، ثم املأ الخانات أدناه.","زيد لاكارط ولا الباسبور، ومن بعد عمّر الخانات لتحت."],
   "Copie jointe. Saisissez les champs ci-dessous.":["تم إرفاق النسخة. املأ الخانات أدناه.","النسخة تزادت. عمّر الخانات لتحت."],
   "copie jointe au dossier":["نسخة مرفقة بالملف","نسخة مزيودة فالدوسي"],"copies jointes au dossier":["نسخ مرفقة بالملف","نسخ مزيودين فالدوسي"],
+  "Autre assistance voyage déjà souscrite":["مساعدة سفر أخرى مكتتبة","شي تأمين ديال السفر آخر عندك"],
+  "CIN : 1 ou 2 lettres puis des chiffres (ex. AB123456)":["البطاقة الوطنية: حرف أو حرفان ثم أرقام (مثال AB123456)","لاكارط: حرف ولا جوج ومن بعد الأرقام (بحال AB123456)"],
   "Visa Schengen":["تأشيرة شنغن","الفيزا ديال شنغن"],
   "Valable pour le visa Schengen":["صالح لتأشيرة شنغن","صالح للفيزا ديال شنغن"],
   "Plus de 30 000 € de frais médicaux, dans tous les pays Schengen.":["أكثر من 30 000 يورو من المصاريف الطبية، في جميع دول شنغن.","كثر من 30 000 أورو ديال المصاريف الطبية، فجميع دول شنغن."],

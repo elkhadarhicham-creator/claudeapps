@@ -13,7 +13,7 @@ AUJ = main.aujourdhui()
 
 
 COMPLEMENT = {"civilite": "Mme", "lieu_naissance": "RABAT", "situation_familiale": "Marié(e)", "ville": "RABAT",
-              "code_postal": "10080", "profession": "Enseignante", "mutuelle": "CNOPS", "circonstances": "Aucune"}
+              "code_postal": "10080", "profession": "Enseignante", "mutuelle": "CNOPS", "circonstances": "Aucune", "assistance_existante": "SANS"}
 
 
 def souscription(**over):
@@ -271,7 +271,7 @@ def test_duree_pluriannuelle_et_vehicules():
 
 def test_champs_portail_mai_obligatoires_pour_le_souscripteur():
     assert souscription(email="").json()["detail"]["code"] == "email"
-    for champ in ("lieu_naissance", "code_postal", "profession", "mutuelle", "circonstances"):
+    for champ in ("lieu_naissance", "code_postal", "profession", "mutuelle", "circonstances", "assistance_existante"):
         r = c.post("/api/souscriptions", json={
             "offre": "FAM_MONDE_AN", "date_effet": (AUJ + timedelta(days=1)).isoformat(), "telephone": "0612345678",
             "email": "a@b.ma", "assures": [{"lien": "Souscripteur", "nom": "A", "prenom": "B", "naissance": "1990-01-01",
@@ -284,6 +284,9 @@ def test_champs_portail_mai_obligatoires_pour_le_souscripteur():
     from app import db, mai
     v = mai.variables(db.get_souscription(ref))
     assert v["souscripteur.code_postal"] == "10080" and v["souscripteur.civilite"] == "Mme"
+    assert v["telephone_mai"] == "0612345678" and v["duree_mai"] == "1 An"
+    bad = {"lien": "Souscripteur", "nom": "A", "prenom": "B", "naissance": "1990-01-01", "cin": "123ABC", "adresse": "r", **COMPLEMENT}
+    assert souscription(assures=[bad]).status_code == 422
 
 
 def test_copie_cin_envoyee_a_digitalia_puis_effacee(monkeypatch):

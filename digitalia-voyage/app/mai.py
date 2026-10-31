@@ -55,6 +55,15 @@ def _fr(d: str | None) -> str:
     return date.fromisoformat(d).strftime("%d/%m/%Y") if d else ""
 
 
+def _tel_mai(tel: str) -> str:
+    d = "".join(ch for ch in tel if ch.isdigit())
+    if d.startswith("00212"):
+        d = "0" + d[5:]
+    elif d.startswith("212"):
+        d = "0" + d[3:]
+    return d
+
+
 def variables(s: dict) -> dict:
     sous = next((a for a in s["assures"] if a["lien"] == "Souscripteur"), s["assures"][0])
     v = {
@@ -63,6 +72,8 @@ def variables(s: dict) -> dict:
         "date_echeance": s["date_echeance"], "date_echeance_fr": _fr(s["date_echeance"]),
         "prime": f"{s['prime_ttc']:.2f}", "nb_assures": str(len(s["assures"])),
         "duree_ans": str(s.get("duree_ans") or 1),
+        "duree_mai": "1 An" if (s.get("duree_ans") or 1) == 1 else f"{s.get('duree_ans')} Ans",  # libellé du portail
+        "telephone_mai": _tel_mai(s["telephone"]),  # 10 chiffres commençant par 0
         "MAI_LOGIN": LOGIN, "MAI_PASSWORD": PASSWORD,
     }
     for cle in ("vehicule", "vehicule2"):
