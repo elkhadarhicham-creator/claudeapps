@@ -66,6 +66,32 @@ def _tel_mai(tel: str) -> str:
     return d
 
 
+def prime_annuelle(s: dict) -> float:
+    """Prime TTC annuelle du contrat de base payée par le client (sans le 2e véhicule)."""
+    from .offres import VEHICULE2
+    n = s.get("duree_ans") or 1
+    p = s["prime_ttc"] / n
+    if (s.get("options") or {}).get("vehicule2"):
+        p -= VEHICULE2["prix_an"] or 0
+    return round(p, 2)
+
+
+def montant(txt: str) -> float | None:
+    """Lit un montant affiché par le portail : « 190,00 », « 1 080,00 DH », « 190.00 »."""
+    m = re.search(r"\d[\d\s\u00a0\u202f.]*(?:,\d{1,2})?", txt or "")
+    if not m:
+        return None
+    t = re.sub(r"[\s\u00a0\u202f]", "", m.group(0))
+    if "," in t:
+        t = t.replace(".", "").replace(",", ".")
+    elif t.count(".") > 1 or re.search(r"\.\d{3}$", t):
+        t = t.replace(".", "")
+    try:
+        return float(t)
+    except ValueError:
+        return None
+
+
 def variables(s: dict) -> dict:
     sous = next((a for a in s["assures"] if a["lien"] == "Souscripteur"), s["assures"][0])
     v = {
@@ -76,7 +102,8 @@ def variables(s: dict) -> dict:
         "duree_ans": str(s.get("duree_ans") or 1),
         "duree_mai": "1 An" if (s.get("duree_ans") or 1) == 1 else f"{s.get('duree_ans')} Ans",  # libellé du portail
         "telephone_mai": _tel_mai(s["telephone"]),  # 10 chiffres commençant par 0
-        "tarif_mai": TARIF_LIBELLE,  # tarif à choisir sur le portail
+        "tarif_mai": TARIF_LIBELLE,  # tarif à choisir sur le portail (par son nom)
+        "prime_annuelle": f"{prime_annuelle(s):.2f}",  # prime TTC que le portail doit afficher (action choisir_tarif)
         "MAI_LOGIN": LOGIN, "MAI_PASSWORD": PASSWORD,
     }
     for cle in ("vehicule", "vehicule2"):
@@ -136,6 +163,30 @@ def _executer(page, etapes: list, v: dict, s: dict, resultat: dict) -> None:
             # ex. pour chaque assuré : clic sur « Ajouter un bénéficiaire » puis saisie
             for i, assure in enumerate(s["assures"][e.get("debut", 0):], e.get("debut", 0)):
                 _executer(page, e["etapes"], {**v, **_variables_assure(assure, i)}, s, resultat)
+        elif a == "choisir_tarif":
+            # Essaie chaque tarif de la liste et garde celui dont la prime affichée est celle payée par le client.
+            # Aucun tarif ne correspond (ex. promotion pas encore ouverte) : on s'arrête, rien n'est émis.
+            attendu = float(remplir(str(e.get("attendu", "{prime_annuelle}")), v))
+            prime_sel = remplir(e["prime"], v)
+            vus = []
+            choisi = None
+            for opt in page.locator(f"{sel} option").all():
+                val, lib = opt.get_attribute("value") or "", opt.inner_text().strip()
+                if not val:
+                    continue
+                page.select_option(sel, val)
+                page.wait_for_timeout(int(e.get("ms", 1500)))
+                el = page.locator(prime_sel).first
+                txt = el.input_value() if el.evaluate("n => 'value' in n && n.tagName !== 'BUTTON'") else el.inner_text()
+                p = montant(txt)
+                vus.append(f"{lib} = {txt.strip()}")
+                if p is not None and abs(p - attendu) < 0.01:
+                    choisi = lib
+                    break
+            if not choisi:
+                raise ErreurPortail(f"Aucun tarif du portail à {attendu:.2f} DH (promotion pas encore ouverte ?). "
+                                    "Tarifs vus : " + " ; ".join(vus))
+            resultat["tarif"] = choisi
         elif a == "lire":
             txt = page.locator(sel).first.inner_text().strip()
             if e.get("regex"):

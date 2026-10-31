@@ -11,6 +11,9 @@ PAGE_LOGIN = b"""<!doctype html><form action="/accueil" method="get">
 PAGE_FORM = """<!doctype html><h1>Souscriptions</h1><button onclick="nouv()">Nouvelle souscription</button>
 <form id="f" action="/valider" method="post" hidden>
 <select id="Produit" name="produit"><option value="x">Autre</option><option value="fam">Famille Monde entier 12 mois</option></select>
+<select id="Tarif" name="tarif" onchange="document.getElementById('PrimeClient').textContent=this.value==='promo'?'190,00':this.value==='nv'?'350,00':'890,00'">
+<option value="">--</option><option value="t1">Tarif 1 an &lt; 70 ans</option><option value="nv">NV Tarif IM &lt;70 ANS à 350,00dh</option><option value="promo">Tarif promotion</option></select>
+<span id="PrimeClient">0,00</span>
 <input id="DateEffet" name="effet"><input id="Souscripteur_Nom" name="nom"><input id="Souscripteur_Prenom" name="prenom">
 <input id="Souscripteur_CIN" name="cin"><input id="Souscripteur_Passeport" name="pass"><input id="Souscripteur_DateNaissance" name="naiss">
 <input id="Souscripteur_Telephone" name="tel"><input id="Souscripteur_Adresse" name="adr">

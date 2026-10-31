@@ -178,6 +178,7 @@ def test_robot_portail_mai():
     saisie = faux_portail.SAISIES[-1]
     assert saisie["nom"] == ["ALAMI"] and saisie["cin"] == ["AB123456"] and saisie["produit"] == ["fam"]
     assert saisie["b1Prenom"] == ["ADAM"] and saisie["b1Passeport"] == ["XY998877"]
+    assert saisie["tarif"] == ["promo"]  # le tarif dont la prime affichée vaut 190 DH
     s = c.get(f"/api/suivi/{ref}?t={tok}").json()
     assert s["statut"] == "emise" and s["attestation"]
 
@@ -310,3 +311,23 @@ def test_copie_cin_envoyee_a_digitalia_puis_effacee(monkeypatch):
     c.post("/api/digitalia/accuse", json={"references": [ref]}, headers=h)
     assert c.get(p["url"], headers=h).status_code == 404  # effacée du site après réception par Digitalia
     assert not notifications.fiche_digitalia(db.get_souscription(ref))["documents"]["pieces"]
+
+
+def test_lecture_des_montants_du_portail():
+    from app import mai
+    assert mai.montant("190,00") == 190 and mai.montant("1 080,00 DH") == 1080 and mai.montant("674.33") == 674.33
+    assert mai.montant("1.080,50") == 1080.5 and mai.montant("Prime : 350,00dh") == 350 and mai.montant("") is None
+    s = {"prime_ttc": 580.0, "duree_ans": 2, "options": {"vehicule2": {"immatriculation": "1-A-2"}}}
+    assert mai.prime_annuelle(s) == 190
+
+
+def test_robot_mai_refuse_si_aucun_tarif_au_prix_paye(monkeypatch):
+    from app import mai
+    monkeypatch.setattr(mai, "prime_annuelle", lambda s: 175.0)  # ex. promotion pas encore ouverte sur le portail
+    r = souscription()
+    ref = r.json()["ref"]
+    payer(r)
+    connexion_admin()
+    res = c.post(f"/api/admin/souscriptions/{ref}/mai")
+    assert res.status_code == 502 and "Aucun tarif du portail à 175.00 DH" in res.text
+    assert db.get_souscription(ref)["statut"] == "payee"  # rien d'émis : reste « à émettre »
