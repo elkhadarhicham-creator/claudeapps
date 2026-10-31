@@ -365,6 +365,11 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .visa-note{margin-top:16px;color:var(--quiet);font-size:.9rem;max-width:70ch}
 @media (max-width:920px){.visa-ok{grid-template-columns:1fr 1fr}}
 @media (max-width:560px){.visa-ok{grid-template-columns:1fr}}
+.add2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.add2 [hidden]{display:none!important}
+.add2:has(> [hidden]){grid-template-columns:1fr}
+.scan .s-titre{flex-basis:100%;margin:0;font-weight:600;font-size:.88rem;color:var(--ink)}
+@media (max-width:400px){.add2{grid-template-columns:1fr}}
 
 </style>
 </head>
@@ -493,9 +498,9 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
         <!-- Étape 2 : assurés -->
         <div class="pane" id="p2" hidden>
           <div class="stack">
-            <p class="hint">Pour chaque personne, prenez en photo la CIN ou la page d'identité du passeport. Les champs se remplissent seuls : vérifiez-les.</p>
+            <p class="hint">Ajoutez votre conjoint et vos enfants. Pour chaque personne, photographiez la CIN ou le passeport, ou joignez-le en fichier (JPG, PNG ou PDF) : les champs se remplissent seuls. Vous pouvez aussi les saisir à la main.</p>
             <div class="stack" id="travList"></div>
-            <button class="addbtn" type="button" id="addTrav">+ Ajouter un membre de la famille</button>
+            <div class="add2"><button class="addbtn" type="button" id="addConj">+ Ajouter mon conjoint</button><button class="addbtn" type="button" id="addEnf">+ Ajouter un enfant</button></div>
             <p class="err" id="e2" hidden></p>
             <div class="nav"><button class="btn line" type="button" data-back="1">Retour</button><button class="btn" type="button" id="go3">Continuer</button></div>
           </div>
@@ -827,6 +832,12 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Paiement sécurisé":["أداء آمن","خلاص مضمون"],"Carte bancaire, 3-D Secure":["بطاقة بنكية، 3-D Secure","كارط بنكية، 3-D Secure"],
   "Intermédiaire agréé":["وسيط معتمد","وسيط معتمد"],"Sous le contrôle de l’ACAPS":["تحت مراقبة هيئة ACAPS","تحت المراقبة ديال ACAPS"],
   "Maroc Assistance":["المغرب للمساعدة","Maroc Assistance"],"Contrat Injad Monde":["عقد إنجاد موند","عقد إنجاد موند"],
+  "Ajoutez votre conjoint et vos enfants. Pour chaque personne, photographiez la CIN ou le passeport, ou joignez-le en fichier (JPG, PNG ou PDF) : les champs se remplissent seuls. Vous pouvez aussi les saisir à la main.":["أضف زوجك وأبناءك. لكل شخص، صوّر البطاقة الوطنية أو جواز السفر، أو أرفقه كملف (JPG أو PNG أو PDF): تُملأ الخانات تلقائيًا. يمكنك أيضًا إدخالها يدويًا.","زيد المرا ولا الراجل والولاد. لكل واحد، صوّر لاكارط ولا الباسبور، ولا زيدو كملف (JPG، PNG ولا PDF): الخانات كيتعمرو بوحدهم. وتقدر تكتبهم بيدك."],
+  "+ Ajouter mon conjoint":["+ إضافة الزوج(ة)","+ زيد المرا / الراجل"],
+  "+ Ajouter un enfant":["+ إضافة طفل","+ زيد ولد"],
+  "Remplir avec la CIN ou le passeport":["الملء بالبطاقة الوطنية أو جواز السفر","عمّر بلاكارط ولا الباسبور"],
+  "CIN : recto pour le nom et la date de naissance, verso pour l’adresse. Passeport : page avec la photo. Ou saisissez les champs ci-dessous.":["البطاقة: الوجه للاسم وتاريخ الازدياد، الظهر للعنوان. جواز السفر: الصفحة التي بها الصورة. أو أدخل الخانات أدناه.","لاكارط: القدام للسمية وتاريخ الزيادة، اللور للعنوان. الباسبور: الصفحة اللي فيها التصويرة. ولا كتب الخانات لتحت."],
+  "Vous (souscripteur)":["أنت (المكتتب)","نتا (المكتتب)"],
   "Visa Schengen":["تأشيرة شنغن","الفيزا ديال شنغن"],
   "Valable pour le visa Schengen":["صالح لتأشيرة شنغن","صالح للفيزا ديال شنغن"],
   "Plus de 30 000 € de frais médicaux, dans tous les pays Schengen.":["أكثر من 30 000 يورو من المصاريف الطبية، في جميع دول شنغن.","كثر من 30 000 أورو ديال المصاريف الطبية، فجميع دول شنغن."],
@@ -1039,7 +1050,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     nTrav++;
     var d=document.createElement("div");d.className="trav";
     d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
-      +'<div class="scan"><label class="btn"><input type="file" accept="image/*">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="s-msg">Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.</span></div>'
+      +'<div class="scan"><p class="s-titre">Remplir avec la CIN ou le passeport</p><label class="btn"><input type="file" accept="image/*">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="s-msg">CIN : recto pour le nom et la date de naissance, verso pour l’adresse. Passeport : page avec la photo. Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<label class="consent etu" hidden><input type="checkbox" data-k="etudiant"> <span>Étudiant(e) au Maroc (obligatoire de 21 à 25 ans)</span></label>'
@@ -1049,15 +1060,17 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     var sel=d.querySelector("select");
     function majEtu(){d.querySelector(".etu").hidden=sel.value!=="Enfant"}ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;majEtu();sel.addEventListener("change",majEtu);
     if(role==="Souscripteur")sel.disabled=true;else sel.querySelector('option[value="Souscripteur"]').disabled=true;
-    var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});
+    var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});sel.addEventListener("change",renum);
     var msg=d.querySelector(".s-msg");
     if(!CFG.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display="none"});msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
     d.querySelectorAll(".scan input[type=file]").forEach(function(fi){fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""})});
     $("travList").appendChild(d);renum();
   }
-  function renum(){[].forEach.call($("travList").children,function(c,i){c.querySelector(".trav-head b").textContent=T("Assuré")+" "+(i+1)})}
-  $("addTrav").addEventListener("click",function(){
-    var a=assures(),conj=a.some(function(x){return x.lien==="Conjoint(e)"});addTrav(conj?"Enfant":"Conjoint(e)")});
+  function renum(){var e=0,cj=false;[].forEach.call($("travList").children,function(c){var r=c.querySelector("select").value;
+      if(r==="Conjoint(e)")cj=true;c.querySelector(".trav-head b").textContent=r==="Souscripteur"?T("Vous (souscripteur)"):r==="Enfant"?T("Enfant")+" "+(++e):T("Conjoint(e)")});
+    var b=$("addConj");if(b)b.hidden=cj}
+  $("addConj").addEventListener("click",function(){addTrav("Conjoint(e)");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
+  $("addEnf").addEventListener("click",function(){addTrav("Enfant");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
 
   // ── Lecture de la pièce d'identité (serveur → Claude). Photo réduite avant envoi, jamais conservée.
   function reduire(file){
@@ -1215,7 +1228,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 
   // Barre « Souscrire » : masquée quand le formulaire est déjà à l'écran
   (function(){var bar=$("ctaBar"),card=document.querySelector(".hero .card");if(!bar||!card||!window.IntersectionObserver)return;
-    new IntersectionObserver(function(es){bar.classList.toggle("cache",es[0].isIntersecting)},{threshold:.15}).observe(card)})();
+    new IntersectionObserver(function(es){bar.classList.toggle("cache",es[0].isIntersecting)},{threshold:0}).observe(card)})();
 
   majOffre();majPrix();show(1);
   

@@ -349,3 +349,8 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .visa-note{margin-top:16px;color:var(--quiet);font-size:.9rem;max-width:70ch}
 @media (max-width:920px){.visa-ok{grid-template-columns:1fr 1fr}}
 @media (max-width:560px){.visa-ok{grid-template-columns:1fr}}
+.add2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.add2 [hidden]{display:none!important}
+.add2:has(> [hidden]){grid-template-columns:1fr}
+.scan .s-titre{flex-basis:100%;margin:0;font-weight:600;font-size:.88rem;color:var(--ink)}
+@media (max-width:400px){.add2{grid-template-columns:1fr}}

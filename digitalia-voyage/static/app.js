@@ -112,7 +112,7 @@
     nTrav++;
     var d=document.createElement("div");d.className="trav";
     d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
-      +'<div class="scan"><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="s-msg">Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.</span></div>'
+      +'<div class="scan"><p class="s-titre">Remplir avec la CIN ou le passeport</p><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="s-msg">CIN : recto pour le nom et la date de naissance, verso pour l’adresse. Passeport : page avec la photo. Ou saisissez les champs ci-dessous.</span></div>'
       +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
       +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
       +'<label class="consent etu" hidden><input type="checkbox" data-k="etudiant"> <span>Étudiant(e) au Maroc (obligatoire de 21 à 25 ans)</span></label>'
@@ -122,15 +122,17 @@
     var sel=d.querySelector("select");
     function majEtu(){d.querySelector(".etu").hidden=sel.value!=="Enfant"}ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;majEtu();sel.addEventListener("change",majEtu);
     if(role==="Souscripteur")sel.disabled=true;else sel.querySelector('option[value="Souscripteur"]').disabled=true;
-    var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});
+    var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});sel.addEventListener("change",renum);
     var msg=d.querySelector(".s-msg");
     if(!CFG.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display="none"});msg.textContent=T("Lecture automatique indisponible ici : saisissez les champs.")}
     d.querySelectorAll(".scan input[type=file]").forEach(function(fi){fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""})});
     $("travList").appendChild(d);renum();
   }
-  function renum(){[].forEach.call($("travList").children,function(c,i){c.querySelector(".trav-head b").textContent=T("Assuré")+" "+(i+1)})}
-  $("addTrav").addEventListener("click",function(){
-    var a=assures(),conj=a.some(function(x){return x.lien==="Conjoint(e)"});addTrav(conj?"Enfant":"Conjoint(e)")});
+  function renum(){var e=0,cj=false;[].forEach.call($("travList").children,function(c){var r=c.querySelector("select").value;
+      if(r==="Conjoint(e)")cj=true;c.querySelector(".trav-head b").textContent=r==="Souscripteur"?T("Vous (souscripteur)"):r==="Enfant"?T("Enfant")+" "+(++e):T("Conjoint(e)")});
+    var b=$("addConj");if(b)b.hidden=cj}
+  $("addConj").addEventListener("click",function(){addTrav("Conjoint(e)");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
+  $("addEnf").addEventListener("click",function(){addTrav("Enfant");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
 
   // ── Lecture de la pièce d'identité (serveur → Claude). Photo réduite avant envoi, jamais conservée.
   function reduire(file){
@@ -288,7 +290,7 @@
 
   // Barre « Souscrire » : masquée quand le formulaire est déjà à l'écran
   (function(){var bar=$("ctaBar"),card=document.querySelector(".hero .card");if(!bar||!card||!window.IntersectionObserver)return;
-    new IntersectionObserver(function(es){bar.classList.toggle("cache",es[0].isIntersecting)},{threshold:.15}).observe(card)})();
+    new IntersectionObserver(function(es){bar.classList.toggle("cache",es[0].isIntersecting)},{threshold:0}).observe(card)})();
 
   majOffre();majPrix();show(1);
   if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});
