@@ -286,6 +286,10 @@
     aller(0);relancer();
   })();
 
+  // Barre « Souscrire » : masquée quand le formulaire est déjà à l'écran
+  (function(){var bar=$("ctaBar"),card=document.querySelector(".hero .card");if(!bar||!card||!window.IntersectionObserver)return;
+    new IntersectionObserver(function(es){bar.classList.toggle("cache",es[0].isIntersecting)},{threshold:.15}).observe(card)})();
+
   majOffre();majPrix();show(1);
   if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});
 })();

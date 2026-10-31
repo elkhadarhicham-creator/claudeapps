@@ -321,6 +321,42 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .ancre span{opacity:.75}.ancre s{opacity:.75;text-decoration-thickness:2px;text-decoration-color:var(--or2)}
 .ancre b{background:var(--or);color:var(--prune);border-radius:999px;padding:3px 12px;font-weight:700}
 
+/* Bandeau de confiance */
+.trust{background:var(--surface);border-bottom:1px solid var(--line)}
+.trust ul{list-style:none;margin-block:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding-block:14px}
+.trust li{display:flex;gap:10px;align-items:center;min-width:0}
+.trust svg{flex:none;width:34px;height:34px;padding:7px;border-radius:10px;background:var(--tint);stroke:var(--prune3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.trust span{display:flex;flex-direction:column;font-size:.78rem;color:var(--quiet);line-height:1.3}
+.trust b{color:var(--ink);font-size:.86rem;font-weight:600}
+:root[data-theme="dark"] .trust svg{stroke:var(--or2)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .trust svg{stroke:var(--or2)}}
+@media (max-width:920px){.trust ul{grid-template-columns:1fr 1fr}}
+/* Comment ça marche */
+.etapes{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;counter-reset:e}
+.etapes li{counter-increment:e;position:relative;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 20px;display:flex;flex-direction:column;gap:8px;transition:transform .25s,box-shadow .25s}
+.etapes li:hover{transform:translateY(-3px);box-shadow:0 14px 30px -18px rgba(40,10,40,.45)}
+.etapes li::after{content:counter(e);position:absolute;top:16px;right:18px;font-size:2.4rem;font-weight:800;color:var(--tint-line);line-height:1}
+.etapes .ic svg{width:48px;height:48px;padding:11px;border-radius:14px;background:var(--prune);stroke:var(--or2);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.etapes b{font-size:1.05rem;font-weight:600}
+.etapes li>span:last-child{font-size:.9rem;color:var(--quiet)}
+@media (max-width:760px){.etapes{grid-template-columns:1fr}}
+.offer{transition:transform .25s,box-shadow .25s}
+.offer:hover{transform:translateY(-3px);box-shadow:0 14px 30px -18px rgba(40,10,40,.45)}
+/* Barre « Souscrire » fixe sur téléphone */
+.cta-bar{display:none}
+@media (max-width:760px){
+  .cta-bar{position:fixed;left:0;right:0;bottom:0;z-index:25;display:flex;align-items:center;gap:10px;background:var(--prune);color:#fff;
+    padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+    box-shadow:0 -8px 24px -12px rgba(20,5,20,.6);transition:transform .3s}
+  .cta-bar span{flex:1;display:flex;flex-direction:column;line-height:1.2}.cta-bar b{font-size:1.1rem;color:var(--or2)}.cta-bar small{font-size:.8rem;opacity:.85}
+  .cta-bar .btn{width:auto;padding:10px 18px;font-size:.95rem}
+  .cta-wa{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.14);color:#fff}
+  .cta-wa svg{width:20px;height:20px}
+  .cta-bar.cache{transform:translateY(110%)}
+  .wa-float{display:none}
+  body{padding-bottom:76px}
+}
+
 </style>
 </head>
 <body>
@@ -365,6 +401,12 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     <button class="sl-nav next" type="button" aria-label="Image suivante">›</button>
     <div class="dots" id="dots" role="tablist" aria-label="Choisir une image"></div>
   </section>
+  <div class="trust"><ul class="wrap">
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/></svg><span><b>Paiement sécurisé</b>Carte bancaire, 3-D Secure</span></li>
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg><span><b>Intermédiaire agréé</b>Sous le contrôle de l’ACAPS</span></li>
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M12 4c3 3 3 13 0 16M12 4c-3 3-3 13 0 16"/><circle cx="12" cy="12" r="8"/></svg><span><b>Maroc Assistance</b>Contrat Injad Monde</span></li>
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6z"/><path d="M9 12h6M9 16h4"/></svg><span><b>Attestation PDF</b>Avec QR code de vérification</span></li>
+  </ul></div>
   <section class="hero" id="souscrire">
     <div class="wrap">
       <div class="hero-copy">
@@ -491,13 +533,11 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 
   <section class="block alt">
     <div class="wrap">
-      <div class="sec-head"><span class="kicker">Ce qui se passe après votre paiement</span><h2>Votre contrat, sans attente</h2><p>Chaque souscription suit ce circuit. Un conseiller du cabinet contrôle chaque contrat.</p></div>
-      <ol class="flow">
-        <li><em>Vous</em><b>Photo de la CIN ou du passeport</b><span>Les informations sont lues et remplies automatiquement.</span></li>
-        <li><em>Banque</em><b>Paiement 3-D Secure</b><span>Sur la page sécurisée de la banque.</span></li>
-        <li><em>Digitalia</em><b>Affaire enregistrée</b><span>Client, assurés, prime et encaissement saisis dans notre application.</span></li>
-        <li><em>Compagnie</em><b>Contrat émis</b><span>Émis chez Maroc Assistance et contrôlé par un conseiller du cabinet.</span></li>
-        <li><em>WhatsApp</em><b>Attestation reçue</b><span>Reçu immédiat, puis attestation en PDF à joindre au dossier de visa, avec QR code de vérification.</span></li>
+      <div class="sec-head"><span class="kicker">Comment ça marche</span><h2>Assuré en 3 étapes, sans vous déplacer</h2><p>Un conseiller du cabinet contrôle chaque contrat avant son émission chez Maroc Assistance.</p></div>
+      <ol class="etapes">
+        <li><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><circle cx="12" cy="12.5" r="3.5"/><path d="M8 6l1.5-2h5L16 6"/></svg></span><b>Photographiez la CIN</b><span>Les champs se remplissent tout seuls : nom, date de naissance, numéro.</span></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span><b>Payez par carte</b><span>Sur la page sécurisée 3-D Secure de la banque, en DH.</span></li>
+        <li><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H8l-4 4z"/><path d="M9 10l2 2 4-4"/></svg></span><b>Recevez l’attestation</b><span>Reçu immédiat, puis attestation PDF sur WhatsApp et par e-mail, prête pour le visa.</span></li>
       </ol>
     </div>
   </section>
@@ -572,6 +612,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   </div>
 </footer>
 
+<div class="cta-bar" id="ctaBar"><span><b>190 DH / an</b><small>Famille + voiture</small></span><a class="btn gold" href="#souscrire">Souscrire</a><a class="cta-wa" href="https://wa.me/212708295052" target="_blank" rel="noopener" aria-label="WhatsApp 07 08 29 50 52"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg></a></div>
 <a class="wa-float" id="waFloat" href="https://wa.me/212708295052" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/></svg>07 08 29 50 52</a>
 
 <script>
@@ -760,6 +801,16 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Je vis à l’étranger (MRE) : puis-je souscrire ?":["أعيش في الخارج (مغاربة العالم): هل يمكنني الاشتراك؟","ساكن فالخارج (MRE): واش نقدر نتأمّن؟"],
   "Non, Injad Monde est réservé aux personnes qui résident à plein temps au Maroc. Écrivez-nous sur WhatsApp : nous vous proposerons une formule adaptée.":["لا، إنجاد موند مخصص للمقيمين بصفة دائمة في المغرب. راسلنا على واتساب لنقترح عليك صيغة مناسبة.","لا، إنجاد موند غير للي ساكنين فالمغرب ديما. كتب لينا فالواتساب ونقترحو عليك عرض مناسب."],
   "Rapatriement vers le Maroc, que l’assurance du visa ne prévoit pas":["الترحيل إلى المغرب، الذي لا يشمله تأمين التأشيرة","الرجوع للمغرب، اللي ما كاينش فتأمين الفيزا"],
+  "Paiement sécurisé":["أداء آمن","خلاص مضمون"],"Carte bancaire, 3-D Secure":["بطاقة بنكية، 3-D Secure","كارط بنكية، 3-D Secure"],
+  "Intermédiaire agréé":["وسيط معتمد","وسيط معتمد"],"Sous le contrôle de l’ACAPS":["تحت مراقبة هيئة ACAPS","تحت المراقبة ديال ACAPS"],
+  "Maroc Assistance":["المغرب للمساعدة","Maroc Assistance"],"Contrat Injad Monde":["عقد إنجاد موند","عقد إنجاد موند"],
+  "Attestation PDF":["شهادة PDF","أتيستاسيون PDF"],"Avec QR code de vérification":["مع رمز QR للتحقق","فيها QR code"],
+  "Comment ça marche":["كيف تعمل الخدمة","كيفاش كتخدم"],"Assuré en 3 étapes, sans vous déplacer":["مؤمَّن في 3 خطوات دون تنقل","مأمّن ف3 خطوات بلا ما تتحرك"],
+  "Un conseiller du cabinet contrôle chaque contrat avant son émission chez Maroc Assistance.":["يراقب مستشار من المكتب كل عقد قبل إصداره لدى المغرب للمساعدة.","مستشار من المكتب كيراجع كل عقد قبل ما يخرج عند Maroc Assistance."],
+  "Photographiez la CIN":["صوّر البطاقة الوطنية","صوّر لاكارط"],"Les champs se remplissent tout seuls : nom, date de naissance, numéro.":["تُملأ الخانات تلقائيًا: الاسم وتاريخ الازدياد والرقم.","الخانات كيتعمرو بوحدهم: السمية، تاريخ الزيادة، النمرة."],
+  "Payez par carte":["ادفع بالبطاقة","خلّص بالكارط"],"Sur la page sécurisée 3-D Secure de la banque, en DH.":["على صفحة 3-D Secure الآمنة للبنك، بالدرهم.","فالصفحة المضمونة 3-D Secure ديال البنكة، بالدرهم."],
+  "Recevez l’attestation":["استلم الشهادة","توصل بالأتيستاسيون"],"Reçu immédiat, puis attestation PDF sur WhatsApp et par e-mail, prête pour le visa.":["وصل فوري، ثم شهادة PDF على واتساب والبريد الإلكتروني، جاهزة للتأشيرة.","الوصل دغيا، ومن بعد الأتيستاسيون PDF فالواتساب والإيميل، واجدة للفيزا."],
+  "Famille + voiture":["العائلة + السيارة","العائلة + الطوموبيل"],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],
@@ -1122,6 +1173,10 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     DG.onLang(function(){aller(i)});
     aller(0);relancer();
   })();
+
+  // Barre « Souscrire » : masquée quand le formulaire est déjà à l'écran
+  (function(){var bar=$("ctaBar"),card=document.querySelector(".hero .card");if(!bar||!card||!window.IntersectionObserver)return;
+    new IntersectionObserver(function(es){bar.classList.toggle("cache",es[0].isIntersecting)},{threshold:.15}).observe(card)})();
 
   majOffre();majPrix();show(1);
   
