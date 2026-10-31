@@ -218,3 +218,17 @@ def test_lecture_pdf_et_photo(monkeypatch):
     assert jpg.json()["data"]["naissance"] == "1984-08-17" and envoye[-1]["type"] == "image"
     autre = c.post("/api/ocr", files={"fichier": ("cin.txt", b"texte", "text/plain")})
     assert autre.status_code == 422
+
+
+def test_limites_age_famille():
+    auj = AUJ
+    vieux = {"lien": "Souscripteur", "nom": "A", "prenom": "B", "naissance": f"{auj.year - 72}-01-01", "cin": "X1",
+             "passeport": "", "exp_passeport": "", "adresse": ""}
+    r = souscription(assures=[vieux])
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "age"
+    ok = dict(vieux, naissance=f"{auj.year - 40}-01-01")
+    grand = {"lien": "Enfant", "nom": "A", "prenom": "C", "naissance": f"{auj.year - 26}-01-01", "cin": "",
+             "passeport": "", "exp_passeport": "", "adresse": ""}
+    r = souscription(assures=[ok, grand])
+    assert r.status_code == 422 and "25 ans" in r.json()["detail"]["message"]
+    assert souscription(assures=[ok, dict(grand, naissance=f"{auj.year - 20}-01-01")]).status_code == 200

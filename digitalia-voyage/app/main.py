@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from . import cmi, config, db, documents, mai, notifications, ocr, securite
-from .offres import LIENS, MAX_ENFANTS, OFFRES
+from .offres import AGE_MAX_ENFANT, AGE_MAX_SOUSCRIPTEUR, LIENS, MAX_ENFANTS, OFFRES, age_a
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("digitalia")
@@ -128,6 +128,8 @@ def api_config():
         "whatsapp": config.WHATSAPP_CABINET,
         "aujourdhui": aujourdhui().isoformat(),
         "offres": list(OFFRES.values()),
+        "age_max_enfant": AGE_MAX_ENFANT,
+        "age_max_souscripteur": AGE_MAX_SOUSCRIPTEUR,
     }
 
 
@@ -233,6 +235,13 @@ def creer_souscription(body: SouscriptionIn, request: Request):
             erreur("assures", "Souscripteur : numéro de CIN ou de passeport requis.")
         if a.naissance > auj:
             erreur("assures", f"Assuré {i} : date de naissance dans le futur.")
+        age = age_a(a.naissance, body.date_effet)
+        if a.lien == "Enfant" and age >= AGE_MAX_ENFANT:
+            erreur("age", f"Assuré {i} : un enfant doit avoir moins de {AGE_MAX_ENFANT} ans à la date d'effet. "
+                          "Assurez-le avec une formule individuelle (sur devis).")
+        if a.lien == "Souscripteur" and age > AGE_MAX_SOUSCRIPTEUR:
+            erreur("age", f"Souscripteur : la formule famille en ligne est réservée aux {AGE_MAX_SOUSCRIPTEUR} ans et moins. "
+                          "Contactez-nous sur WhatsApp pour un devis.")
         if a.exp_passeport and a.exp_passeport < body.date_effet:
             erreur("assures", f"Assuré {i} : passeport expiré à la date d'effet.")
 

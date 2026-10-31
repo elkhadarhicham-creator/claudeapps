@@ -11,8 +11,8 @@
     ETU:{nom:"Étudiant à l'étranger",prix:null}
   };
   var CARDS=[
-    {tag:"Promotion · souscription en ligne",star:true,name:"Famille · Monde entier",items:["Souscripteur, conjoint et enfants","Tous visas : Schengen et monde","12 mois, voyages multiples","Assistance 24h/24 et 7j/7"],price:"190 DH / an",key:"FAM_MONDE_AN"},
-    {tag:"Sur devis",name:"Individuel · Schengen",items:["Un voyageur, durée du visa","Frais médicaux 30 000 € minimum","Rapatriement et assistance"],price:null,key:"IND_SCH"},
+    {tag:"Promotion · souscription en ligne",star:true,name:"Famille · Monde entier",items:["Souscripteur, conjoint et enfants de moins de 25 ans","Schengen et monde entier","12 mois, voyages multiples","Assistance 24h/24 et 7j/7"],price:"190 DH / an",key:"FAM_MONDE_AN"},
+    {tag:"Sur devis",name:"Individuel · Schengen",items:["Un voyageur, 6 mois ou 1 an","Tarif selon l’âge","Frais médicaux 30 000 € minimum, tout l’espace Schengen"],price:null,key:"IND_SCH"},
     {tag:"Sur devis",name:"Omra / Hajj",items:["Couverture en Arabie saoudite","Rapatriement sanitaire","Formules groupe"],price:null,key:"OMRA"},
     {tag:"Sur devis",name:"Étudiant à l'étranger",items:["Séjour d'études","Frais médicaux et hospitalisation","Rapatriement et assistance"],price:null,key:"ETU"}
   ];
@@ -56,6 +56,7 @@
   function frVersIso(s){var m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((s||"").trim());if(!m)return "";
     var d=new Date(+m[3],+m[2]-1,+m[1]);return d.getDate()===+m[1]&&d.getMonth()===+m[2]-1?m[3]+"-"+m[2]+"-"+m[1]:""}
   function D(id){return frVersIso($(id).value)}
+  function ageA(n,d){if(!n||!d)return 0;var a=+d.slice(0,4)-+n.slice(0,4);if(d.slice(5)<n.slice(5))a--;return a}
   document.addEventListener("input",function(e){var el=e.target;if(!el.classList||!el.classList.contains("date-fr"))return;
     var c=el.value.replace(/\D/g,"").slice(0,8),v=c.slice(0,2);if(c.length>2)v+="/"+c.slice(2,4);if(c.length>4)v+="/"+c.slice(4);
     if(e.inputType&&e.inputType.indexOf("delete")===0&&/\/$/.test(el.value))v=el.value;el.value=v;
@@ -177,6 +178,9 @@
       if(!x.nom||!x.prenom||!x.naissance)pb.push(n+T("nom, prénom et date de naissance"));
       else if(x.lien==="Souscripteur"&&!x.cin&&!x.passeport)pb.push(n+T("numéro de CIN ou de passeport"));
       else if(x.naissance>today)pb.push(n+T("date de naissance dans le futur"));
+      else{var ag=ageA(x.naissance,D("effet"));
+        if(x.lien==="Enfant"&&ag>=(CFG.age_max_enfant||25))pb.push(n+T("un enfant doit avoir moins de 25 ans à la date d'effet (formule individuelle sur devis)"));
+        if(x.lien==="Souscripteur"&&ag>(CFG.age_max_souscripteur||70))pb.push(n+T("formule famille réservée aux souscripteurs de 70 ans et moins : demandez un devis sur WhatsApp"))}
       if(x.exp_passeport&&x.exp_passeport<D("effet"))pb.push(n+T("passeport expiré à la date d'effet"));
     });
     if(pb.length)return err("e2",T("À compléter :")+" "+pb.join(" ; "));
