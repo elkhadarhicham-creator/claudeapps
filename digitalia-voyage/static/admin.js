@@ -72,7 +72,8 @@
   function ouvrir(ref){api("/api/admin/souscriptions/"+encodeURIComponent(ref)).then(function(s){
     $("fRef").textContent=s.ref+" · "+(LIB[s.statut]||s.statut);var B=$("fBody");B.innerHTML="";
     var c=sec("Contrat");c.appendChild(kvs([["Formule",s.produit],["Date d'effet",fr(s.date_effet)],["Échéance",fr(s.date_echeance)],
-      ["Prime TTC",DH(s.prime_ttc)],["WhatsApp",s.telephone],["E-mail",s.email],["Transaction",s.transaction_id],["Autorisation",s.auth_code],
+      ["Prime TTC",DH(s.prime_ttc)],["Durée",(s.duree_ans||1)+" an(s)"],
+      ["Assistance auto",s.options&&s.options.assistance_auto?[s.options.assistance_auto.immatriculation,s.options.assistance_auto.marque,s.options.assistance_auto.modele].filter(Boolean).join(" "):""],["WhatsApp",s.telephone],["E-mail",s.email],["Transaction",s.transaction_id],["Autorisation",s.auth_code],
       ["Payée le",s.payee_le&&fr(s.payee_le)],["N° police",s.numero_police]]));B.appendChild(c);
     s.assures.forEach(function(a,i){var x=sec("Assuré "+(i+1)+" · "+a.lien);
       x.appendChild(kvs([["Nom",a.nom],["Prénom",a.prenom],["Naissance",fr(a.naissance)],["CIN",a.cin],["Passeport",a.passeport],

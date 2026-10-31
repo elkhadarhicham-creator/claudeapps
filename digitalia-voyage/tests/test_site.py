@@ -232,3 +232,22 @@ def test_limites_age_famille():
     r = souscription(assures=[ok, grand])
     assert r.status_code == 422 and "25 ans" in r.json()["detail"]["message"]
     assert souscription(assures=[ok, dict(grand, naissance=f"{auj.year - 20}-01-01")]).status_code == 200
+
+
+def test_duree_pluriannuelle_et_assistance_auto():
+    from app.offres import OPTION_AUTO
+    r = souscription(duree_ans=3)
+    assert r.status_code == 200 and r.json()["prime_ttc"] == 570.0
+    eff = AUJ
+    attendu = date(eff.year + 3, eff.month, min(eff.day, 28 if eff.month == 2 else eff.day)) - timedelta(days=1)
+    assert r.json()["date_echeance"] == attendu.isoformat()
+    assert r.json()["paiement"]["fields"]["amount"] == "570.00"
+    s = db.get_souscription(r.json()["ref"])
+    assert s["duree_ans"] == 3 and "3 ans" in s["produit"]
+    # option auto : véhicule obligatoire, prix ajouté par année
+    assert souscription(duree_ans=2, option_auto=True).json()["detail"]["code"] == "vehicule"
+    r = souscription(duree_ans=2, option_auto=True, vehicule={"immatriculation": "12345-a-6", "marque": "dacia", "modele": "logan"})
+    assert r.json()["prime_ttc"] == 2 * 190 + 2 * OPTION_AUTO["prix_an"]
+    s = db.get_souscription(r.json()["ref"])
+    assert s["options"]["assistance_auto"]["immatriculation"] == "12345-A-6" and "Assistance auto" in s["produit"]
+    assert souscription(duree_ans=5).status_code == 422

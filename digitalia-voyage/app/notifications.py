@@ -104,6 +104,8 @@ def fiche_digitalia(s: dict) -> dict:
                          "transaction": s.get("transaction_id"), "autorisation": s.get("auth_code"),
                          "date": s.get("payee_le")},
         "souscripteur": {"telephone_whatsapp": s["telephone"], "email": s.get("email")},
+        "duree_ans": s.get("duree_ans") or 1,
+        "assistance_auto": (s.get("options") or {}).get("assistance_auto"),
         "assures": s["assures"],
         "consentements": s["consentements"],
         "documents": {

@@ -285,6 +285,8 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .date-fr.bad{border-color:var(--warn)}
 #echeance{background:var(--bg)}
 .scan label.btn.line{background:var(--surface)}
+.chip span{font-variant-numeric:tabular-nums}
+#dureePick{gap:6px}
 
 </style>
 </head>
@@ -342,10 +344,25 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
         <div class="pane" id="p1">
           <div class="stack">
             <div class="offer-pick" role="radiogroup" aria-label="Formule">
-              <label class="opt"><input type="radio" name="offre" value="FAM_MONDE_AN" checked><span class="o-body"><b>Famille · Monde entier · 12 mois</b><small>Souscripteur, conjoint et enfants de moins de 25 ans</small></span><span class="o-price">190 DH</span></label>
+              <label class="opt"><input type="radio" name="offre" value="FAM_MONDE_AN" checked><span class="o-body"><b>Famille · Monde entier</b><small>Souscripteur, conjoint et enfants de moins de 25 ans</small></span><span class="o-price">190 DH / an</span></label>
               <label class="opt"><input type="radio" name="offre" value="IND_SCH"><span class="o-body"><b>Individuel · Schengen</b><small>Un voyageur, 6 mois ou 1 an</small></span><span class="o-price q">sur devis</span></label>
               <label class="opt"><input type="radio" name="offre" value="OMRA"><span class="o-body"><b>Omra / Hajj</b><small>Arabie saoudite</small></span><span class="o-price q">sur devis</span></label>
               <label class="opt"><input type="radio" name="offre" value="ETU"><span class="o-body"><b>Étudiant à l'étranger</b><small>Séjour d'études</small></span><span class="o-price q">sur devis</span></label>
+            </div>
+            <div class="stack" id="enLigneBox">
+              <div class="field"><span class="lbl">Durée du contrat</span>
+                <div class="chips" id="dureePick" role="radiogroup" aria-label="Durée du contrat">
+                  <label class="chip"><input type="radio" name="duree" value="1" checked><span data-d="1">1 an</span></label>
+                  <label class="chip"><input type="radio" name="duree" value="2"><span data-d="2">2 ans</span></label>
+                  <label class="chip"><input type="radio" name="duree" value="3"><span data-d="3">3 ans</span></label>
+                  <label class="chip"><input type="radio" name="duree" value="4"><span data-d="4">4 ans</span></label>
+                </div>
+              </div>
+              <label class="opt"><input type="checkbox" id="optAuto"><span class="o-body"><b>Ajouter l’assistance auto au voyage</b><small>Dépannage, remorquage et rapatriement de votre véhicule à l’étranger, selon les conditions du contrat.</small></span><span class="o-price" id="autoPrix"></span></label>
+              <div class="row" id="vehBox" hidden>
+                <div class="field"><label for="vImmat">Immatriculation</label><input id="vImmat" autocomplete="off" placeholder="12345-A-6" maxlength="20"></div>
+                <div class="field"><label for="vMarque">Marque et modèle</label><input id="vMarque" autocomplete="off" placeholder="Dacia Logan" maxlength="40"></div>
+              </div>
             </div>
             <div class="row">
               <div class="field"><label for="effet" id="effetLbl">Date d'effet</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" id="effet"></div>
@@ -382,7 +399,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
         <div class="pane" id="p3" hidden>
           <div class="stack">
             <dl class="recap-list" id="recapList"></dl>
-            <div class="total"><span>Total TTC</span><b id="totalTxt">190,00 DH</b></div>
+            <div class="total"><span>Total TTC</span><b id="totalTxt"></b></div>
             <label class="consent"><input type="checkbox" id="c1"> <span>J'ai lu les conditions générales et particulières du contrat et j'accepte leurs garanties, plafonds et exclusions. <a href="#garanties" target="_blank" rel="noopener" class="cg">Lire les conditions</a></span></label>
             <label class="consent"><input type="checkbox" id="c2"> Je certifie l'exactitude des informations saisies.</label>
             <label class="consent"><input type="checkbox" id="c3"> J'accepte le traitement de mes données par le cabinet et la compagnie pour l'émission du contrat (loi 09-08).</label>
@@ -399,10 +416,10 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
               <div class="cards"><span>VISA</span><span>MASTERCARD</span><span>CMI</span></div>
               <p class="hint">Vous serez redirigé vers la page de paiement 3-D Secure de la banque. Vos données de carte ne transitent jamais par notre site.</p>
               <p class="err" id="e4" hidden></p>
-              <div class="total"><span>À payer</span><b id="payTxt">190,00 DH</b></div>
+              <div class="total"><span>À payer</span><b id="payTxt"></b></div>
             </div>
             <p class="demo" id="demoNote" hidden><b>Mode démonstration.</b> Le paiement en ligne sera actif après signature du contrat commerçant avec la banque. Ici, le bouton simule un paiement accepté.</p>
-            <div class="nav"><button class="btn line" type="button" data-back="3">Retour</button><button class="btn gold" type="button" id="payBtn">Payer 190,00 DH</button></div>
+            <div class="nav"><button class="btn line" type="button" data-back="3">Retour</button><button class="btn gold" type="button" id="payBtn">Payer</button></div>
           </div>
         </div>
 
@@ -632,6 +649,13 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   "Elle indique les noms des assurés, les dates de couverture, des frais médicaux d’au moins 30 000 €, le rapatriement et la validité dans tout l’espace Schengen, comme l’exigent les consulats. Vérifiez que la date d’effet couvre bien votre voyage.":["تتضمن أسماء المؤمَّن لهم وتواريخ التغطية ومصاريف طبية لا تقل عن 30 000 يورو والترحيل والصلاحية في كامل فضاء شنغن، كما تشترط القنصليات. تأكد أن تاريخ السريان يغطي سفرك.","فيها سميات المأمّنين، التواريخ، مصاريف الطبيب 30 000 أورو على الأقل، الرجوع للمغرب وصالحة فشنغن كاملة، بحال ما كتطلب القنصليات. تأكد بلي نهار البداية كيغطي السفر ديالك."],
   "un enfant doit avoir moins de 25 ans à la date d'effet (formule individuelle sur devis)":["يجب أن يكون الابن دون 25 سنة في تاريخ السريان (صيغة فردية حسب العرض)","الولد خاصو يكون تحت 25 عام نهار البداية (عرض فردي بالدوفي)"],
   "formule famille réservée aux souscripteurs de 70 ans et moins : demandez un devis sur WhatsApp":["صيغة العائلة مخصصة للمكتتبين البالغين 70 سنة أو أقل: اطلب عرضًا عبر واتساب","عرض العائلة غير لي عندو 70 عام ولا قل: طلب الدوفي فالواتساب"],
+  "Durée du contrat":["مدة العقد","شحال من وقت"],"1 an":["سنة واحدة","عام"],"2 ans":["سنتان","2 عوام"],"3 ans":["3 سنوات","3 عوام"],"4 ans":["4 سنوات","4 عوام"],
+  "/ an":["/ السنة","/ العام"],"190 DH / an":["190 درهمًا / السنة","190 درهم / العام"],"1 à 4 ans, voyages multiples":["من سنة إلى 4 سنوات، أسفار متعددة","من عام حتى 4 عوام، بزاف ديال السفريات"],
+  "Ajouter l’assistance auto au voyage":["إضافة المساعدة للسيارة أثناء السفر","زيد المساعدة ديال الطوموبيل فالسفر"],
+  "Dépannage, remorquage et rapatriement de votre véhicule à l’étranger, selon les conditions du contrat.":["إصلاح وسحب وإرجاع سيارتك في الخارج، حسب شروط العقد.","الإصلاح، الجرّ والرجوع ديال الطوموبيل ديالك من الخارج، على حساب شروط العقد."],
+  "Immatriculation":["رقم التسجيل","الماتريكول"],"Marque et modèle":["العلامة والطراز","الماركة والموديل"],
+  "Indiquez l’immatriculation du véhicule.":["أدخل رقم تسجيل السيارة.","دخّل الماتريكول ديال الطوموبيل."],
+  "Assistance auto":["المساعدة للسيارة","المساعدة ديال الطوموبيل"],"Payer":["ادفع","خلّص"],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],
@@ -684,13 +708,13 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   var $=function(i){return document.getElementById(i)};
   var CFG={ocr:false,paiement_demo:true,whatsapp:"212708295052"};
   var OFFRES={
-    FAM_MONDE_AN:{nom:"Famille · Monde entier · 12 mois",prix:190,mois:12},
+    FAM_MONDE_AN:{nom:"Famille · Monde entier",prix:190},
     IND_SCH:{nom:"Individuel · Schengen",prix:null},
     OMRA:{nom:"Omra / Hajj",prix:null},
     ETU:{nom:"Étudiant à l'étranger",prix:null}
   };
   var CARDS=[
-    {tag:"Promotion · souscription en ligne",star:true,name:"Famille · Monde entier",items:["Souscripteur, conjoint et enfants de moins de 25 ans","Schengen et monde entier","12 mois, voyages multiples","Assistance 24h/24 et 7j/7"],price:"190 DH / an",key:"FAM_MONDE_AN"},
+    {tag:"Promotion · souscription en ligne",star:true,name:"Famille · Monde entier",items:["Souscripteur, conjoint et enfants de moins de 25 ans","Schengen et monde entier","1 à 4 ans, voyages multiples","Assistance 24h/24 et 7j/7"],price:"190 DH / an",key:"FAM_MONDE_AN"},
     {tag:"Sur devis",name:"Individuel · Schengen",items:["Un voyageur, 6 mois ou 1 an","Tarif selon l’âge","Frais médicaux 30 000 € minimum, tout l’espace Schengen"],price:null,key:"IND_SCH"},
     {tag:"Sur devis",name:"Omra / Hajj",items:["Couverture en Arabie saoudite","Rapatriement sanitaire","Formules groupe"],price:null,key:"OMRA"},
     {tag:"Sur devis",name:"Étudiant à l'étranger",items:["Séjour d'études","Frais médicaux et hospitalisation","Rapatriement et assistance"],price:null,key:"ETU"}
@@ -772,7 +796,23 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     el.classList.toggle("bad",v.length===10&&!frVersIso(v))});
   var today=iso(new Date());
   function initDates(){if(!D("effet")||D("effet")<today)$("effet").value=isoVersFr(today);majEcheance()}
-  function majEcheance(){var v=D("effet");if(!v){$("echeance").value="";return}var d=new Date(v+"T00:00:00");d.setFullYear(d.getFullYear()+1);d.setDate(d.getDate()-1);$("echeance").value=isoVersFr(iso(d))}
+  // ── Durée (1 à 4 ans), option assistance auto et prix total
+  var AUTO_PRIX=150;
+  function duree(){var r=document.querySelector('input[name="duree"]:checked');return r?+r.value:1}
+  function dureeTxt(n){return T(n===1?"1 an":n+" ans")}
+  function dh(n){return n.toFixed(2).replace(".",",")+" DH"}
+  function total(){var o=OFFRES[offre()]||{};if(!o.prix)return 0;var n=duree();return o.prix*n+($("optAuto").checked?AUTO_PRIX*n:0)}
+  function majPrix(){
+    var o=OFFRES.FAM_MONDE_AN;
+    document.querySelectorAll("#dureePick span[data-d]").forEach(function(s){var n=+s.dataset.d;s.textContent=dureeTxt(n)+" · "+(o.prix*n)+" DH"});
+    $("autoPrix").textContent="+"+AUTO_PRIX+" DH "+T("/ an");
+    $("vehBox").hidden=!$("optAuto").checked;
+    var t=dh(total());$("totalTxt").textContent=t;$("payTxt").textContent=t;
+    if(!$("payBtn").disabled)$("payBtn").textContent=T("Payer")+" "+t;
+  }
+  document.querySelectorAll('input[name="duree"]').forEach(function(r){r.addEventListener("change",function(){majEcheance();majPrix()})});
+  $("optAuto").addEventListener("change",majPrix);
+  function majEcheance(){var v=D("effet");if(!v){$("echeance").value="";return}var d=new Date(v+"T00:00:00");d.setFullYear(d.getFullYear()+duree());d.setDate(d.getDate()-1);$("echeance").value=isoVersFr(iso(d))}
   $("effet").addEventListener("input",majEcheance);initDates();
 
   // ── Navigation
@@ -786,7 +826,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   // ── Formule en ligne ou sur devis
   function majOffre(){
     var devis=!OFFRES[offre()].prix;
-    $("devisBox").hidden=!devis;$("devisOk").hidden=true;
+    $("devisBox").hidden=!devis;$("devisOk").hidden=true;$("enLigneBox").hidden=devis;
     $("effetLbl").textContent=T(devis?"Date de départ prévue":"Date d'effet");
     $("echeance").closest(".field").hidden=devis;
     $("go2").textContent=T(devis?"Demander un devis sur WhatsApp":"Continuer");
@@ -874,6 +914,7 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
       return;
     }
     if(!D("effet")||D("effet")<today)return err("e1",T("Choisissez une date d'effet à partir d'aujourd'hui."));
+    if($("optAuto").checked&&$("vImmat").value.trim().length<3)return err("e1",T("Indiquez l’immatriculation du véhicule."));
     err("e1");if(!$("travList").children.length)addTrav("Souscripteur");show(2);
   });
 
@@ -896,7 +937,9 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
     err("e2");
     var o=OFFRES[offre()],dl=$("recapList");dl.innerHTML="";
     function row(k,v){var dt=document.createElement("dt");dt.textContent=k;var dd=document.createElement("dd");dd.textContent=v;dl.append(dt,dd)}
-    row(T("Formule"),T(o.nom));row(T("Période"),fr(D("effet"))+" → "+fr(D("echeance")));row("WhatsApp",$("tel").value);
+    row(T("Formule"),T(o.nom)+" · "+dureeTxt(duree()));
+    if($("optAuto").checked)row(T("Assistance auto"),($("vImmat").value.trim()+" "+$("vMarque").value.trim()).toUpperCase());
+    row(T("Période"),fr(D("effet"))+" → "+fr(D("echeance")));row("WhatsApp",$("tel").value);
     a.forEach(function(x){row(T(x.lien),x.nom+" "+x.prenom+" · "+T("né(e) le")+" "+fr(x.naissance)+(x.passeport?" · "+T("Passeport")+" "+x.passeport:"")+(x.cin?" · "+T("CIN")+" "+x.cin:""))});
     a.forEach(function(x,i){if(x.exp_passeport&&x.exp_passeport>=D("effet")&&x.exp_passeport<D("echeance"))row("⚠",T("Assuré")+" "+(i+1)+" : "+T("le passeport expire avant la fin du contrat (")+fr(x.exp_passeport)+")")});
     show(3);
@@ -916,29 +959,33 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
   }
   $("payBtn").addEventListener("click",function(){
     var b=this;b.disabled=true;b.textContent=T("Redirection vers la banque…");err("e4");
-    var corps={offre:offre(),date_effet:D("effet"),telephone:$("tel").value,email:$("email").value.trim(),lang:DG.lang(),
+    var corps={offre:offre(),duree_ans:duree(),option_auto:$("optAuto").checked,
+      vehicule:$("optAuto").checked?{immatriculation:$("vImmat").value.trim(),marque:$("vMarque").value.trim(),modele:""}:null,
+      date_effet:D("effet"),telephone:$("tel").value,email:$("email").value.trim(),lang:DG.lang(),
       assures:assures(),consentements:{conditions_generales:$("c1").checked,exactitude:$("c2").checked,loi_09_08:$("c3").checked}};
     api("/api/souscriptions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(corps)}).then(function(r){
       try{localStorage.setItem("dg-derniere",JSON.stringify({ref:r.ref,t:r.token}))}catch(e){}
       envoyerVersBanque(r.paiement);
     }).catch(function(e){
       err("e4",msgErreur(e));
-      b.disabled=false;b.textContent=T("Payer 190,00 DH");
+      b.disabled=false;majPrix();
     });
   });
   // Retour arrière du navigateur depuis la banque : réactiver le bouton
-  window.addEventListener("pageshow",function(){var b=$("payBtn");b.disabled=false;b.textContent=T("Payer 190,00 DH")});
+  window.addEventListener("pageshow",function(){$("payBtn").disabled=false;majPrix()});
 
-  DG.onLang(function(){renum();majOffre();["e1","e2","e3","e4"].forEach(function(id){err(id)})});
+  DG.onLang(function(){renum();majOffre();majPrix();["e1","e2","e3","e4"].forEach(function(id){err(id)})});
 
   // ── Configuration serveur (lecture IA disponible, mode démo, numéro WhatsApp)
   api("/api/config").then(function(c){
     CFG=c;$("demoNote").hidden=!c.paiement_demo;
+    if(c.option_auto&&c.option_auto.prix_an)AUTO_PRIX=c.option_auto.prix_an;
+    (c.offres||[]).forEach(function(x){if(OFFRES[x.code]&&x.prix)OFFRES[x.code].prix=x.prix});majPrix();
     if(c.aujourdhui){today=c.aujourdhui;initDates()}
     document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display=""});d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
   }).catch(function(){});
 
-  majOffre();show(1);
+  majOffre();majPrix();show(1);
   
 })();
 

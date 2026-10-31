@@ -138,6 +138,13 @@
   "Elle indique les noms des assurés, les dates de couverture, des frais médicaux d’au moins 30 000 €, le rapatriement et la validité dans tout l’espace Schengen, comme l’exigent les consulats. Vérifiez que la date d’effet couvre bien votre voyage.":["تتضمن أسماء المؤمَّن لهم وتواريخ التغطية ومصاريف طبية لا تقل عن 30 000 يورو والترحيل والصلاحية في كامل فضاء شنغن، كما تشترط القنصليات. تأكد أن تاريخ السريان يغطي سفرك.","فيها سميات المأمّنين، التواريخ، مصاريف الطبيب 30 000 أورو على الأقل، الرجوع للمغرب وصالحة فشنغن كاملة، بحال ما كتطلب القنصليات. تأكد بلي نهار البداية كيغطي السفر ديالك."],
   "un enfant doit avoir moins de 25 ans à la date d'effet (formule individuelle sur devis)":["يجب أن يكون الابن دون 25 سنة في تاريخ السريان (صيغة فردية حسب العرض)","الولد خاصو يكون تحت 25 عام نهار البداية (عرض فردي بالدوفي)"],
   "formule famille réservée aux souscripteurs de 70 ans et moins : demandez un devis sur WhatsApp":["صيغة العائلة مخصصة للمكتتبين البالغين 70 سنة أو أقل: اطلب عرضًا عبر واتساب","عرض العائلة غير لي عندو 70 عام ولا قل: طلب الدوفي فالواتساب"],
+  "Durée du contrat":["مدة العقد","شحال من وقت"],"1 an":["سنة واحدة","عام"],"2 ans":["سنتان","2 عوام"],"3 ans":["3 سنوات","3 عوام"],"4 ans":["4 سنوات","4 عوام"],
+  "/ an":["/ السنة","/ العام"],"190 DH / an":["190 درهمًا / السنة","190 درهم / العام"],"1 à 4 ans, voyages multiples":["من سنة إلى 4 سنوات، أسفار متعددة","من عام حتى 4 عوام، بزاف ديال السفريات"],
+  "Ajouter l’assistance auto au voyage":["إضافة المساعدة للسيارة أثناء السفر","زيد المساعدة ديال الطوموبيل فالسفر"],
+  "Dépannage, remorquage et rapatriement de votre véhicule à l’étranger, selon les conditions du contrat.":["إصلاح وسحب وإرجاع سيارتك في الخارج، حسب شروط العقد.","الإصلاح، الجرّ والرجوع ديال الطوموبيل ديالك من الخارج، على حساب شروط العقد."],
+  "Immatriculation":["رقم التسجيل","الماتريكول"],"Marque et modèle":["العلامة والطراز","الماركة والموديل"],
+  "Indiquez l’immatriculation du véhicule.":["أدخل رقم تسجيل السيارة.","دخّل الماتريكول ديال الطوموبيل."],
+  "Assistance auto":["المساعدة للسيارة","المساعدة ديال الطوموبيل"],"Payer":["ادفع","خلّص"],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],

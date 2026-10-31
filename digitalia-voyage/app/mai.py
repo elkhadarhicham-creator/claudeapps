@@ -62,8 +62,11 @@ def variables(s: dict) -> dict:
         "date_effet": s["date_effet"], "date_effet_fr": _fr(s["date_effet"]),
         "date_echeance": s["date_echeance"], "date_echeance_fr": _fr(s["date_echeance"]),
         "prime": f"{s['prime_ttc']:.2f}", "nb_assures": str(len(s["assures"])),
+        "duree_ans": str(s.get("duree_ans") or 1),
         "MAI_LOGIN": LOGIN, "MAI_PASSWORD": PASSWORD,
     }
+    for k, val in ((s.get("options") or {}).get("assistance_auto") or {}).items():
+        v[f"vehicule.{k}"] = val or ""
     for k, val in sous.items():
         v[f"souscripteur.{k}"] = val or ""
     v["souscripteur.naissance_fr"] = _fr(sous.get("naissance"))

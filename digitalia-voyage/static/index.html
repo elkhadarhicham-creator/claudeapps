@@ -71,10 +71,25 @@
         <div class="pane" id="p1">
           <div class="stack">
             <div class="offer-pick" role="radiogroup" aria-label="Formule">
-              <label class="opt"><input type="radio" name="offre" value="FAM_MONDE_AN" checked><span class="o-body"><b>Famille · Monde entier · 12 mois</b><small>Souscripteur, conjoint et enfants de moins de 25 ans</small></span><span class="o-price">190 DH</span></label>
+              <label class="opt"><input type="radio" name="offre" value="FAM_MONDE_AN" checked><span class="o-body"><b>Famille · Monde entier</b><small>Souscripteur, conjoint et enfants de moins de 25 ans</small></span><span class="o-price">190 DH / an</span></label>
               <label class="opt"><input type="radio" name="offre" value="IND_SCH"><span class="o-body"><b>Individuel · Schengen</b><small>Un voyageur, 6 mois ou 1 an</small></span><span class="o-price q">sur devis</span></label>
               <label class="opt"><input type="radio" name="offre" value="OMRA"><span class="o-body"><b>Omra / Hajj</b><small>Arabie saoudite</small></span><span class="o-price q">sur devis</span></label>
               <label class="opt"><input type="radio" name="offre" value="ETU"><span class="o-body"><b>Étudiant à l'étranger</b><small>Séjour d'études</small></span><span class="o-price q">sur devis</span></label>
+            </div>
+            <div class="stack" id="enLigneBox">
+              <div class="field"><span class="lbl">Durée du contrat</span>
+                <div class="chips" id="dureePick" role="radiogroup" aria-label="Durée du contrat">
+                  <label class="chip"><input type="radio" name="duree" value="1" checked><span data-d="1">1 an</span></label>
+                  <label class="chip"><input type="radio" name="duree" value="2"><span data-d="2">2 ans</span></label>
+                  <label class="chip"><input type="radio" name="duree" value="3"><span data-d="3">3 ans</span></label>
+                  <label class="chip"><input type="radio" name="duree" value="4"><span data-d="4">4 ans</span></label>
+                </div>
+              </div>
+              <label class="opt"><input type="checkbox" id="optAuto"><span class="o-body"><b>Ajouter l’assistance auto au voyage</b><small>Dépannage, remorquage et rapatriement de votre véhicule à l’étranger, selon les conditions du contrat.</small></span><span class="o-price" id="autoPrix"></span></label>
+              <div class="row" id="vehBox" hidden>
+                <div class="field"><label for="vImmat">Immatriculation</label><input id="vImmat" autocomplete="off" placeholder="12345-A-6" maxlength="20"></div>
+                <div class="field"><label for="vMarque">Marque et modèle</label><input id="vMarque" autocomplete="off" placeholder="Dacia Logan" maxlength="40"></div>
+              </div>
             </div>
             <div class="row">
               <div class="field"><label for="effet" id="effetLbl">Date d'effet</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" id="effet"></div>
@@ -111,7 +126,7 @@
         <div class="pane" id="p3" hidden>
           <div class="stack">
             <dl class="recap-list" id="recapList"></dl>
-            <div class="total"><span>Total TTC</span><b id="totalTxt">190,00 DH</b></div>
+            <div class="total"><span>Total TTC</span><b id="totalTxt"></b></div>
             <label class="consent"><input type="checkbox" id="c1"> <span>J'ai lu les conditions générales et particulières du contrat et j'accepte leurs garanties, plafonds et exclusions. <a href="/static/conditions.html" target="_blank" rel="noopener" class="cg">Lire les conditions</a></span></label>
             <label class="consent"><input type="checkbox" id="c2"> Je certifie l'exactitude des informations saisies.</label>
             <label class="consent"><input type="checkbox" id="c3"> J'accepte le traitement de mes données par le cabinet et la compagnie pour l'émission du contrat (loi 09-08).</label>
@@ -128,10 +143,10 @@
               <div class="cards"><span>VISA</span><span>MASTERCARD</span><span>CMI</span></div>
               <p class="hint">Vous serez redirigé vers la page de paiement 3-D Secure de la banque. Vos données de carte ne transitent jamais par notre site.</p>
               <p class="err" id="e4" hidden></p>
-              <div class="total"><span>À payer</span><b id="payTxt">190,00 DH</b></div>
+              <div class="total"><span>À payer</span><b id="payTxt"></b></div>
             </div>
             <p class="demo" id="demoNote" hidden><b>Mode démonstration.</b> Le paiement en ligne sera actif après signature du contrat commerçant avec la banque. Ici, le bouton simule un paiement accepté.</p>
-            <div class="nav"><button class="btn line" type="button" data-back="3">Retour</button><button class="btn gold" type="button" id="payBtn">Payer 190,00 DH</button></div>
+            <div class="nav"><button class="btn line" type="button" data-back="3">Retour</button><button class="btn gold" type="button" id="payBtn">Payer</button></div>
           </div>
         </div>
 

@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS souscriptions (
   token TEXT NOT NULL,
   offre TEXT NOT NULL,
   produit TEXT NOT NULL,
+  duree_ans INTEGER NOT NULL DEFAULT 1,
+  options TEXT,
   date_effet TEXT NOT NULL,
   date_echeance TEXT NOT NULL,
   prime_ttc REAL NOT NULL,
@@ -59,7 +61,7 @@ CREATE TABLE IF NOT EXISTS journal (
 );
 """
 
-JSON_FIELDS = ("assures", "consentements", "paiement_detail")
+JSON_FIELDS = ("assures", "consentements", "paiement_detail", "options")
 
 
 def now() -> str:
@@ -82,6 +84,13 @@ def conn() -> sqlite3.Connection:
     if _conn is None:
         _conn = _connect()
         _conn.executescript(SCHEMA)
+        # Mise à niveau d'une base existante (colonnes ajoutées après la 1re version)
+        cols = {r[1] for r in _conn.execute("PRAGMA table_info(souscriptions)")}
+        for col, ddl in (("duree_ans", "INTEGER NOT NULL DEFAULT 1"), ("options", "TEXT"),
+                         ("digitalia_importe_le", "TEXT"), ("maj_le", "TEXT"), ("seq", "INTEGER")):
+            if col not in cols:
+                _conn.execute(f"ALTER TABLE souscriptions ADD COLUMN {col} {ddl}")
+        _conn.commit()
     return _conn
 
 

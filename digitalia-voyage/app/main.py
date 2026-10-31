@@ -14,7 +14,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
 from . import cmi, config, db, documents, mai, notifications, ocr, securite
-from .offres import AGE_MAX_ENFANT, AGE_MAX_SOUSCRIPTEUR, LIENS, MAX_ENFANTS, OFFRES, age_a
+from .offres import (AGE_MAX_ENFANT, AGE_MAX_SOUSCRIPTEUR, LIENS, MAX_ENFANTS, OFFRES, OPTION_AUTO, age_a,
+                     libelle_duree, tarif)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("digitalia")
@@ -128,6 +129,7 @@ def api_config():
         "whatsapp": config.WHATSAPP_CABINET,
         "aujourdhui": aujourdhui().isoformat(),
         "offres": list(OFFRES.values()),
+        "option_auto": OPTION_AUTO,
         "age_max_enfant": AGE_MAX_ENFANT,
         "age_max_souscripteur": AGE_MAX_SOUSCRIPTEUR,
     }
@@ -188,8 +190,22 @@ class Consentements(BaseModel):
     loi_09_08: bool
 
 
+class Vehicule(BaseModel):
+    immatriculation: str = Field(min_length=3, max_length=20)
+    marque: str = Field("", max_length=40)
+    modele: str = Field("", max_length=40)
+
+    @field_validator("immatriculation", "marque", "modele")
+    @classmethod
+    def nettoie(cls, v: str) -> str:
+        return " ".join(v.split()).upper()
+
+
 class SouscriptionIn(BaseModel):
     offre: str
+    duree_ans: int = Field(1, ge=1, le=4)
+    option_auto: bool = False
+    vehicule: Vehicule | None = None
     date_effet: date
     telephone: str = Field(max_length=20)
     email: str = Field("", max_length=120)
@@ -245,20 +261,29 @@ def creer_souscription(body: SouscriptionIn, request: Request):
         if a.exp_passeport and a.exp_passeport < body.date_effet:
             erreur("assures", f"Assuré {i} : passeport expiré à la date d'effet.")
 
-    echeance = ajouter_mois(body.date_effet, o["mois"]) - timedelta(days=1)
+    if body.duree_ans not in o.get("durees_ans", [1]):
+        erreur("duree", "Durée non proposée pour cette formule.")
+    if body.option_auto and not body.vehicule:
+        erreur("vehicule", "Indiquez l'immatriculation du véhicule pour l'assistance auto.")
+    echeance = ajouter_mois(body.date_effet, 12 * body.duree_ans) - timedelta(days=1)
+    prime = tarif(o, body.duree_ans, body.option_auto)
+    produit = f"{o['nom']} · {libelle_duree(body.duree_ans)}" + (f" + {OPTION_AUTO['nom']}" if body.option_auto else "")
     ref = f"DGV-{auj:%y%m}-{secrets.token_hex(3).upper()}"
     s = {
-        "ref": ref, "token": securite.new_token(), "offre": o["code"], "produit": o["nom"],
+        "ref": ref, "token": securite.new_token(), "offre": o["code"], "produit": produit,
+        "duree_ans": body.duree_ans,
+        "options": {"assistance_auto": body.vehicule.model_dump() if body.option_auto else None},
         "date_effet": body.date_effet.isoformat(), "date_echeance": echeance.isoformat(),
-        "prime_ttc": o["prix"], "telephone": body.telephone.strip(), "email": body.email.strip() or None,
+        "prime_ttc": prime, "telephone": body.telephone.strip(), "email": body.email.strip() or None,
         "lang": body.lang,
         "assures": [a.model_dump(mode="json") for a in body.assures],
         "consentements": {**c.model_dump(), "horodatage": db.now(), "ip": ip(request)},
         "statut": "attente_paiement", "ip": ip(request), "cree_le": db.now(),
     }
     db.insert_souscription(s)
-    db.log(ref, "creee", {"prime": o["prix"], "assures": len(body.assures)})
-    return {"ref": ref, "token": s["token"], "prime_ttc": o["prix"], "date_echeance": s["date_echeance"],
+    db.log(ref, "creee", {"prime": prime, "duree_ans": body.duree_ans, "assistance_auto": body.option_auto,
+                          "assures": len(body.assures)})
+    return {"ref": ref, "token": s["token"], "prime_ttc": prime, "date_echeance": s["date_echeance"],
             "paiement": cmi.build_form(db.get_souscription(ref))}
 
 
@@ -286,6 +311,7 @@ def api_suivi(ref: str, t: str):
         "date_effet": s["date_effet"], "date_echeance": s["date_echeance"], "prime_ttc": s["prime_ttc"],
         "assures": [{"lien": a["lien"], "nom": a["nom"], "prenom": a["prenom"]} for a in s["assures"]],
         "numero_police": s.get("numero_police"),
+        "vehicule": (s.get("options") or {}).get("assistance_auto"),
         "recu": s["statut"] in ("payee", "emise"),
         "attestation": bool(s.get("attestation_fichier")),
         "payee_le": s.get("payee_le"),

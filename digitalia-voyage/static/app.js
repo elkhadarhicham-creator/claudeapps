@@ -5,13 +5,13 @@
   var $=function(i){return document.getElementById(i)};
   var CFG={ocr:false,paiement_demo:true,whatsapp:"212708295052"};
   var OFFRES={
-    FAM_MONDE_AN:{nom:"Famille · Monde entier · 12 mois",prix:190,mois:12},
+    FAM_MONDE_AN:{nom:"Famille · Monde entier",prix:190},
     IND_SCH:{nom:"Individuel · Schengen",prix:null},
     OMRA:{nom:"Omra / Hajj",prix:null},
     ETU:{nom:"Étudiant à l'étranger",prix:null}
   };
   var CARDS=[
-    {tag:"Promotion · souscription en ligne",star:true,name:"Famille · Monde entier",items:["Souscripteur, conjoint et enfants de moins de 25 ans","Schengen et monde entier","12 mois, voyages multiples","Assistance 24h/24 et 7j/7"],price:"190 DH / an",key:"FAM_MONDE_AN"},
+    {tag:"Promotion · souscription en ligne",star:true,name:"Famille · Monde entier",items:["Souscripteur, conjoint et enfants de moins de 25 ans","Schengen et monde entier","1 à 4 ans, voyages multiples","Assistance 24h/24 et 7j/7"],price:"190 DH / an",key:"FAM_MONDE_AN"},
     {tag:"Sur devis",name:"Individuel · Schengen",items:["Un voyageur, 6 mois ou 1 an","Tarif selon l’âge","Frais médicaux 30 000 € minimum, tout l’espace Schengen"],price:null,key:"IND_SCH"},
     {tag:"Sur devis",name:"Omra / Hajj",items:["Couverture en Arabie saoudite","Rapatriement sanitaire","Formules groupe"],price:null,key:"OMRA"},
     {tag:"Sur devis",name:"Étudiant à l'étranger",items:["Séjour d'études","Frais médicaux et hospitalisation","Rapatriement et assistance"],price:null,key:"ETU"}
@@ -63,7 +63,23 @@
     el.classList.toggle("bad",v.length===10&&!frVersIso(v))});
   var today=iso(new Date());
   function initDates(){if(!D("effet")||D("effet")<today)$("effet").value=isoVersFr(today);majEcheance()}
-  function majEcheance(){var v=D("effet");if(!v){$("echeance").value="";return}var d=new Date(v+"T00:00:00");d.setFullYear(d.getFullYear()+1);d.setDate(d.getDate()-1);$("echeance").value=isoVersFr(iso(d))}
+  // ── Durée (1 à 4 ans), option assistance auto et prix total
+  var AUTO_PRIX=150;
+  function duree(){var r=document.querySelector('input[name="duree"]:checked');return r?+r.value:1}
+  function dureeTxt(n){return T(n===1?"1 an":n+" ans")}
+  function dh(n){return n.toFixed(2).replace(".",",")+" DH"}
+  function total(){var o=OFFRES[offre()]||{};if(!o.prix)return 0;var n=duree();return o.prix*n+($("optAuto").checked?AUTO_PRIX*n:0)}
+  function majPrix(){
+    var o=OFFRES.FAM_MONDE_AN;
+    document.querySelectorAll("#dureePick span[data-d]").forEach(function(s){var n=+s.dataset.d;s.textContent=dureeTxt(n)+" · "+(o.prix*n)+" DH"});
+    $("autoPrix").textContent="+"+AUTO_PRIX+" DH "+T("/ an");
+    $("vehBox").hidden=!$("optAuto").checked;
+    var t=dh(total());$("totalTxt").textContent=t;$("payTxt").textContent=t;
+    if(!$("payBtn").disabled)$("payBtn").textContent=T("Payer")+" "+t;
+  }
+  document.querySelectorAll('input[name="duree"]').forEach(function(r){r.addEventListener("change",function(){majEcheance();majPrix()})});
+  $("optAuto").addEventListener("change",majPrix);
+  function majEcheance(){var v=D("effet");if(!v){$("echeance").value="";return}var d=new Date(v+"T00:00:00");d.setFullYear(d.getFullYear()+duree());d.setDate(d.getDate()-1);$("echeance").value=isoVersFr(iso(d))}
   $("effet").addEventListener("input",majEcheance);initDates();
 
   // ── Navigation
@@ -77,7 +93,7 @@
   // ── Formule en ligne ou sur devis
   function majOffre(){
     var devis=!OFFRES[offre()].prix;
-    $("devisBox").hidden=!devis;$("devisOk").hidden=true;
+    $("devisBox").hidden=!devis;$("devisOk").hidden=true;$("enLigneBox").hidden=devis;
     $("effetLbl").textContent=T(devis?"Date de départ prévue":"Date d'effet");
     $("echeance").closest(".field").hidden=devis;
     $("go2").textContent=T(devis?"Demander un devis sur WhatsApp":"Continuer");
@@ -165,6 +181,7 @@
       return;
     }
     if(!D("effet")||D("effet")<today)return err("e1",T("Choisissez une date d'effet à partir d'aujourd'hui."));
+    if($("optAuto").checked&&$("vImmat").value.trim().length<3)return err("e1",T("Indiquez l’immatriculation du véhicule."));
     err("e1");if(!$("travList").children.length)addTrav("Souscripteur");show(2);
   });
 
@@ -187,7 +204,9 @@
     err("e2");
     var o=OFFRES[offre()],dl=$("recapList");dl.innerHTML="";
     function row(k,v){var dt=document.createElement("dt");dt.textContent=k;var dd=document.createElement("dd");dd.textContent=v;dl.append(dt,dd)}
-    row(T("Formule"),T(o.nom));row(T("Période"),fr(D("effet"))+" → "+fr(D("echeance")));row("WhatsApp",$("tel").value);
+    row(T("Formule"),T(o.nom)+" · "+dureeTxt(duree()));
+    if($("optAuto").checked)row(T("Assistance auto"),($("vImmat").value.trim()+" "+$("vMarque").value.trim()).toUpperCase());
+    row(T("Période"),fr(D("effet"))+" → "+fr(D("echeance")));row("WhatsApp",$("tel").value);
     a.forEach(function(x){row(T(x.lien),x.nom+" "+x.prenom+" · "+T("né(e) le")+" "+fr(x.naissance)+(x.passeport?" · "+T("Passeport")+" "+x.passeport:"")+(x.cin?" · "+T("CIN")+" "+x.cin:""))});
     a.forEach(function(x,i){if(x.exp_passeport&&x.exp_passeport>=D("effet")&&x.exp_passeport<D("echeance"))row("⚠",T("Assuré")+" "+(i+1)+" : "+T("le passeport expire avant la fin du contrat (")+fr(x.exp_passeport)+")")});
     show(3);
@@ -207,28 +226,32 @@
   }
   $("payBtn").addEventListener("click",function(){
     var b=this;b.disabled=true;b.textContent=T("Redirection vers la banque…");err("e4");
-    var corps={offre:offre(),date_effet:D("effet"),telephone:$("tel").value,email:$("email").value.trim(),lang:DG.lang(),
+    var corps={offre:offre(),duree_ans:duree(),option_auto:$("optAuto").checked,
+      vehicule:$("optAuto").checked?{immatriculation:$("vImmat").value.trim(),marque:$("vMarque").value.trim(),modele:""}:null,
+      date_effet:D("effet"),telephone:$("tel").value,email:$("email").value.trim(),lang:DG.lang(),
       assures:assures(),consentements:{conditions_generales:$("c1").checked,exactitude:$("c2").checked,loi_09_08:$("c3").checked}};
     api("/api/souscriptions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(corps)}).then(function(r){
       try{localStorage.setItem("dg-derniere",JSON.stringify({ref:r.ref,t:r.token}))}catch(e){}
       envoyerVersBanque(r.paiement);
     }).catch(function(e){
       err("e4",msgErreur(e));
-      b.disabled=false;b.textContent=T("Payer 190,00 DH");
+      b.disabled=false;majPrix();
     });
   });
   // Retour arrière du navigateur depuis la banque : réactiver le bouton
-  window.addEventListener("pageshow",function(){var b=$("payBtn");b.disabled=false;b.textContent=T("Payer 190,00 DH")});
+  window.addEventListener("pageshow",function(){$("payBtn").disabled=false;majPrix()});
 
-  DG.onLang(function(){renum();majOffre();["e1","e2","e3","e4"].forEach(function(id){err(id)})});
+  DG.onLang(function(){renum();majOffre();majPrix();["e1","e2","e3","e4"].forEach(function(id){err(id)})});
 
   // ── Configuration serveur (lecture IA disponible, mode démo, numéro WhatsApp)
   api("/api/config").then(function(c){
     CFG=c;$("demoNote").hidden=!c.paiement_demo;
+    if(c.option_auto&&c.option_auto.prix_an)AUTO_PRIX=c.option_auto.prix_an;
+    (c.offres||[]).forEach(function(x){if(OFFRES[x.code]&&x.prix)OFFRES[x.code].prix=x.prix});majPrix();
     if(c.aujourdhui){today=c.aujourdhui;initDates()}
     document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display=""});d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
   }).catch(function(){});
 
-  majOffre();show(1);
+  majOffre();majPrix();show(1);
   if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});
 })();
