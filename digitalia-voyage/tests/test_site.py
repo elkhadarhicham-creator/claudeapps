@@ -45,7 +45,7 @@ def payer(r, decision="ok"):
 
 
 def test_pages_publiques():
-    assert "890 DH" in c.get("/").text
+    assert "190 DH" in c.get("/").text
     assert c.get("/api/config").json()["paiement_demo"] is True
     assert "Content-Security-Policy" in c.get("/").headers
 
@@ -230,36 +230,36 @@ def test_regles_injad_monde_famille_et_ages():
     # 21-25 ans : couvert seulement s'il est étudiant au Maroc
     r = souscription(assures=[adulte, enfant])
     assert r.status_code == 422 and "étudiant" in r.json()["detail"]["message"].lower()
-    assert souscription(assures=[adulte, dict(enfant, etudiant=True)]).json()["prime_ttc"] == 890.0
+    assert souscription(assures=[adulte, dict(enfant, etudiant=True)]).json()["prime_ttc"] == 190.0
     # plus de 25 ans : refusé même étudiant
     r = souscription(assures=[adulte, dict(enfant, naissance=f"{eff.year - 27}-01-01", etudiant=True)])
     assert r.status_code == 422 and r.json()["detail"]["code"] == "age"
-    # un assuré de 70 ans ou plus : prime familiale + 70 ans
+    # un assuré de 70 ans ou plus : sur devis tant que le prix « + 70 ans » n'est pas fixé
     vieux = dict(adulte, naissance=f"{eff.year - 72}-01-01")
     r = souscription(assures=[vieux])
-    assert r.status_code == 200 and r.json()["prime_ttc"] == 1080.0
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "age"
     # prise d'effet au plus tôt le lendemain
     assert souscription(date_effet=AUJ.isoformat()).json()["detail"]["code"] == "date_effet"
 
 def test_duree_pluriannuelle_et_vehicules():
     from app.offres import VEHICULE2
     r = souscription(duree_ans=3)
-    assert r.status_code == 200 and r.json()["prime_ttc"] == 3 * 890
+    assert r.status_code == 200 and r.json()["prime_ttc"] == 3 * 190
     eff = AUJ + timedelta(days=1)
     attendu = date(eff.year + 3, eff.month, min(eff.day, 28 if eff.month == 2 else eff.day)) - timedelta(days=1)
     assert r.json()["date_echeance"] == attendu.isoformat()
-    assert r.json()["paiement"]["fields"]["amount"] == "2670.00"
+    assert r.json()["paiement"]["fields"]["amount"] == "570.00"
     s = db.get_souscription(r.json()["ref"])
     assert s["duree_ans"] == 3 and "3 ans" in s["produit"]
     v1 = {"immatriculation": "12345-a-6", "marque": "dacia", "modele": "logan"}
     v2 = {"immatriculation": "6789-b-1", "marque": "renault", "modele": "clio"}
     # véhicule inclus sans surcoût
-    assert souscription(vehicule=v1).json()["prime_ttc"] == 890.0
+    assert souscription(vehicule=v1).json()["prime_ttc"] == 190.0
     # 2e véhicule : surprime par année, et il faut le premier
     assert souscription(vehicule2=v2).json()["detail"]["code"] == "vehicule"
     r = souscription(duree_ans=2, vehicule=v1, vehicule2=v2)
-    assert r.json()["prime_ttc"] == 2 * 890 + 2 * VEHICULE2["prix_an"]
+    assert r.json()["prime_ttc"] == 2 * 190 + 2 * VEHICULE2["prix_an"]
     s = db.get_souscription(r.json()["ref"])
     assert s["options"]["vehicule"]["immatriculation"] == "12345-A-6" and "2e véhicule" in s["produit"]
-    assert souscription(duree_ans=5).json()["prime_ttc"] == 5 * 890
+    assert souscription(duree_ans=5).json()["prime_ttc"] == 5 * 190
     assert souscription(duree_ans=6).status_code == 422

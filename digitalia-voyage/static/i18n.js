@@ -168,6 +168,10 @@
   "Indiquez l’immatriculation des deux véhicules.":["أدخل رقم تسجيل السيارتين.","دخّل الماتريكول ديال جوج طوموبيلات."],
   "Véhicule":["السيارة","الطوموبيل"],"2e véhicule":["السيارة الثانية","الطوموبيل الثانية"],"Tarif":["السعر","الثمن"],"prime familiale + 70 ans":["قسط العائلة + 70 سنة","ثمن العائلة + 70 عام"],
   "Plafond":["السقف","الحد"],
+  "Si un assuré a 70 ans ou plus, le tarif se fait sur devis (WhatsApp).":["إذا كان أحد المؤمَّن لهم يبلغ 70 سنة أو أكثر، فالسعر حسب العرض (واتساب).","إلا كان شي واحد عندو 70 عام ولا كثر، الثمن بالدوفي (واتساب)."],
+  "Si un assuré a 70 ans ou plus :":["إذا كان أحد المؤمَّن لهم يبلغ 70 سنة أو أكثر:","إلا كان شي واحد عندو 70 عام ولا كثر:"],
+  "70 ans ou plus : tarif sur devis, contactez-nous sur WhatsApp":["70 سنة أو أكثر: السعر حسب العرض، راسلنا على واتساب","70 عام ولا كثر: الثمن بالدوفي، كتب لينا فالواتساب"],
+  "Le souscripteur, son conjoint et leurs enfants célibataires à charge de moins de 21 ans, ou jusqu’à 25 ans s’ils font leurs études au Maroc. Tous doivent résider à plein temps au Maroc. Le forfait est de 190 DH par an, voiture comprise. Si un assuré a 70 ans ou plus, demandez le tarif sur WhatsApp. Pour ajouter un parent (ascendant), demandez un devis sur WhatsApp.":["المكتتب وزوجه وأبناؤهما العزاب المتكفَّل بهم دون 21 سنة، أو حتى 25 سنة إن كانوا يدرسون في المغرب. يجب أن يقيم الجميع بصفة دائمة في المغرب. الباقة 190 درهمًا في السنة مع السيارة. إذا كان أحد المؤمَّن لهم يبلغ 70 سنة أو أكثر، اطلب السعر عبر واتساب. لإضافة أحد الوالدين، اطلب عرضًا عبر واتساب.","مول العقد، المرا ولا الراجل ديالو، والدراري اللي ما مزوجينش وعلى كتافهم تحت 21 عام، ولا حتى 25 إلا كانو كيقراو فالمغرب. كاع خاصهم يكونو ساكنين فالمغرب ديما. العرض 190 درهم فالعام مع الطوموبيل. إلا كان شي واحد عندو 70 عام ولا كثر، طلب الثمن فالواتساب. باش تزيد الوالدين، طلب الدوفي فالواتساب."],
   "Indiquez votre nom.":["أدخل اسمك.","دخّل السمية ديالك."],
   // Page de suivi
   "Suivi de votre contrat":["تتبع عقدك","تتبّع العقد ديالك"],"Chargement…":["جارٍ التحميل…","كنحمّلو…"],

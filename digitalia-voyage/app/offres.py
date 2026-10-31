@@ -1,17 +1,17 @@
 """Catalogue des formules. Le prix est toujours recalculé côté serveur.
 
-Formule en ligne : INJAD MONDE de Maroc Assistance Internationale
-(notice d'information et conditions générales fournies par la compagnie) :
-  - forfait familial annuel + 1 véhicule (moins de 70 ans) : 890 DH TTC
-  - prime familiale + 70 ans : 1 080 DH TTC
-  - surprime deuxième véhicule : 100 DH TTC
-Les montants restent réglables par variables d'environnement si le barème change.
+Formule en ligne : INJAD MONDE de Maroc Assistance Internationale (famille + 1 véhicule).
+Prix de vente du cabinet : 190 DH TTC par an ; deuxième véhicule : +100 DH par an.
+Barème public MAI pour mémoire : 890 DH (moins de 70 ans), 1 080 DH (+ 70 ans), 100 DH (2e véhicule).
+Prix « + 70 ans » du cabinet : à fixer (PRIX_INJAD_FAMILLE_70) ; tant qu'il est vide, ces familles
+sont orientées vers un devis. Tous les montants sont réglables par variables d'environnement.
 """
 import os as _os
 
 
-def _prix(nom: str, defaut: str) -> float:
-    return float(_os.environ.get(nom, defaut))
+def _prix(nom: str, defaut: str) -> float | None:
+    v = _os.environ.get(nom, defaut).strip()
+    return float(v) if v else None
 
 
 OFFRES = {
@@ -19,8 +19,8 @@ OFFRES = {
         "code": "FAM_MONDE_AN",
         "nom": "Injad Monde · Famille + 1 véhicule",
         "compagnie_produit": "INJAD MONDE",
-        "prix": _prix("PRIX_INJAD_FAMILLE", "890"),          # forfait annuel, assurés de moins de 70 ans
-        "prix_70": _prix("PRIX_INJAD_FAMILLE_70", "1080"),   # dès qu'un assuré a 70 ans ou plus
+        "prix": _prix("PRIX_INJAD_FAMILLE", "190"),          # prix de vente du cabinet, par an
+        "prix_70": _prix("PRIX_INJAD_FAMILLE_70", ""),       # dès qu'un assuré a 70 ans ou plus (vide = sur devis)
         "famille": True,
         "en_ligne": True,
         "zone": "Monde entier, y compris le Maroc",
@@ -49,7 +49,7 @@ def libelle_duree(n: int) -> str:
 
 
 def prix_annuel(offre: dict, senior: bool) -> float:
-    return offre.get("prix_70") or offre["prix"] if senior else offre["prix"]
+    return offre["prix_70"] if senior else offre["prix"]
 
 
 def tarif(offre: dict, duree_ans: int, senior: bool, deuxieme_vehicule: bool) -> float:

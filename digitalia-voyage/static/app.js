@@ -5,13 +5,13 @@
   var $=function(i){return document.getElementById(i)};
   var CFG={ocr:false,paiement_demo:true,whatsapp:"212708295052"};
   var OFFRES={
-    FAM_MONDE_AN:{nom:"Injad Monde · Famille + 1 véhicule",prix:890,prix_70:1080},
+    FAM_MONDE_AN:{nom:"Injad Monde · Famille + 1 véhicule",prix:190,prix_70:null},
     IND_SCH:{nom:"Individuel · Schengen",prix:null},
     OMRA:{nom:"Omra / Hajj",prix:null},
     ETU:{nom:"Étudiant à l'étranger",prix:null}
   };
   var CARDS=[
-    {tag:"Souscription en ligne",star:true,name:"Injad Monde · Famille",items:["Souscripteur, conjoint et enfants","Votre voiture incluse","Frais médicaux jusqu’à 350 000 DH, monde entier","1 à 5 ans"],price:"890 DH / an",key:"FAM_MONDE_AN"},
+    {tag:"Souscription en ligne",star:true,name:"Injad Monde · Famille",items:["Souscripteur, conjoint et enfants","Votre voiture incluse","Frais médicaux jusqu’à 350 000 DH, monde entier","1 à 5 ans"],price:"190 DH / an",key:"FAM_MONDE_AN"},
     {tag:"Sur devis",name:"Individuel · Schengen",items:["Un voyageur, 6 mois ou 1 an","Tarif selon l’âge","Frais médicaux 30 000 € minimum, tout l’espace Schengen"],price:null,key:"IND_SCH"},
     {tag:"Sur devis",name:"Omra / Hajj",items:["Couverture en Arabie saoudite","Rapatriement sanitaire","Formules groupe"],price:null,key:"OMRA"},
     {tag:"Sur devis",name:"Étudiant à l'étranger",items:["Séjour d'études","Frais médicaux et hospitalisation","Rapatriement et assistance"],price:null,key:"ETU"}
@@ -77,6 +77,7 @@
     var o=OFFRES.FAM_MONDE_AN;
     document.querySelectorAll("#dureePick span[data-d]").forEach(function(s){var n=+s.dataset.d;s.textContent=dureeTxt(n)+" · "+(o.prix*n)+" DH"});
     $("v2Prix").textContent="+"+V2_PRIX+" DH "+T("/ an");
+    $("seniorNote").textContent=o.prix_70?T("Si un assuré a 70 ans ou plus :")+" "+o.prix_70+" DH "+T("/ an"):T("Si un assuré a 70 ans ou plus, le tarif se fait sur devis (WhatsApp).");
     $("v2Box").hidden=!$("optV2").checked;
     var t=dh(total());$("totalTxt").textContent=t;$("payTxt").textContent=t;
     if(!$("payBtn").disabled)$("payBtn").textContent=T("Payer")+" "+t;
@@ -205,7 +206,8 @@
       else{var ag=ageA(x.naissance,D("effet"));
         if(x.lien==="Enfant"&&ag>=(CFG.age_max_enfant||21)){
           if(ag>(CFG.age_max_enfant_etudiant||25))pb.push(n+T("un enfant doit avoir moins de 21 ans, ou 25 ans au plus s’il est étudiant (formule individuelle sur devis)"));
-          else if(!x.etudiant)pb.push(n+T("de 21 à 25 ans, cochez « Étudiant(e) au Maroc »"))}}
+          else if(!x.etudiant)pb.push(n+T("de 21 à 25 ans, cochez « Étudiant(e) au Maroc »"))}
+        if(ag>=AGE_SENIOR&&!OFFRES.FAM_MONDE_AN.prix_70)pb.push(n+T("70 ans ou plus : tarif sur devis, contactez-nous sur WhatsApp"))}
       if(x.exp_passeport&&x.exp_passeport<D("effet"))pb.push(n+T("passeport expiré à la date d'effet"));
     });
     if(pb.length)return err("e2",T("À compléter :")+" "+pb.join(" ; "));

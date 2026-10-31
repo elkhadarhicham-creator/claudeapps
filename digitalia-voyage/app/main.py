@@ -270,6 +270,9 @@ def creer_souscription(body: SouscriptionIn, request: Request):
     if body.vehicule2 and not body.vehicule:
         erreur("vehicule", "Indiquez d'abord le véhicule inclus avant d'ajouter un deuxième véhicule.")
     senior = any(age_a(a.naissance, body.date_effet) >= AGE_SENIOR for a in body.assures)
+    if senior and not o.get("prix_70"):
+        erreur("age", f"Un assuré a {AGE_SENIOR} ans ou plus : le tarif se fait sur devis. "
+                      "Contactez-nous sur WhatsApp au 07 08 29 50 52.")
     echeance = ajouter_mois(body.date_effet, 12 * body.duree_ans) - timedelta(days=1)
     prime = tarif(o, body.duree_ans, senior, bool(body.vehicule2))
     produit = (f"{o['nom']} · {libelle_duree(body.duree_ans)}" + (" · + 70 ans" if senior else "")
