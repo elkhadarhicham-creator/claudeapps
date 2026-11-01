@@ -101,6 +101,11 @@ def page_suivi(ref: str):
     return FileResponse(STATIC / "suivi.html")
 
 
+@app.get("/auto", include_in_schema=False)
+def page_devis_auto():
+    return FileResponse(STATIC / "auto.html")
+
+
 @app.get("/admin", include_in_schema=False)
 def page_admin():
     return FileResponse(STATIC / "admin.html")
@@ -413,6 +418,77 @@ def demander_devis(body: DevisIn, request: Request):
     except ValueError:
         erreur("telephone", "Numéro WhatsApp invalide.")
     i = db.insert_devis(body.model_dump(mode="json"))
+    return {"ok": True, "id": i}
+
+
+class DevisAutoIn(BaseModel):
+    """Demande de devis d'assurance automobile (traitée par un conseiller, réponse sur WhatsApp)."""
+    # Véhicule
+    type_vehicule: Literal["Voiture de tourisme", "Utilitaire", "Moto"] = "Voiture de tourisme"
+    marque: str = Field(min_length=1, max_length=40)
+    modele: str = Field("", max_length=40)
+    immatriculation: str = Field("", max_length=20)
+    mise_en_circulation: date
+    puissance_fiscale: int = Field(ge=1, le=60)
+    carburant: Literal["Essence", "Diesel", "Hybride", "Électrique"]
+    valeur: int = Field(0, ge=0, le=5_000_000)  # valeur actuelle estimée, en DH
+    usage: Literal["Personnel", "Professionnel"] = "Personnel"
+    # Conducteur principal
+    nom: str = Field(min_length=2, max_length=80)
+    naissance: date
+    date_permis: date
+    ville: str = Field("", max_length=60)
+    assureur_actuel: str = Field("", max_length=60)  # vide = pas assuré actuellement
+    echeance_actuelle: date | None = None
+    sinistres_3_ans: Literal["0", "1", "2", "3 ou plus"] = "0"
+    # Garanties souhaitées
+    formule: Literal["Responsabilité civile", "RC + vol et incendie", "RC + vol, incendie et bris de glace",
+                     "Tous risques"]
+    options: list[Literal["Assistance dépannage", "Défense et recours", "Personnes transportées",
+                          "Véhicule de remplacement"]] = Field(default_factory=list, max_length=4)
+    # Contact
+    telephone: str = Field(max_length=20)
+    email: str = Field("", max_length=120)
+    message: str = Field("", max_length=600)
+
+    @field_validator("marque", "modele", "immatriculation", "nom", "ville", "assureur_actuel", "message")
+    @classmethod
+    def nettoie(cls, v: str) -> str:
+        return " ".join(v.split())
+
+    @field_validator("echeance_actuelle", mode="before")
+    @classmethod
+    def vide_none(cls, v):
+        return v or None
+
+
+@app.post("/api/devis/auto")
+def demander_devis_auto(body: DevisAutoIn, request: Request):
+    if not limite_form.ok(ip(request)):
+        erreur("trop", "Trop de tentatives, réessayez plus tard.", 429)
+    try:
+        tel_valide(body.telephone)
+    except ValueError:
+        erreur("telephone", "Numéro WhatsApp invalide.")
+    if body.email and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", body.email):
+        erreur("email", "Adresse e-mail invalide.")
+    auj = aujourdhui()
+    if body.mise_en_circulation > auj:
+        erreur("vehicule", "La date de mise en circulation est dans le futur.")
+    age = age_a(body.naissance, auj)
+    if not 18 <= age <= 100:
+        erreur("conducteur", "Date de naissance du conducteur invalide (18 ans minimum).")
+    if body.date_permis > auj or age_a(body.naissance, body.date_permis) < 17:
+        erreur("conducteur", "Date d'obtention du permis invalide.")
+    vehicule = " ".join(x for x in (body.marque, body.modele) if x)
+    resume = (f"{vehicule} ({body.puissance_fiscale} CV, {body.carburant}, "
+              f"1re circulation {body.mise_en_circulation:%m/%Y}) · {body.formule}"
+              + (f" + {', '.join(body.options)}" if body.options else "")
+              + (f" · {body.message}" if body.message else ""))
+    i = db.insert_devis({"offre": "AUTO", "nom": body.nom, "telephone": body.telephone.strip(),
+                         "email": body.email or None, "message": resume[:600],
+                         "details": body.model_dump(mode="json")})
+    db.log(None, "devis_auto", {"id": i})
     return {"ok": True, "id": i}
 
 

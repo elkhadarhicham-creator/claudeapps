@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Devis assurance automobile · Digitalia</title>
+<meta name="description" content="Demandez votre devis d'assurance automobile en 2 minutes : Assurances Elkhaddar, Rabat et Salé. Réponse d'un conseiller sur WhatsApp.">
+<meta name="theme-color" content="#3f1c37">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Noto+Kufi+Arabic:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/i18n.js" defer></script>
+<script src="/static/auto.js" defer></script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/"><img src="/static/icon.svg" width="40" height="40" alt=""><span><b>Digital<span class="ia">ia</span></b><small>by Assurances Elkhaddar</small></span></a>
+  <nav class="menu" aria-label="Langue"><a href="/">Assurance voyage</a><div class="lang no-tr" role="group" aria-label="Langue"><button type="button" data-l="fr" aria-pressed="true">FR</button><button type="button" class="arb" data-l="ar" aria-pressed="false">العربية</button><button type="button" class="arb" data-l="da" aria-pressed="false">الدارجة</button></div></nav>
+</div></header>
+<main class="wrap" style="max-width:720px;padding-block:34px 90px">
+  <form class="card" id="f" novalidate>
+    <div class="card-head"><img src="/static/icon.svg" width="44" height="44" alt=""><h2>Devis assurance automobile</h2><p>Remplissez ce formulaire en 2 minutes : un conseiller du cabinet compare les compagnies et vous envoie votre devis sur WhatsApp.</p></div>
+    <div class="stack" id="form">
+
+      <p class="auto-h">1. Votre véhicule</p>
+      <div class="chips" role="radiogroup" aria-label="Type de véhicule">
+        <label class="chip"><input type="radio" name="type_vehicule" value="Voiture de tourisme" checked><span>Voiture de tourisme</span></label>
+        <label class="chip"><input type="radio" name="type_vehicule" value="Utilitaire"><span>Utilitaire</span></label>
+        <label class="chip"><input type="radio" name="type_vehicule" value="Moto"><span>Moto</span></label>
+      </div>
+      <div class="row">
+        <div class="field"><label for="marque">Marque</label><input id="marque" placeholder="Dacia" maxlength="40" autocomplete="off"></div>
+        <div class="field"><label for="modele">Modèle</label><input id="modele" placeholder="Logan" maxlength="40" autocomplete="off"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="immatriculation">Immatriculation (facultatif)</label><input id="immatriculation" placeholder="12345-A-6" maxlength="20" autocomplete="off"></div>
+        <div class="field"><label for="mise_en_circulation">1re mise en circulation</label><input id="mise_en_circulation" class="date-fr" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off"></div>
+      </div>
+      <div class="g3">
+        <div class="field"><label for="puissance_fiscale">Puissance fiscale (CV)</label><input id="puissance_fiscale" inputmode="numeric" placeholder="6" maxlength="2"></div>
+        <div class="field"><label for="carburant">Carburant</label><select id="carburant"><option value="Diesel">Diesel</option><option value="Essence">Essence</option><option value="Hybride">Hybride</option><option value="Électrique">Électrique</option></select></div>
+        <div class="field"><label for="valeur">Valeur actuelle (DH)</label><input id="valeur" inputmode="numeric" placeholder="120000" maxlength="8"></div>
+      </div>
+      <div class="field"><label for="usage">Usage</label><select id="usage"><option value="Personnel">Personnel (trajets privés et domicile-travail)</option><option value="Professionnel">Professionnel</option></select></div>
+
+      <p class="auto-h">2. Conducteur principal</p>
+      <div class="field"><label for="nom">Nom et prénom</label><input id="nom" autocomplete="name" maxlength="80"></div>
+      <div class="g3">
+        <div class="field"><label for="naissance">Date de naissance</label><input id="naissance" class="date-fr" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off"></div>
+        <div class="field"><label for="date_permis">Date du permis</label><input id="date_permis" class="date-fr" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off"></div>
+        <div class="field"><label for="ville">Ville</label><input id="ville" placeholder="Rabat" maxlength="60" autocomplete="address-level2"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="assureur_actuel">Assureur actuel (facultatif)</label><input id="assureur_actuel" placeholder="Wafa, Saham, AXA…" maxlength="60" autocomplete="off"></div>
+        <div class="field"><label for="echeance_actuelle">Échéance actuelle (facultatif)</label><input id="echeance_actuelle" class="date-fr" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off"></div>
+      </div>
+      <div class="field"><span class="lbl">Sinistres déclarés ces 3 dernières années</span>
+        <div class="chips" role="radiogroup" aria-label="Sinistres">
+          <label class="chip"><input type="radio" name="sinistres_3_ans" value="0" checked><span>Aucun</span></label>
+          <label class="chip"><input type="radio" name="sinistres_3_ans" value="1"><span>1</span></label>
+          <label class="chip"><input type="radio" name="sinistres_3_ans" value="2"><span>2</span></label>
+          <label class="chip"><input type="radio" name="sinistres_3_ans" value="3 ou plus"><span>3 ou plus</span></label>
+        </div>
+      </div>
+
+      <p class="auto-h">3. Garanties souhaitées</p>
+      <div class="stack" role="radiogroup" aria-label="Formule">
+        <label class="opt"><input type="radio" name="formule" value="Responsabilité civile"><span class="o-body"><b>Responsabilité civile</b><small>L'assurance obligatoire : les dommages causés aux autres.</small></span></label>
+        <label class="opt"><input type="radio" name="formule" value="RC + vol et incendie" checked><span class="o-body"><b>RC + vol et incendie</b><small>Votre voiture est aussi couverte en cas de vol ou d'incendie.</small></span></label>
+        <label class="opt"><input type="radio" name="formule" value="RC + vol, incendie et bris de glace"><span class="o-body"><b>RC + vol, incendie et bris de glace</b><small>Pare-brise et vitres remplacés en plus.</small></span></label>
+        <label class="opt"><input type="radio" name="formule" value="Tous risques"><span class="o-body"><b>Tous risques</b><small>Votre voiture est réparée même si vous êtes responsable.</small></span></label>
+      </div>
+      <div class="field"><span class="lbl">Options</span>
+        <div class="chips">
+          <label class="chip"><input type="checkbox" name="options" value="Assistance dépannage" checked><span>Assistance dépannage</span></label>
+          <label class="chip"><input type="checkbox" name="options" value="Défense et recours"><span>Défense et recours</span></label>
+          <label class="chip"><input type="checkbox" name="options" value="Personnes transportées"><span>Personnes transportées</span></label>
+          <label class="chip"><input type="checkbox" name="options" value="Véhicule de remplacement"><span>Véhicule de remplacement</span></label>
+        </div>
+      </div>
+
+      <p class="auto-h">4. Pour vous répondre</p>
+      <div class="row">
+        <div class="field"><label for="telephone">WhatsApp</label><input id="telephone" type="tel" autocomplete="tel" placeholder="06 12 34 56 78"></div>
+        <div class="field"><label for="email">E-mail (facultatif)</label><input id="email" type="email" autocomplete="email"></div>
+      </div>
+      <div class="field"><label for="message">Précisions (facultatif)</label><input id="message" maxlength="600" placeholder="Ex. 2e conducteur, voiture neuve, leasing…"></div>
+      <p class="hint">Vous pourrez envoyer la photo de la carte grise et du permis sur WhatsApp à votre conseiller.</p>
+      <label class="consent"><input type="checkbox" id="c1"> <span>J'accepte que le cabinet utilise ces informations pour établir mon devis et me contacter (loi 09-08).</span></label>
+      <p class="err" id="e" hidden></p>
+      <button class="btn gold" type="submit" id="go">Recevoir mon devis</button>
+    </div>
+    <div class="stack" id="ok" hidden>
+      <div class="note"><span class="dot" style="color:var(--ok)">●</span><div><b>Demande envoyée</b><span>Un conseiller du cabinet vous envoie votre devis sur WhatsApp, en général dans la journée.</span></div></div>
+      <a class="btn gold" id="wa" target="_blank" rel="noopener">Écrire maintenant sur WhatsApp</a>
+      <a class="btn line" href="/">Retour à l'assurance voyage</a>
+    </div>
+  </form>
+</main>
+<a class="wa-float" href="https://wa.me/212708295052" target="_blank" rel="noopener">Une question ?</a>
+</body>
+</html>

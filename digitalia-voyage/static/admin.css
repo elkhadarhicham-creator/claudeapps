@@ -30,3 +30,9 @@ dialog::backdrop{background:rgba(20,5,20,.55)}
 .acts{display:flex;gap:8px;flex-wrap:wrap}.acts .btn{width:auto;padding:10px 14px;font-size:.88rem}
 .jr{font-size:.8rem;color:var(--quiet);margin:0;padding-left:18px}
 @media (max-width:720px){.tiles{grid-template-columns:1fr 1fr}.item{grid-template-columns:1fr auto}.item .c2,.item .c3{display:none}}
+.devis-det{font-size:.8rem;color:var(--quiet);margin-top:4px}
+.devis-det summary{cursor:pointer;color:var(--prune3, #6b2f5e);font-weight:600}
+.devis-det dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:6px 0 0}
+.devis-det dt{font-weight:600;color:var(--ink)}
+.devis-det dd{margin:0}
+@media (max-width:720px){.item.devis .c2{display:block;grid-column:1/-1}}

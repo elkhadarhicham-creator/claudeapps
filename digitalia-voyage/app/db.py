@@ -90,6 +90,10 @@ def conn() -> sqlite3.Connection:
                          ("digitalia_importe_le", "TEXT"), ("maj_le", "TEXT"), ("seq", "INTEGER")):
             if col not in cols:
                 _conn.execute(f"ALTER TABLE souscriptions ADD COLUMN {col} {ddl}")
+        cols_devis = {r[1] for r in _conn.execute("PRAGMA table_info(devis)")}
+        for col in ("email", "details"):  # details : fiche complète en JSON (ex. devis automobile)
+            if col not in cols_devis:
+                _conn.execute(f"ALTER TABLE devis ADD COLUMN {col} TEXT")
         _conn.commit()
     return _conn
 
@@ -209,8 +213,9 @@ def stats() -> dict:
 def insert_devis(d: dict) -> int:
     with tx() as c:
         cur = c.execute(
-            "INSERT INTO devis(offre, nom, telephone, date_depart, message, cree_le) VALUES (?,?,?,?,?,?)",
-            (d["offre"], d.get("nom"), d["telephone"], d.get("date_depart"), d.get("message"), now()),
+            "INSERT INTO devis(offre, nom, telephone, date_depart, message, email, details, cree_le) VALUES (?,?,?,?,?,?,?,?)",
+            (d["offre"], d.get("nom"), d["telephone"], d.get("date_depart"), d.get("message"), d.get("email"),
+             json.dumps(d["details"], ensure_ascii=False) if d.get("details") else None, now()),
         )
         return cur.lastrowid
 
@@ -218,7 +223,12 @@ def insert_devis(d: dict) -> int:
 def list_devis(limit: int = 200) -> list[dict]:
     with _lock:
         rows = conn().execute("SELECT * FROM devis ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
-    return [dict(r) for r in rows]
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["details"] = json.loads(d["details"]) if d.get("details") else None
+        out.append(d)
+    return out
 
 
 def update_devis(i: int, statut: str) -> None:

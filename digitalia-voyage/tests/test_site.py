@@ -331,3 +331,23 @@ def test_robot_mai_refuse_si_aucun_tarif_au_prix_paye(monkeypatch):
     res = c.post(f"/api/admin/souscriptions/{ref}/mai")
     assert res.status_code == 502 and "Aucun tarif du portail à 175.00 DH" in res.text
     assert db.get_souscription(ref)["statut"] == "payee"  # rien d'émis : reste « à émettre »
+
+
+def test_devis_automobile():
+    assert c.get("/auto").status_code == 200 and "Devis assurance automobile" in c.get("/auto").text
+    corps = {"type_vehicule": "Voiture de tourisme", "marque": "Dacia", "modele": "Logan", "immatriculation": "12345-A-6",
+             "mise_en_circulation": "2019-03-15", "puissance_fiscale": 6, "carburant": "Diesel", "valeur": 90000,
+             "usage": "Personnel", "nom": "ALAMI Karim", "naissance": "1985-05-05", "date_permis": "2005-06-01",
+             "ville": "Rabat", "assureur_actuel": "Wafa", "echeance_actuelle": "", "sinistres_3_ans": "0",
+             "formule": "Tous risques", "options": ["Assistance dépannage"], "telephone": "0612345678", "email": "",
+             "message": ""}
+    def h():
+        return {"x-forwarded-for": f"10.7.{time.time_ns() % 250}.{time.time_ns() % 199}"}
+    r = c.post("/api/devis/auto", json=corps, headers=h())
+    assert r.status_code == 200, r.text
+    assert c.post("/api/devis/auto", json={**corps, "date_permis": "1990-01-01"}, headers=h()).status_code == 422  # permis à 4 ans
+    assert c.post("/api/devis/auto", json={**corps, "formule": "Inconnue"}, headers=h()).status_code == 422
+    if c.get("/api/admin/devis").status_code != 200:  # session cabinet déjà ouverte par les tests précédents
+        connexion_admin()
+    d = next(x for x in c.get("/api/admin/devis").json()["devis"] if x["id"] == r.json()["id"])
+    assert d["offre"] == "AUTO" and d["details"]["marque"] == "Dacia" and "Tous risques" in d["message"]

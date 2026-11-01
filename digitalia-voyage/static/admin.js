@@ -50,15 +50,24 @@
     }).catch(function(){});
   }
 
+  var LIB_DEVIS={type_vehicule:"Type de véhicule",marque:"Marque",modele:"Modèle",immatriculation:"Immatriculation",
+    mise_en_circulation:"1re mise en circulation",puissance_fiscale:"Puissance fiscale (CV)",carburant:"Carburant",valeur:"Valeur (DH)",
+    usage:"Usage",nom:"Conducteur",naissance:"Né(e) le",date_permis:"Permis obtenu le",ville:"Ville",assureur_actuel:"Assureur actuel",
+    echeance_actuelle:"Échéance actuelle",sinistres_3_ans:"Sinistres (3 ans)",formule:"Formule souhaitée",options:"Options",
+    telephone:"WhatsApp",email:"E-mail",message:"Précisions"};
   function listeDevis(r){var L=$("liste");L.innerHTML="";
     if(!r.devis.length)L.appendChild(el("p","vide","Aucune demande de devis."));
     r.devis.forEach(function(d){
-      var w=el("div","item");w.style.cursor="default";
+      var w=el("div","item devis");w.style.cursor="default";
       var c1=el("div");c1.append(el("b",null,d.nom||"—"),el("small",null,fr(d.cree_le)));
-      var c2=el("div","c2");c2.append(el("b",null,d.offre),el("small",null,(d.date_depart?"départ "+fr(d.date_depart)+" · ":"")+(d.message||"")));
+      var c2=el("div","c2");c2.append(el("b",null,d.offre==="AUTO"?"Assurance auto":d.offre),el("small",null,(d.date_depart?"départ "+fr(d.date_depart)+" · ":"")+(d.message||"")));
       var a=el("a","c3",d.telephone);a.href="https://wa.me/"+tel(d.telephone);a.target="_blank";a.rel="noopener";
       var sel=el("select");["nouveau","traite","converti","perdu"].forEach(function(s){var o=el("option",null,LIB[s]);o.value=s;sel.appendChild(o)});sel.value=d.statut;
       sel.addEventListener("change",function(){api("/api/admin/devis/"+d.id,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({statut:sel.value})})});
+      if(d.details){var det=el("details","devis-det");det.appendChild(el("summary",null,"Voir la fiche"));var dl=el("dl");
+        Object.keys(d.details).forEach(function(k){var v=d.details[k];if(v===""||v===null||(Array.isArray(v)&&!v.length))return;
+          if(/^\d{4}-\d\d-\d\d$/.test(v))v=fr(v);dl.append(el("dt",null,LIB_DEVIS[k]||k.replace(/_/g," ")),el("dd",null,Array.isArray(v)?v.join(", "):String(v)))});
+        det.appendChild(dl);c2.appendChild(det)}
       w.append(c1,c2,a,sel);L.appendChild(w);
     });
   }

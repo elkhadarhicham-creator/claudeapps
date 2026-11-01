@@ -360,3 +360,16 @@ footer .fb{display:flex;flex-direction:column;gap:8px}
 .scan .pj{flex-basis:100%;font-size:.82rem;font-weight:600;color:var(--ok)}
 /* Plafonds en français : lus de gauche à droite même en arabe */
 [dir="rtl"] td.y{direction:ltr;text-align:right;unicode-bidi:isolate}
+/* Devis automobile */
+.auto-h{margin:10px 0 0;font-weight:700;font-size:1rem;color:var(--prune3)}
+.auto-cta{display:flex;gap:14px;align-items:center;margin-top:18px;padding:16px 18px;border-radius:16px;border:1px solid var(--tint-line);background:var(--tint);color:var(--ink);text-decoration:none}
+.auto-cta .ic{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--prune);}
+.auto-cta svg{width:24px;height:24px;fill:none;stroke:var(--or2);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.auto-cta b{display:block}
+.auto-cta small{color:var(--quiet);font-size:.85rem}
+.auto-cta .go{margin-inline-start:auto;font-weight:600;color:var(--prune3);white-space:nowrap}
+@media (max-width:560px){.auto-cta{flex-wrap:wrap}.auto-cta .go{margin-inline-start:58px}}
+.devis-det{font-size:.8rem;color:var(--quiet);margin-top:4px}
+.devis-det summary{cursor:pointer;color:var(--prune3);font-weight:600}
+.devis-det dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:6px 0 0}
+.devis-det dt{font-weight:600;color:var(--ink)}
