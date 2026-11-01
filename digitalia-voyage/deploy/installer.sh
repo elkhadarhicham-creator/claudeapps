@@ -27,7 +27,8 @@ IP=$(curl -fsS4 https://api.ipify.org || hostname -I | awk '{print $1}')
 if [ ! -f .env ]; then
   echo "→ Création des réglages (.env)"
   DOMAINE_PAR_DEFAUT="${IP//./-}.sslip.io"
-  aleat() { tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$1"; }
+  # « || true » : tr reçoit SIGPIPE quand head a fini, ce qui arrêterait le script (pipefail)
+  aleat() { LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c "$1" || true; }
   ADMIN=$(aleat 14); CLE=$(aleat 40)
   cp .env.example .env
   sed -i "s#^SITE_URL=.*#SITE_URL=https://${DOMAINE:-$DOMAINE_PAR_DEFAUT}#" .env
