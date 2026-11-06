@@ -48,7 +48,12 @@ ADMIN_PASSWORD = env("ADMIN_PASSWORD")
 CMI_CLIENT_ID = env("CMI_CLIENT_ID")
 CMI_STORE_KEY = env("CMI_STORE_KEY")
 CMI_GATEWAY_URL = env("CMI_GATEWAY_URL", "https://testpayment.cmi.co.ma/fim/est3Dgate")
-PAYMENT_DEMO = not (CMI_CLIENT_ID and CMI_STORE_KEY)
+# Paiement YouCan Pay (prioritaire sur le CMI s'il est configuré). Clés « pri_sandbox_ / pub_sandbox_ » = mode test.
+YCP_PRIVATE_KEY = env("YCP_PRIVATE_KEY")
+YCP_PUBLIC_KEY = env("YCP_PUBLIC_KEY")
+PAYMENT_PROVIDER = ("youcanpay" if (YCP_PRIVATE_KEY and YCP_PUBLIC_KEY)
+                    else "cmi" if (CMI_CLIENT_ID and CMI_STORE_KEY) else "demo")
+PAYMENT_DEMO = PAYMENT_PROVIDER == "demo"
 DEMO_STORE_KEY = "demo-store-key"
 
 # Lecture automatique des pièces d'identité (Claude)

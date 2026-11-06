@@ -8,7 +8,7 @@ Site de souscription en ligne de l'assistance voyage Injad Monde de Maroc Assist
 |---|---|
 | Souscription en ligne | Formule, assurés, vérification, paiement. Français, arabe et darija (sens de lecture inversé). |
 | Lecture des pièces d'identité | Photo de la CIN ou du passeport, champs remplis automatiquement par l'IA (Claude). La photo n'est jamais conservée. |
-| Paiement par carte | Passerelle **CMI** (3-D Secure, cartes marocaines et internationales). Le site ne voit jamais le numéro de carte ; seul le rappel signé du CMI valide un paiement. Mode démonstration tant que le contrat commerçant n'est pas signé. |
+| Paiement par carte | **YouCan Pay** (3-D Secure, cartes marocaines et internationales), ou le **CMI**. Le site ne voit jamais le numéro de carte ; un paiement n'est validé qu'après vérification auprès de la passerelle (API ou webhook signé). Mode démonstration tant que le contrat commerçant n'est pas signé. |
 | Reçu PDF | Généré au paiement, avec **QR code de vérification** pour les consulats (`/verifier/<réf>`). |
 | Suivi client | Lien personnel `/suivi/<réf>?t=…` : état en direct, reçu, attestation, relance du paiement en cas d'échec. |
 | Portail Maroc Assistance | Robot qui saisit le contrat sur **portail.mai.ma**, relève le n° de police et télécharge l'attestation. |
@@ -45,7 +45,18 @@ docker run -d -p 8000:8000 --env-file .env -v digitalia-data:/data digitalia-voy
 
 Placer le site derrière HTTPS (Caddy, Nginx ou l'hébergeur), puis renseigner `SITE_URL` avec l'adresse HTTPS. Sauvegarder le volume `/data`, qui contient la base `digitalia.db` et les attestations.
 
-## Paiement CMI
+## Paiement YouCan Pay
+
+1. Créer le compte marchand sur youcanpay.com et faire vérifier l'identité de la société.
+2. Dans le tableau de bord YouCan Pay :
+   - copier les clés (test : `pri_sandbox_…` / `pub_sandbox_…`, puis réelles : `pri_…` / `pub_…`) ;
+   - ajouter le domaine du site aux hôtes autorisés (paramètres de paiement) ;
+   - déclarer le webhook `https://votre-site/paiement/youcanpay/webhook`, événements `transaction.paid` et `transaction.failed`.
+3. Renseigner `YCP_PRIVATE_KEY` et `YCP_PUBLIC_KEY` dans `.env`, puis relancer le site. Avec les clés de test, la carte `4242 4242 4242 4242` (date future, CVV quelconque) simule un paiement accepté.
+
+Un paiement est validé par le webhook signé (HMAC-SHA256 du corps avec la clé privée), ou par la vérification de la transaction via l'API YouCan Pay quand le client revient sur le site. En mode test, l'API de lecture refuse les clés sandbox : l'annonce du navigateur suffit.
+
+## Paiement CMI (alternative)
 
 1. Signer le contrat commerçant e-commerce avec votre banque. Elle fournit le `clientid` et la `storekey` du CMI.
 2. Renseigner `CMI_CLIENT_ID`, `CMI_STORE_KEY` et `CMI_GATEWAY_URL` (test, puis production).

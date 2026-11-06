@@ -44,7 +44,7 @@ Sans nom de domaine, laissez `DOMAINE` vide : le site prend alors une adresse gr
 ## 3. Ensuite
 
 - **Mettre à jour le site** : relancer la même commande. Les données et les réglages sont conservés.
-- **Paiement CMI** : après signature du contrat commerçant, ajouter `CMI_CLIENT_ID` et `CMI_STORE_KEY` dans `/opt/digitalia/digitalia-voyage/.env`, puis relancer.
+- **Paiement YouCan Pay** : ajouter `YCP_PRIVATE_KEY` et `YCP_PUBLIC_KEY` dans `/opt/digitalia/digitalia-voyage/.env`, puis relancer (voir README, « Paiement YouCan Pay »). Le CMI reste possible avec `CMI_CLIENT_ID` et `CMI_STORE_KEY`.
 - **Changer de domaine** : modifier `SITE_URL` dans ce même fichier, puis relancer.
 - **Données** : elles sont dans le volume Docker `donnees`. Activez aussi les sauvegardes (« Snapshots et sauvegardes ») dans hPanel.
 

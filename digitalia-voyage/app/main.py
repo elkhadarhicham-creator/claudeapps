@@ -1,5 +1,6 @@
 """Digitalia Assurance Voyage - serveur web (FastAPI)."""
 import html
+import json
 import threading
 from contextlib import asynccontextmanager
 import logging
@@ -13,7 +14,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTex
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-from . import cmi, config, db, documents, mai, notifications, ocr, pieces, securite
+from . import cmi, config, db, documents, mai, notifications, ocr, pieces, securite, youcanpay
 from .offres import (AGE_MAX_ENFANT, AGE_MAX_ENFANT_ETUDIANT, AGE_SENIOR, LIENS, MAX_ENFANTS, OFFRES, VEHICULE2,
                      age_a, libelle_duree, tarif)
 
@@ -37,7 +38,8 @@ def demarrage():
     pieces.purger_tmp()
     pieces.purger_impayees(db)
     log.info("Démarrage - paiement %s, lecture IA %s",
-             "DÉMONSTRATION" if config.PAYMENT_DEMO else "CMI réel", "active" if ocr.disponible() else "désactivée")
+             {"demo": "DÉMONSTRATION", "cmi": "CMI réel"}.get(config.PAYMENT_PROVIDER)
+             or ("YouCan Pay (sandbox)" if youcanpay.sandbox() else "YouCan Pay réel"), "active" if ocr.disponible() else "désactivée")
 
 
 @asynccontextmanager
@@ -56,11 +58,20 @@ async def entetes_securite(request: Request, call_next):
     r.headers["X-Content-Type-Options"] = "nosniff"
     r.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     r.headers["Permissions-Policy"] = "camera=(self), geolocation=()"
-    r.headers["Content-Security-Policy"] = (
-        "default-src 'self'; img-src 'self' data: blob:; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
-        f"script-src 'self'; connect-src 'self'; form-action 'self' {CMI_HOST}; frame-ancestors 'none'; base-uri 'none'"
-    )
+    if request.url.path == "/paiement/youcanpay":
+        # Page du formulaire de carte YouCan Pay (yp.js) : scripts, cadres et appels vers youcanpay.com
+        r.headers["Content-Security-Policy"] = (
+            "default-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline' https:; "
+            "font-src 'self' https: data:; script-src 'self' https://youcanpay.com; "
+            "connect-src 'self' https://youcanpay.com; frame-src https:; form-action 'self' https://youcanpay.com; "
+            "frame-ancestors 'none'; base-uri 'none'"
+        )
+    else:
+        r.headers["Content-Security-Policy"] = (
+            "default-src 'self'; img-src 'self' data: blob:; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; "
+            f"script-src 'self'; connect-src 'self'; form-action 'self' {CMI_HOST}; frame-ancestors 'none'; base-uri 'none'"
+        )
     if config.SITE_URL.startswith("https://"):
         r.headers["Strict-Transport-Security"] = "max-age=31536000"
     return r
@@ -133,6 +144,8 @@ def api_config():
     return {
         "ocr": ocr.disponible(),
         "paiement_demo": config.PAYMENT_DEMO,
+        "paiement": config.PAYMENT_PROVIDER,
+        "paiement_test": config.PAYMENT_PROVIDER == "youcanpay" and youcanpay.sandbox(),
         "whatsapp": config.WHATSAPP_CABINET,
         "aujourdhui": aujourdhui().isoformat(),
         "offres": list(OFFRES.values()),
@@ -346,7 +359,14 @@ def creer_souscription(body: SouscriptionIn, request: Request):
     db.log(ref, "creee", {"prime": prime, "duree_ans": body.duree_ans, "senior": senior, "vehicule2": bool(body.vehicule2),
                           "assures": len(body.assures)})
     return {"ref": ref, "token": s["token"], "prime_ttc": prime, "date_echeance": s["date_echeance"],
-            "paiement": cmi.build_form(db.get_souscription(ref))}
+            "paiement": formulaire_paiement(db.get_souscription(ref))}
+
+
+def formulaire_paiement(s: dict) -> dict:
+    """Formulaire que le navigateur envoie pour payer : page YouCan Pay du site, CMI, ou passerelle de démonstration."""
+    if config.PAYMENT_PROVIDER == "youcanpay":
+        return {"action": "/paiement/youcanpay", "fields": {"ref": s["ref"], "t": s["token"]}, "demo": False}
+    return cmi.build_form(s)
 
 
 def souscription_client(ref: str, t: str) -> dict:
@@ -362,7 +382,7 @@ def relancer_paiement(ref: str, t: str):
     if s["statut"] not in ("attente_paiement", "echec_paiement"):
         erreur("statut", "Cette souscription est déjà payée.", 409)
     db.update_souscription(ref, statut="attente_paiement")
-    return cmi.build_form(db.get_souscription(ref))
+    return formulaire_paiement(db.get_souscription(ref))
 
 
 @app.get("/api/suivi/{ref}")
@@ -524,6 +544,32 @@ def _page(titre: str, corps: str, scripts: str = "") -> HTMLResponse:
 
 # ─────────────────────────── Paiement ───────────────────────────
 
+_verrou_paiement = threading.Lock()
+
+
+def marquer_payee(s: dict, transaction_id: str | None, auth_code: str | None, detail: dict,
+                  taches: BackgroundTasks | None) -> bool:
+    """Valide le paiement une seule fois (rappel serveur, webhook ou confirmation du navigateur) et lance la suite."""
+    ref = s["ref"]
+    with _verrou_paiement:
+        s = db.get_souscription(ref)
+        if s["statut"] not in ("attente_paiement", "echec_paiement"):
+            return False
+        db.update_souscription(ref, statut="payee", payee_le=db.now(), transaction_id=transaction_id,
+                               auth_code=auth_code, paiement_detail=detail)
+    db.log(ref, "payee", {"transaction": transaction_id})
+
+    def suite():
+        notifications.apres_paiement(ref)
+        if mai.MODE == "auto" and mai.configure():
+            mai.emettre(ref)
+    if taches is not None:
+        taches.add_task(suite)
+    else:
+        threading.Thread(target=suite, daemon=True).start()
+    return True
+
+
 def traiter_callback(params: dict, taches: BackgroundTasks | None) -> str:
     """Rappel serveur à serveur du CMI. Réponses attendues par le CMI : ACTION=POSTAUTH / APPROVED / FAILURE."""
     if not cmi.verify(params):
@@ -537,22 +583,9 @@ def traiter_callback(params: dict, taches: BackgroundTasks | None) -> str:
         db.log(ref, "callback_montant_incoherent", {"recu": params.get("amount")})
         return "FAILURE"
     if cmi.is_approved(params):
-        if s["statut"] == "attente_paiement" or s["statut"] == "echec_paiement":
-            db.update_souscription(
-                ref, statut="payee", payee_le=db.now(), transaction_id=params.get("TransId"),
-                auth_code=params.get("AuthCode"),
-                paiement_detail={k: params.get(k) for k in ("TransId", "AuthCode", "ProcReturnCode", "Response",
-                                                             "maskedCreditCard", "EXTRA.TRXDATE") if params.get(k)},
-            )
-            db.log(ref, "payee", {"transaction": params.get("TransId")})
-            def suite():
-                notifications.apres_paiement(ref)
-                if mai.MODE == "auto" and mai.configure():
-                    mai.emettre(ref)
-            if taches is not None:
-                taches.add_task(suite)
-            else:
-                threading.Thread(target=suite, daemon=True).start()
+        marquer_payee(s, params.get("TransId"), params.get("AuthCode"),
+                      {k: params.get(k) for k in ("TransId", "AuthCode", "ProcReturnCode", "Response",
+                                                  "maskedCreditCard", "EXTRA.TRXDATE") if params.get(k)}, taches)
         return "ACTION=POSTAUTH"
     if s["statut"] == "attente_paiement":
         db.update_souscription(ref, statut="echec_paiement")
@@ -575,6 +608,113 @@ async def paiement_retour(request: Request):
         return RedirectResponse(f"/suivi/{s['ref']}?t={s['token']}", status_code=303)
     return _page("Retour du paiement", "<p>Nous n'avons pas pu identifier votre paiement. "
                  "Si votre carte a été débitée, contactez-nous sur WhatsApp au 07 08 29 50 52 : votre contrat sera vérifié.</p>")
+
+
+# ─────────────────────────── YouCan Pay ───────────────────────────
+
+@app.post("/paiement/youcanpay", response_class=HTMLResponse)
+async def page_youcanpay(request: Request):
+    """Page de paiement : formulaire de carte YouCan Pay (yp.js), affiché sur le site."""
+    if config.PAYMENT_PROVIDER != "youcanpay":
+        raise HTTPException(404)
+    form = {k: str(v) for k, v in (await request.form()).items()}
+    s = souscription_client(form.get("ref", ""), form.get("t", ""))
+    suivi = f"/suivi/{s['ref']}?t={s['token']}"
+    if s["statut"] not in ("attente_paiement", "echec_paiement"):
+        return RedirectResponse(suivi, status_code=303)
+    try:
+        jeton = youcanpay.tokenize(s)
+    except youcanpay.ErreurYouCanPay as e:
+        log.error("YouCan Pay %s : %s", s["ref"], e)
+        db.log(s["ref"], "youcanpay_jeton_erreur", {"erreur": str(e)[:300]})
+        return _page("Paiement indisponible", "<p>Le service de paiement ne répond pas pour le moment. Réessayez dans "
+                     f"quelques minutes depuis <a href=\"{html.escape(suivi)}\">votre page de suivi</a>, ou écrivez-nous "
+                     "sur WhatsApp au 07 08 29 50 52.</p>")
+    db.log(s["ref"], "youcanpay_jeton", {"sandbox": youcanpay.sandbox()})
+    langue = {"fr": "fr", "ar": "ar", "da": "ar"}.get(s.get("lang") or "fr", "fr")
+    test = ('<div class="demo">Mode test YouCan Pay : aucune carte n\'est débitée. Carte de test : 4242 4242 4242 4242, '
+            'date future, CVV quelconque.</div>' if youcanpay.sandbox() else "")
+    corps = f"""{test}<div class="bank" id="ycp" data-cle="{html.escape(config.YCP_PUBLIC_KEY)}" data-jeton="{html.escape(jeton)}"
+    data-langue="{langue}" data-ref="{html.escape(s['ref'])}" data-t="{html.escape(s['token'])}" data-suivi="{html.escape(suivi)}">
+    <p>Contrat <b>{html.escape(s['produit'])}</b><br>Référence <b>{html.escape(s['ref'])}</b></p>
+    <p class="amt">{s['prime_ttc']:.2f} MAD</p>
+    <div id="payment"></div>
+    <p class="err" id="erreur" hidden></p>
+    <button class="btn" type="button" id="payer" disabled>Payer {s['prime_ttc']:.2f} MAD</button>
+    <p><small>Paiement sécurisé 3-D Secure par YouCan Pay. Le site ne voit jamais le numéro de votre carte.</small></p></div>"""
+    return _page("Paiement sécurisé", corps.replace(".00 MAD", ",00 MAD"),
+                 '<script src="https://youcanpay.com/yp.js"></script><script src="/static/youcanpay.js"></script>')
+
+
+class ConfirmationYCP(BaseModel):
+    ref: str = Field(max_length=40)
+    t: str = Field(max_length=100)
+    transaction_id: str = Field("", max_length=80)
+
+
+@app.post("/api/paiement/youcanpay/confirmer")
+def confirmer_youcanpay(body: ConfirmationYCP, taches: BackgroundTasks):
+    """Le navigateur annonce un paiement réussi : on le vérifie auprès de YouCan Pay avant de valider."""
+    if config.PAYMENT_PROVIDER != "youcanpay":
+        raise HTTPException(404)
+    s = souscription_client(body.ref, body.t)
+    if s["statut"] not in ("attente_paiement", "echec_paiement"):
+        return {"statut": s["statut"]}
+    if not body.transaction_id:
+        return {"statut": s["statut"]}  # le webhook validera le paiement
+    if youcanpay.sandbox():
+        # L'API de lecture refuse les clés de test : en mode test, on accepte l'annonce du navigateur.
+        marquer_payee(s, body.transaction_id, None, {"passerelle": "youcanpay", "sandbox": True,
+                                                    "verification": "non (mode test)"}, taches)
+        return {"statut": "payee"}
+    try:
+        t = youcanpay.transaction(body.transaction_id)
+    except youcanpay.ErreurYouCanPay as e:
+        db.log(s["ref"], "youcanpay_verification_erreur", {"erreur": str(e)[:300]})
+        return {"statut": s["statut"]}  # le webhook prendra le relais
+    if not youcanpay.transaction_payee(t, s["ref"], s["prime_ttc"]):
+        db.log(s["ref"], "youcanpay_transaction_refusee", {"transaction": body.transaction_id, "statut": t.get("status")})
+        return {"statut": s["statut"]}
+    marquer_payee(s, t.get("id"), None, {"passerelle": "youcanpay", "transaction": t.get("id"),
+                                         "frais": (t.get("fees") or {}).get("amount"), "paye_le": t.get("paid_at")}, taches)
+    return {"statut": "payee"}
+
+
+@app.post("/paiement/youcanpay/webhook", response_class=PlainTextResponse)
+async def webhook_youcanpay(request: Request, taches: BackgroundTasks):
+    """Notification signée de YouCan Pay (transaction.paid / transaction.failed)."""
+    corps = await request.body()
+    if not youcanpay.signature_valide(corps, request.headers.get("x-youcanpay-signature", "")):
+        db.log(None, "youcanpay_webhook_signature_invalide")
+        raise HTTPException(403)
+    try:
+        ev = json.loads(corps)
+    except ValueError:
+        raise HTTPException(400)
+    tr = (ev.get("payload") or {}).get("transaction") or {}
+    ref = str(tr.get("order_id") or "")
+    s = db.get_souscription(ref)
+    if not s:
+        return "ignore"
+    if bool(ev.get("sandbox")) != youcanpay.sandbox():
+        db.log(ref, "youcanpay_webhook_mode_incoherent")
+        return "ignore"
+    if ev.get("event_name") == "transaction.paid":
+        try:
+            recu = int(str(tr.get("amount")))
+        except ValueError:
+            recu = -1
+        if recu != youcanpay.centimes(s["prime_ttc"]) or tr.get("currency") != "MAD":
+            db.log(ref, "youcanpay_montant_incoherent", {"recu": tr.get("amount"), "devise": tr.get("currency")})
+            return "montant"
+        carte = ((ev.get("payload") or {}).get("payment_method") or {}).get("card") or {}
+        marquer_payee(s, tr.get("id"), None, {"passerelle": "youcanpay", "transaction": tr.get("id"),
+                                              "carte": f"{carte.get('brand', '')} **** {carte.get('last_digits', '')}".strip(),
+                                              "pays_carte": carte.get("country_code"), "sandbox": ev.get("sandbox")}, taches)
+    elif ev.get("event_name") == "transaction.failed" and s["statut"] == "attente_paiement":
+        db.update_souscription(ref, statut="echec_paiement")
+        db.log(ref, "paiement_refuse", {"passerelle": "youcanpay", "transaction": tr.get("id")})
+    return "ok"
 
 
 def _hidden(params: dict) -> str:

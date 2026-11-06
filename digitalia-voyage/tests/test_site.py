@@ -351,3 +351,87 @@ def test_devis_automobile():
         connexion_admin()
     d = next(x for x in c.get("/api/admin/devis").json()["devis"] if x["id"] == r.json()["id"])
     assert d["offre"] == "AUTO" and d["details"]["marque"] == "Dacia" and "Tous risques" in d["message"]
+
+
+@pytest.fixture
+def ycp(monkeypatch):
+    """YouCan Pay activé avec des clés réelles factices ; les appels réseau sont simulés."""
+    from app import config, youcanpay
+    monkeypatch.setattr(config, "PAYMENT_PROVIDER", "youcanpay")
+    monkeypatch.setattr(config, "YCP_PRIVATE_KEY", "pri_test_cle_privee")
+    monkeypatch.setattr(config, "YCP_PUBLIC_KEY", "pub_test_cle_publique")
+    appels = []
+
+    class Rep:
+        def __init__(self, code, data):
+            self.status_code, self._d, self.text = code, data, str(data)
+
+        def json(self):
+            return self._d
+
+    def post(url, data=None, **kw):
+        appels.append((url, data))
+        return Rep(200, {"transaction_id": "tx-1", "token": {"id": "tok_123"}})
+    monkeypatch.setattr(youcanpay.httpx, "post", post)
+    return appels
+
+
+def _signe(corps: bytes, cle="pri_test_cle_privee"):
+    import hashlib
+    import hmac
+    return hmac.new(cle.encode(), corps, hashlib.sha256).hexdigest()
+
+
+def test_youcanpay_page_jeton_et_webhook(ycp, monkeypatch):
+    import json as _json
+    r = souscription()
+    ref, tok = r.json()["ref"], r.json()["token"]
+    assert r.json()["paiement"] == {"action": "/paiement/youcanpay", "fields": {"ref": ref, "t": tok}, "demo": False}
+    assert c.post("/paiement/youcanpay", data={"ref": ref, "t": "faux"}).status_code == 404
+    page = c.post("/paiement/youcanpay", data={"ref": ref, "t": tok})
+    assert page.status_code == 200 and 'data-jeton="tok_123"' in page.text and "https://youcanpay.com/yp.js" in page.text
+    assert "https://youcanpay.com" in page.headers["content-security-policy"]
+    url, data = ycp[-1]
+    assert url == "https://youcanpay.com/api/tokenize" and data["order_id"] == ref and data["amount"] == "19000"
+    assert data["currency"] == "MAD" and data["pri_key"] == "pri_test_cle_privee"
+
+    def evt(montant, nom="transaction.paid", sandbox=False):
+        return _json.dumps({"id": "e1", "event_name": nom, "sandbox": sandbox, "payload": {
+            "transaction": {"id": "tr-9", "amount": montant, "status": 1, "currency": "MAD", "order_id": ref},
+            "payment_method": {"card": {"brand": "VISA", "last_digits": "4242", "country_code": "MA"}}}}).encode()
+    corps = evt("19000")
+    assert c.post("/paiement/youcanpay/webhook", content=corps, headers={"x-youcanpay-signature": "00"}).status_code == 403
+    mauvais = evt("100")
+    assert c.post("/paiement/youcanpay/webhook", content=mauvais, headers={"x-youcanpay-signature": _signe(mauvais)}).text == "montant"
+    assert db.get_souscription(ref)["statut"] == "attente_paiement"
+    test = evt("19000", sandbox=True)  # événement de test alors que les clés sont réelles : ignoré
+    assert c.post("/paiement/youcanpay/webhook", content=test, headers={"x-youcanpay-signature": _signe(test)}).text == "ignore"
+    rep = c.post("/paiement/youcanpay/webhook", content=corps, headers={"x-youcanpay-signature": _signe(corps)})
+    assert rep.status_code == 200 and rep.text == "ok"
+    s = db.get_souscription(ref)
+    assert s["statut"] == "payee" and s["transaction_id"] == "tr-9" and s["paiement_detail"]["carte"] == "VISA **** 4242"
+    c.post("/paiement/youcanpay/webhook", content=corps, headers={"x-youcanpay-signature": _signe(corps)})  # doublon sans effet
+    assert sum(1 for e in db.journal(ref) if e["evenement"] == "payee") == 1
+
+
+def test_youcanpay_confirmation_verifiee(ycp, monkeypatch):
+    from app import youcanpay
+    r = souscription()
+    ref, tok = r.json()["ref"], r.json()["token"]
+    lu = {"id": "tr-5", "status": "paid", "order_id": ref, "amount": {"amount": "100.00", "currency": "MAD"}}
+    monkeypatch.setattr(youcanpay, "transaction", lambda tid: lu)
+    corps = {"ref": ref, "t": tok, "transaction_id": "tr-5"}
+    assert c.post("/api/paiement/youcanpay/confirmer", json=corps).json()["statut"] == "attente_paiement"  # mauvais montant
+    lu["amount"]["amount"] = "190.00"
+    assert c.post("/api/paiement/youcanpay/confirmer", json=corps).json()["statut"] == "payee"
+    assert db.get_souscription(ref)["statut"] == "payee"
+
+
+def test_youcanpay_mode_test(ycp, monkeypatch):
+    from app import config
+    monkeypatch.setattr(config, "YCP_PRIVATE_KEY", "pri_sandbox_xyz")
+    r = souscription()
+    ref, tok = r.json()["ref"], r.json()["token"]
+    page = c.post("/paiement/youcanpay", data={"ref": ref, "t": tok})
+    assert "Mode test YouCan Pay" in page.text and ycp[-1][0] == "https://youcanpay.com/sandbox/api/tokenize"
+    assert c.post("/api/paiement/youcanpay/confirmer", json={"ref": ref, "t": tok, "transaction_id": "tr-s"}).json()["statut"] == "payee"
