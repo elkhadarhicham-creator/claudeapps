@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Suivi de votre contrat · Digitalia</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#3f1c37">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Noto+Kufi+Arabic:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/i18n.js" defer></script>
+<script src="/static/suivi.js" defer></script>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/"><img src="/static/icon.svg" width="40" height="40" alt=""><span><b>Digital<span class="ia">ia</span></b><small>by Assurances Elkhaddar</small></span></a>
+  <nav class="menu" aria-label="Langue"><div class="lang no-tr" role="group" aria-label="Langue"><button type="button" data-l="fr" aria-pressed="true">FR</button><button type="button" class="arb" data-l="ar" aria-pressed="false">العربية</button><button type="button" class="arb" data-l="da" aria-pressed="false">الدارجة</button></div></nav>
+</div></header>
+<main class="wrap" style="max-width:640px;padding-block:34px 90px">
+  <div class="card">
+    <div class="card-head"><img src="/static/icon.svg" width="44" height="44" alt=""><h2>Suivi de votre contrat</h2><p id="ref" class="num">Chargement…</p></div>
+    <div class="stack" id="contenu" hidden>
+      <div class="note"><span class="dot">●</span><div><b id="etat"></b><span id="etatTxt"></span></div></div>
+      <ul class="pipe" id="pipe">
+        <li><i></i><div>Paiement accepté<small>Reçu envoyé sur WhatsApp</small></div></li>
+        <li><i></i><div>Affaire enregistrée dans Digitalia<small>Saisie automatique : souscripteur, assurés, prime, encaissement</small></div></li>
+        <li><i></i><div>Contrat émis<small id="police"></small></div></li>
+        <li><i></i><div>Attestation envoyée<small>PDF sur WhatsApp et par e-mail</small></div></li>
+      </ul>
+      <dl class="recap-list" id="recap"></dl>
+      <a class="btn" id="dlRecu" hidden target="_blank" rel="noopener">Télécharger le reçu (PDF)</a>
+      <a class="btn gold" id="dlAtt" hidden target="_blank" rel="noopener">Télécharger l'attestation (PDF)</a>
+      <button class="btn gold" type="button" id="retry" hidden>Réessayer le paiement</button>
+      <p class="err" id="e" hidden></p>
+      <p class="hint">Gardez ce lien : il vous permet de retrouver vos documents à tout moment.</p>
+      <button class="btn line" type="button" id="copy">Copier le lien</button>
+    </div>
+    <p class="err" id="introuvable" hidden>Souscription introuvable.</p>
+  </div>
+  <form id="payForm" method="post" hidden></form>
+</main>
+<a class="wa-float" href="https://wa.me/212708295052" target="_blank" rel="noopener">Une question ?</a>
+</body>
+</html>

@@ -1,0 +1,311 @@
+/* Digitalia Assurance Voyage — tunnel de souscription relié au serveur */
+(function(){
+  "use strict";
+  var T=DG.T;
+  var $=function(i){return document.getElementById(i)};
+  var CFG={ocr:false,paiement_demo:true,whatsapp:"212708295052"};
+  var OFFRES={
+    FAM_MONDE_AN:{nom:"Injad Monde · Famille + 1 véhicule",prix:190,prix_70:null},
+    IND_SCH:{nom:"Individuel · Schengen",prix:null},
+    OMRA:{nom:"Omra / Hajj",prix:null},
+    ETU:{nom:"Étudiant à l'étranger",prix:null}
+  };
+  var CARDS=[
+    {tag:"Souscription en ligne",star:true,name:"Injad Monde · Famille",items:["Souscripteur, conjoint et enfants","Votre voiture incluse","Frais médicaux jusqu’à 350 000 DH, monde entier","1 à 5 ans"],price:"190 DH / an",key:"FAM_MONDE_AN"},
+    {tag:"Sur devis",name:"Individuel · Schengen",items:["Un voyageur, 6 mois ou 1 an","Tarif selon l’âge","Frais médicaux 30 000 € minimum, tout l’espace Schengen"],price:null,key:"IND_SCH"},
+    {tag:"Sur devis",name:"Omra / Hajj",items:["Couverture en Arabie saoudite","Rapatriement vers le Maroc, que l’assurance du visa ne prévoit pas","Formules groupe"],price:null,key:"OMRA"},
+    {tag:"Sur devis",name:"Étudiant à l'étranger",items:["Séjour d'études","Frais médicaux et hospitalisation","Rapatriement et assistance"],price:null,key:"ETU"}
+  ];
+  var wa=function(t){return "https://wa.me/"+CFG.whatsapp+(t?"?text="+encodeURIComponent(t):"")};
+
+  function api(url,opts){
+    return fetch(url,opts).then(function(r){
+      return r.json().catch(function(){return {}}).then(function(j){
+        if(!r.ok){var d=j.detail||j;var e=new Error(d.message||d.code||("HTTP "+r.status));e.status=r.status;e.code=d.code;throw e}
+        return j;
+      });
+    });
+  }
+  function msgErreur(e){
+    if(e.status===429)return T("Trop de tentatives, réessayez plus tard.");
+    if(e.status===422&&e.message&&e.code)return e.message;
+    return T("Le service est momentanément indisponible. Réessayez ou écrivez-nous sur WhatsApp.");
+  }
+
+  // ── Cartes formules
+  CARDS.forEach(function(o){
+    var el=document.createElement("article");el.className="offer"+(o.star?" star":"");
+    el.innerHTML='<span class="tag"></span><h3></h3><ul></ul><div class="price"><b></b><span></span></div><button type="button"></button>';
+    el.querySelector(".tag").textContent=o.tag;el.querySelector("h3").textContent=o.name;
+    var ul=el.querySelector("ul");o.items.forEach(function(t){var li=document.createElement("li");li.textContent=t;ul.appendChild(li)});
+    el.querySelector(".price b").textContent=o.price||"Tarif sur devis";
+    el.querySelector(".price span").textContent=o.price?"TTC":"réponse sur WhatsApp";
+    var b=el.querySelector("button");b.textContent=o.price?"Souscrire maintenant →":"Demander un devis →";
+    b.addEventListener("click",function(){
+      document.querySelector('input[name="offre"][value="'+o.key+'"]').checked=true;majOffre();show(1);
+      $("souscrire").scrollIntoView({behavior:"smooth"});
+    });
+    $("offersGrid").appendChild(el);
+  });
+
+  // ── Dates (heure locale du Maroc côté navigateur)
+  function iso(d){var m=d.getMonth()+1,j=d.getDate();return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(j<10?"0":"")+j}
+  function fr(s){if(!s)return "—";var p=s.split("-");return p[2]+"/"+p[1]+"/"+p[0]}
+  // Dates toujours au format français JJ/MM/AAAA, quelle que soit la langue de l'appareil
+  function isoVersFr(s){return s?s.slice(8,10)+"/"+s.slice(5,7)+"/"+s.slice(0,4):""}
+  function frVersIso(s){var m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((s||"").trim());if(!m)return "";
+    var d=new Date(+m[3],+m[2]-1,+m[1]);return d.getDate()===+m[1]&&d.getMonth()===+m[2]-1?m[3]+"-"+m[2]+"-"+m[1]:""}
+  function D(id){return frVersIso($(id).value)}
+  function ageA(n,d){if(!n||!d)return 0;var a=+d.slice(0,4)-+n.slice(0,4);if(d.slice(5)<n.slice(5))a--;return a}
+  document.addEventListener("input",function(e){var el=e.target;if(!el.classList||!el.classList.contains("date-fr"))return;
+    var c=el.value.replace(/\D/g,"").slice(0,8),v=c.slice(0,2);if(c.length>2)v+="/"+c.slice(2,4);if(c.length>4)v+="/"+c.slice(4);
+    if(e.inputType&&e.inputType.indexOf("delete")===0&&/\/$/.test(el.value))v=el.value;el.value=v;
+    el.classList.toggle("bad",v.length===10&&!frVersIso(v))});
+  var today=iso(new Date());
+  function demain(){var d=new Date(today+"T00:00:00");d.setDate(d.getDate()+1);return iso(d)}
+  function initDates(){if(!D("effet")||D("effet")<=today)$("effet").value=isoVersFr(demain());majEcheance()}
+  // ── Durée (1 à 5 ans), véhicules et prix total (barème Injad Monde)
+  var V2_PRIX=100,AGE_SENIOR=70;
+  function duree(){var r=document.querySelector('input[name="duree"]:checked');return r?+r.value:1}
+  function dureeTxt(n){return T(n===1?"1 an":n+" ans")}
+  function dh(n){return n.toFixed(2).replace(".",",")+" DH"}
+  // Prime « + 70 ans » dès qu'un assuré a 70 ans ou plus à la date d'effet
+  function senior(){var e=D("effet");return assures().some(function(x){return x.naissance&&ageA(x.naissance,e)>=AGE_SENIOR})}
+  function total(){var o=OFFRES[offre()]||{};if(!o.prix)return 0;var n=duree();
+    return (senior()&&o.prix_70?o.prix_70:o.prix)*n+($("optV2").checked?V2_PRIX*n:0)}
+  function majPrix(){
+    var o=OFFRES.FAM_MONDE_AN;
+    document.querySelectorAll("#dureePick span[data-d]").forEach(function(s){var n=+s.dataset.d;s.textContent=dureeTxt(n)+" · "+(o.prix*n)+" DH"});
+    $("v2Prix").textContent="+"+V2_PRIX+" DH "+T("/ an");
+    $("seniorNote").textContent=o.prix_70?T("Si un assuré a 70 ans ou plus :")+" "+o.prix_70+" DH "+T("/ an"):T("Si un assuré a 70 ans ou plus, le tarif se fait sur devis (WhatsApp).");
+    $("v2Box").hidden=!$("optV2").checked;
+    var t=dh(total());$("totalTxt").textContent=t;$("payTxt").textContent=t;
+    if(!$("payBtn").disabled)$("payBtn").textContent=T("Payer")+" "+t;
+  }
+  document.querySelectorAll('input[name="duree"]').forEach(function(r){r.addEventListener("change",function(){majEcheance();majPrix()})});
+  $("optV2").addEventListener("change",majPrix);
+  function majEcheance(){var v=D("effet");if(!v){$("echeance").value="";return}var d=new Date(v+"T00:00:00");d.setFullYear(d.getFullYear()+duree());d.setDate(d.getDate()-1);$("echeance").value=isoVersFr(iso(d))}
+  $("effet").addEventListener("input",majEcheance);initDates();
+
+  // ── Navigation
+  function show(n){for(var i=1;i<=4;i++)$("p"+i).hidden=i!==n;
+    [].forEach.call($("stepsBar").children,function(li,i){li.className=i+1===n?"on":(i+1<n?"done":"")});
+    var card=$("p1").closest(".card");if(card&&card.getBoundingClientRect().top<0)card.scrollIntoView({behavior:"smooth"})}
+  document.querySelectorAll("[data-back]").forEach(function(b){b.addEventListener("click",function(){show(+b.dataset.back)})});
+  function err(id,m){var e=$(id);e.textContent=m||"";e.hidden=!m}
+  function offre(){return document.querySelector('input[name="offre"]:checked').value}
+
+  // ── Formule en ligne ou sur devis
+  function majOffre(){
+    var devis=!OFFRES[offre()].prix;
+    $("devisBox").hidden=!devis;$("devisOk").hidden=true;$("enLigneBox").hidden=devis;
+    $("effetLbl").textContent=T(devis?"Date de départ prévue":"Date d'effet");
+    $("echeance").closest(".field").hidden=devis;
+    $("go2").textContent=T(devis?"Demander un devis sur WhatsApp":"Continuer");
+    err("e1");
+  }
+  document.querySelectorAll('input[name="offre"]').forEach(function(r){r.addEventListener("change",majOffre)});
+
+  // ── Assurés
+  var nTrav=0,ROLES=["Souscripteur","Conjoint(e)","Enfant"];
+  function addTrav(role){
+    nTrav++;
+    var d=document.createElement("div");d.className="trav";
+    d.innerHTML='<div class="trav-head"><b></b><select aria-label="Lien"></select><button type="button">Retirer</button></div>'
+      +'<div class="scan"><p class="s-titre">Remplir avec la CIN ou le passeport</p><label class="btn"><input type="file" accept="image/*" capture="environment">📷 Photographier</label><label class="btn line"><input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png">📎 Joindre un fichier</label><span class="pj" hidden></span><span class="s-msg">CIN : recto pour le nom et la date de naissance, verso pour l’adresse. Passeport : page avec la photo. Ou saisissez les champs ci-dessous.</span></div>'
+      +'<div class="row"><div class="field"><label>Nom</label><input data-k="nom" autocomplete="off"></div><div class="field"><label>Prénom</label><input data-k="prenom" autocomplete="off"></div></div>'
+      +'<div class="g3"><div class="field"><label>Date de naissance</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="naissance"></div><div class="field"><label>N° CIN</label><input data-k="cin" autocomplete="off"></div><div class="field"><label>N° passeport (facultatif)</label><input data-k="passeport" autocomplete="off"></div></div>'
+      +'<label class="consent etu" hidden><input type="checkbox" data-k="etudiant"> <span>Étudiant(e) au Maroc (obligatoire de 21 à 25 ans)</span></label>'
+      +'<div class="row"><div class="field"><label>Fin de validité du passeport</label><input class="date-fr" type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" maxlength="10" autocomplete="off" data-k="exp_passeport"></div><div class="field"><label>Adresse</label><input data-k="adresse" autocomplete="off"></div></div>'
+      +(role==="Souscripteur"?'<div class="sous-plus"><p class="s-titre">Informations pour le contrat</p>'+'<div class="row"><div class="field"><label>Civilité</label><select data-k="civilite"><option value="">—</option><option value="M.">M.</option><option value="Mme">Mme</option></select></div>'+'<div class="field"><label>Situation familiale</label><select data-k="situation_familiale"><option value="">—</option><option value="Marié(e)">Marié(e)</option><option value="Célibataire">Célibataire</option><option value="Divorcé(e)">Divorcé(e)</option><option value="Veuf(ve)">Veuf(ve)</option></select></div></div>'+'<div class="row"><div class="field"><label>Lieu de naissance</label><input data-k="lieu_naissance" autocomplete="off"></div><div class="field"><label>Profession</label><input data-k="profession" autocomplete="organization-title"></div></div>'+'<div class="row"><div class="field"><label>Ville</label><input data-k="ville" autocomplete="address-level2"></div><div class="field"><label>Code postal</label><input data-k="code_postal" inputmode="numeric" maxlength="10" autocomplete="postal-code"></div></div>'+'<div class="field"><label>Assurance maladie / mutuelle</label><select data-k="mutuelle"><option value="">—</option><option value="AMO (CNSS)">AMO (CNSS)</option><option value="CNOPS">CNOPS</option><option value="AMO Tadamon (ex-RAMED)">AMO Tadamon (ex-RAMED)</option><option value="Mutuelle ou assurance groupe privée">Mutuelle ou assurance groupe privée</option><option value="Aucune">Aucune</option></select></div>'+'<div class="field"><label>Autre assistance voyage déjà souscrite</label><select data-k="assistance_existante"><option value="">—</option><option value="SANS">Aucune</option><option value="SAHAM ASSISTANCE">Saham Assistance</option><option value="AXA ASSISTANCE">AXA Assistance</option><option value="WAFA IMA ASSISTANCE">Wafa IMA Assistance</option><option value="RMA ASSISTANCE">RMA Assistance</option></select></div>'
+ +'<div class="field"><label>Circonstances pouvant aggraver le risque</label><select class="circ-sel"><option value="">—</option><option value="Aucune">Aucune</option><option value="oui">Oui : maladie, traitement, grossesse…</option></select><input class="circ-txt" data-k="circonstances" placeholder="Précisez" hidden autocomplete="off"></div>'+'</div>':"");
+    // libellés reliés aux champs (accessibilité)
+    d.querySelectorAll(".field").forEach(function(f,i){var id="f"+nTrav+"_"+i;f.querySelector("input,select").id=id;f.querySelector("label").htmlFor=id});
+    var sel=d.querySelector("select");
+    function majEtu(){d.querySelector(".etu").hidden=sel.value!=="Enfant"}ROLES.forEach(function(r){var o=document.createElement("option");o.value=r;o.textContent=T(r);sel.appendChild(o)});sel.value=role;majEtu();sel.addEventListener("change",majEtu);
+    if(role==="Souscripteur")sel.disabled=true;else sel.querySelector('option[value="Souscripteur"]').disabled=true;
+    var rm=d.querySelector(".trav-head button");rm.hidden=role==="Souscripteur";rm.addEventListener("click",function(){d.remove();renum()});sel.addEventListener("change",renum);
+    var cs=d.querySelector(".circ-sel");if(cs){var ct=d.querySelector(".circ-txt");cs.addEventListener("change",function(){
+      ct.hidden=cs.value!=="oui";ct.value=cs.value==="Aucune"?"Aucune":"";if(!ct.hidden)ct.focus()})}
+    var msg=d.querySelector(".s-msg");
+    if(!CFG.ocr)msg.textContent=T("Joignez la CIN ou le passeport, puis saisissez les champs ci-dessous.");
+    d.querySelectorAll(".scan input[type=file]").forEach(function(fi){fi.addEventListener("change",function(){if(fi.files[0])lire(fi.files[0],d,msg);fi.value=""})});
+    $("travList").appendChild(d);renum();
+  }
+  function renum(){var e=0,cj=false;[].forEach.call($("travList").children,function(c){var r=c.querySelector("select").value;
+      if(r==="Conjoint(e)")cj=true;c.querySelector(".trav-head b").textContent=r==="Souscripteur"?T("Vous (souscripteur)"):r==="Enfant"?T("Enfant")+" "+(++e):T("Conjoint(e)")});
+    var b=$("addConj");if(b)b.hidden=cj;
+    var sf=$("travList").querySelector('[data-k="situation_familiale"]');if(sf&&cj&&!sf.value)sf.value="Marié(e)"}
+  $("addConj").addEventListener("click",function(){addTrav("Conjoint(e)");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
+  $("addEnf").addEventListener("click",function(){addTrav("Enfant");$("travList").lastElementChild.scrollIntoView({behavior:"smooth",block:"start"})});
+
+  // ── Lecture de la pièce d'identité (serveur → Claude). Photo réduite avant envoi ; la copie va au dossier client dans Digitalia.
+  function reduire(file){
+    return new Promise(function(ok){
+      if(!/^image\/(jpeg|png|webp)$/.test(file.type)||!window.createImageBitmap){ok(file);return}
+      createImageBitmap(file).then(function(img){
+        var max=1800,r=Math.min(1,max/Math.max(img.width,img.height));
+        var c=document.createElement("canvas");c.width=Math.round(img.width*r);c.height=Math.round(img.height*r);
+        c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+        c.toBlob(function(b){ok(b||file)},"image/jpeg",0.85);
+      }).catch(function(){ok(file)});
+    });
+  }
+  function lire(file,box,msg){
+    var pdf=file.type==="application/pdf"||/\.pdf$/i.test(file.name||"");
+    if(!pdf&&!/^image\/(jpeg|png)$/.test(file.type)&&!/\.(jpe?g|png)$/i.test(file.name||"")&&!/^image\//.test(file.type)){
+      msg.className="s-msg bad";msg.textContent=T("Format accepté : photo, fichier JPG, PNG ou PDF.");return}
+    if(file.size>8*1024*1024){msg.className="s-msg bad";msg.textContent=T("Fichier trop lourd : 8 Mo maximum.");return}
+    msg.className="s-msg";msg.textContent=T("Lecture en cours…");
+    var bar=document.createElement("span");bar.className="bar";box.querySelector(".scan").appendChild(bar);
+    reduire(file).then(function(blob){
+      var fd=new FormData();fd.append("fichier",blob,pdf?"piece.pdf":"piece.jpg");
+      return api("/api/ocr",{method:"POST",body:fd});
+    }).then(function(r){
+      if(r.piece_id){var l=JSON.parse(box.dataset.pieces||"[]");if(l.length<4)l.push(r.piece_id);box.dataset.pieces=JSON.stringify(l);
+        var pj=box.querySelector(".pj");pj.hidden=false;pj.textContent="📎 "+l.length+" "+T(l.length>1?"copies jointes au dossier":"copie jointe au dossier")}
+      if(!r.ok){msg.className="s-msg"+(r.code==="indisponible"?"":" bad");msg.textContent=r.code==="indisponible"?T("Copie jointe. Saisissez les champs ci-dessous."):T("Document illisible : reprenez la photo bien à plat, sans reflet.");return}
+      var n=0;
+      if(r.data.sexe){var cv=box.querySelector('[data-k="civilite"]');if(cv&&!cv.value){cv.value=r.data.sexe==="F"?"Mme":"M.";n++}}
+      ["nom","prenom","naissance","cin","passeport","exp_passeport","adresse","ville","lieu_naissance"].forEach(function(k){
+        var v=r.data[k];if(v&&typeof v==="string"){var inp=box.querySelector('[data-k="'+k+'"]');
+          if(inp&&inp.classList.contains("date-fr")){if(!/^\d{4}-\d\d-\d\d$/.test(v))return;v=isoVersFr(v)}
+          if(inp){inp.value=v;n++}}});
+      msg.className="s-msg ok";msg.textContent=(r.data.type==="PASSEPORT"?T("Passeport"):T("CIN"))+" — "+n+" "+T("champs remplis. Vérifiez-les.");
+    }).catch(function(e){
+      msg.className="s-msg bad";
+      msg.textContent=e.code==="maquette"?e.message:e.status===429?T("Trop de tentatives, réessayez plus tard."):(e.code==="image"||e.code==="format"?T("Fichier non accepté : envoyez une photo nette, un JPG, un PNG ou un PDF."):T("Lecture impossible pour le moment : saisissez les champs."));
+    }).then(function(){bar.remove()});
+  }
+
+  function assures(){return [].map.call($("travList").children,function(c){
+    var o={lien:c.querySelector("select").value};c.querySelectorAll("[data-k]").forEach(function(i){o[i.dataset.k]=i.type==="checkbox"?i.checked:i.classList.contains("date-fr")?frVersIso(i.value):i.value.trim()});
+    if(o.lien!=="Enfant")o.etudiant=false;o.pieces=JSON.parse(c.dataset.pieces||"[]");return o})}
+
+  // ── Étape 1 → 2 (ou envoi d'une demande de devis)
+  $("go2").addEventListener("click",function(){
+    var o=OFFRES[offre()],tel=$("tel").value.replace(/\D/g,"");
+    if(tel.length<9)return err("e1",T("Indiquez un numéro WhatsApp valide : l'attestation y sera envoyée."));
+    if(o.prix&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test($("email").value.trim()))return err("e1",T("Indiquez une adresse e-mail valide : le contrat y sera envoyé."));
+    if(!o.prix){
+      if(!$("dNom").value.trim())return err("e1",T("Indiquez votre nom."));
+      var b=this;b.disabled=true;b.textContent=T("Envoi en cours…");
+      var corps={offre:offre(),nom:$("dNom").value.trim(),telephone:$("tel").value,date_depart:D("effet")||null,message:$("dMsg").value.trim()};
+      api("/api/devis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(corps)}).then(function(){
+        err("e1");var ok=$("devisOk");ok.innerHTML="";
+        var s=document.createElement("span");s.textContent=T("Demande envoyée. Un conseiller vous répond sur WhatsApp.");
+        var a=document.createElement("a");a.href=wa("Bonjour, je viens de demander un devis : "+o.nom+" ("+corps.nom+")."+(corps.message?" "+corps.message:""));
+        a.target="_blank";a.rel="noopener";a.className="btn gold";a.style.marginTop="10px";a.textContent=T("Écrire maintenant sur WhatsApp");
+        ok.append(s,a);ok.hidden=false;
+      }).catch(function(e){err("e1",msgErreur(e))}).then(function(){b.disabled=false;majOffre();$("devisOk").hidden=false});
+      return;
+    }
+    if(!D("effet")||D("effet")<=today)return err("e1",T("Le contrat prend effet au plus tôt demain (le lendemain du paiement)."));
+    if($("optV2").checked&&($("vImmat").value.trim().length<3||$("v2Immat").value.trim().length<3))return err("e1",T("Indiquez l’immatriculation des deux véhicules."));
+    err("e1");if(!$("travList").children.length)addTrav("Souscripteur");show(2);
+  });
+
+  // ── Étape 2 → 3
+  $("go3").addEventListener("click",function(){
+    var a=assures(),pb=[];
+    [].forEach.call($("travList").children,function(c,i){c.querySelectorAll(".date-fr").forEach(function(el){
+      if(el.value.trim()&&!frVersIso(el.value))pb.push(T("Assuré")+" "+(i+1)+" : "+T("date invalide, format JJ/MM/AAAA"))})});
+    a.forEach(function(x,i){
+      var n=T("Assuré")+" "+(i+1)+" : ";
+      if(!x.nom||!x.prenom||!x.naissance)pb.push(n+T("nom, prénom et date de naissance"));
+      else if(x.lien==="Souscripteur"&&!x.cin&&!x.passeport)pb.push(n+T("numéro de CIN ou de passeport"));
+      else if(x.cin&&!/^[A-Za-z]{1,2}[0-9]{1,6}[A-Za-z]?$/.test(x.cin.replace(/\s/g,"")))pb.push(n+T("CIN : 1 ou 2 lettres puis des chiffres (ex. AB123456)"));
+      else if(x.lien==="Souscripteur"&&(!x.civilite||!x.situation_familiale||!x.lieu_naissance||!x.profession||!x.adresse||!x.ville||!x.code_postal||!x.mutuelle||!x.assistance_existante||!x.circonstances))
+        pb.push(n+T("complétez les informations pour le contrat (civilité, situation familiale, lieu de naissance, profession, adresse, ville, code postal, mutuelle, circonstances)"));
+      else if(x.naissance>today)pb.push(n+T("date de naissance dans le futur"));
+      else{var ag=ageA(x.naissance,D("effet"));
+        if(x.lien==="Enfant"&&ag>=(CFG.age_max_enfant||21)){
+          if(ag>(CFG.age_max_enfant_etudiant||25))pb.push(n+T("un enfant doit avoir moins de 21 ans, ou 25 ans au plus s’il est étudiant (formule individuelle sur devis)"));
+          else if(!x.etudiant)pb.push(n+T("de 21 à 25 ans, cochez « Étudiant(e) au Maroc »"))}
+        if(ag>=AGE_SENIOR&&!OFFRES.FAM_MONDE_AN.prix_70)pb.push(n+T("70 ans ou plus : tarif sur devis, contactez-nous sur WhatsApp"))}
+      if(x.exp_passeport&&x.exp_passeport<D("effet"))pb.push(n+T("passeport expiré à la date d'effet"));
+    });
+    if(pb.length)return err("e2",T("À compléter :")+" "+pb.join(" ; "));
+    err("e2");
+    var o=OFFRES[offre()],dl=$("recapList");dl.innerHTML="";
+    function row(k,v){var dt=document.createElement("dt");dt.textContent=k;var dd=document.createElement("dd");dd.textContent=v;dl.append(dt,dd)}
+    row(T("Formule"),T(o.nom)+" · "+dureeTxt(duree()));
+    if($("vImmat").value.trim())row(T("Véhicule"),($("vImmat").value.trim()+" "+$("vMarque").value.trim()).toUpperCase());
+    if($("optV2").checked)row(T("2e véhicule"),($("v2Immat").value.trim()+" "+$("v2Marque").value.trim()).toUpperCase());
+    if(senior())row(T("Tarif"),T("prime familiale + 70 ans"));
+    row(T("Période"),fr(D("effet"))+" → "+fr(D("echeance")));row("WhatsApp",$("tel").value);
+    a.forEach(function(x){row(T(x.lien),x.nom+" "+x.prenom+" · "+T("né(e) le")+" "+fr(x.naissance)+(x.passeport?" · "+T("Passeport")+" "+x.passeport:"")+(x.cin?" · "+T("CIN")+" "+x.cin:""))});
+    var so=a[0];if(so&&so.lien==="Souscripteur")row(T("Contrat"),[so.civilite,so.situation_familiale,so.profession,T("né(e) à")+" "+so.lieu_naissance,so.adresse+", "+so.code_postal+" "+so.ville,T("Mutuelle")+" : "+so.mutuelle].join(" · "));
+    a.forEach(function(x,i){if(x.exp_passeport&&x.exp_passeport>=D("effet")&&x.exp_passeport<D("echeance"))row("⚠",T("Assuré")+" "+(i+1)+" : "+T("le passeport expire avant la fin du contrat (")+fr(x.exp_passeport)+")")});
+    majPrix();show(3);
+  });
+
+  // ── Étape 3 → 4
+  $("go4").addEventListener("click",function(){
+    if(!$("c1").checked||!$("c2").checked||!$("c3").checked)return err("e3",T("Cochez les trois cases pour continuer."));
+    err("e3");show(4);
+  });
+
+  // ── Paiement : création de la souscription côté serveur puis redirection vers la page bancaire
+  function envoyerVersBanque(p){
+    var f=$("payForm");f.action=p.action;f.innerHTML="";
+    Object.keys(p.fields).forEach(function(k){var i=document.createElement("input");i.type="hidden";i.name=k;i.value=p.fields[k];f.appendChild(i)});
+    f.submit();
+  }
+  $("payBtn").addEventListener("click",function(){
+    var b=this;b.disabled=true;b.textContent=T("Redirection vers la banque…");err("e4");
+    function vh(i,m){return $(i).value.trim()?{immatriculation:$(i).value.trim(),marque:$(m).value.trim(),modele:""}:null}
+    var corps={offre:offre(),duree_ans:duree(),vehicule:vh("vImmat","vMarque"),vehicule2:$("optV2").checked?vh("v2Immat","v2Marque"):null,
+      date_effet:D("effet"),telephone:$("tel").value,email:$("email").value.trim(),lang:DG.lang(),
+      assures:assures(),consentements:{conditions_generales:$("c1").checked,exactitude:$("c2").checked,loi_09_08:$("c3").checked}};
+    api("/api/souscriptions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(corps)}).then(function(r){
+      try{localStorage.setItem("dg-derniere",JSON.stringify({ref:r.ref,t:r.token}))}catch(e){}
+      envoyerVersBanque(r.paiement);
+    }).catch(function(e){
+      err("e4",msgErreur(e));
+      b.disabled=false;majPrix();
+    });
+  });
+  // Retour arrière du navigateur depuis la banque : réactiver le bouton
+  window.addEventListener("pageshow",function(){$("payBtn").disabled=false;majPrix()});
+
+  DG.onLang(function(){renum();majOffre();majPrix();["e1","e2","e3","e4"].forEach(function(id){err(id)})});
+
+  // ── Configuration serveur (lecture IA disponible, mode démo, numéro WhatsApp)
+  api("/api/config").then(function(c){
+    CFG=c;$("demoNote").hidden=!c.paiement_demo;
+    if(c.vehicule2&&c.vehicule2.prix_an)V2_PRIX=c.vehicule2.prix_an;if(c.age_senior)AGE_SENIOR=c.age_senior;
+    (c.offres||[]).forEach(function(x){if(OFFRES[x.code]&&x.prix){OFFRES[x.code].prix=x.prix;OFFRES[x.code].prix_70=x.prix_70}});majPrix();
+    if(c.aujourdhui){today=c.aujourdhui;initDates()}
+    document.querySelectorAll(".trav").forEach(function(d){if(c.ocr){d.querySelectorAll(".scan label").forEach(function(l){l.style.display=""});d.querySelector(".s-msg").textContent=T("Recto pour le nom et la date de naissance, verso pour l’adresse. Ou saisissez les champs ci-dessous.")}});
+  }).catch(function(){});
+
+  // ── Carrousel d'images : défilement automatique, flèches, points, glissement au doigt
+  (function(){
+    var box=$("slider");if(!box)return;
+    var track=$("slides"),slides=track.children,n=slides.length,i=0,timer=null,dots=$("dots");
+    var calme=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for(var k=0;k<n;k++)(function(k){var b=document.createElement("button");b.type="button";b.setAttribute("role","tab");
+      b.setAttribute("aria-label",(k+1)+" / "+n);b.addEventListener("click",function(){aller(k);relancer()});dots.appendChild(b)})(k);
+    function aller(k){i=(k+n)%n;track.style.transform="translateX("+(-i*100)+"%)";
+      [].forEach.call(dots.children,function(d,j){d.setAttribute("aria-selected",String(j===i))});
+      [].forEach.call(slides,function(s,j){s.setAttribute("aria-hidden",String(j!==i))})}
+    function relancer(){clearInterval(timer);if(!calme&&!document.hidden)timer=setInterval(function(){aller(i+1)},5000)}
+    box.querySelector(".prev").addEventListener("click",function(){aller(i-1);relancer()});
+    box.querySelector(".next").addEventListener("click",function(){aller(i+1);relancer()});
+    box.addEventListener("mouseenter",function(){clearInterval(timer)});box.addEventListener("mouseleave",relancer);
+    document.addEventListener("visibilitychange",relancer);
+    var x0=null;box.addEventListener("touchstart",function(e){x0=e.touches[0].clientX;clearInterval(timer)},{passive:true});
+    box.addEventListener("touchend",function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;x0=null;
+      if(Math.abs(dx)>40)aller(i+(dx<0?1:-1));relancer()},{passive:true});
+    DG.onLang(function(){aller(i)});
+    aller(0);relancer();
+  })();
+
+  // Barre « Souscrire » : masquée quand le formulaire est déjà à l'écran
+  (function(){var bar=$("ctaBar"),card=document.querySelector(".hero .card");if(!bar||!card||!window.IntersectionObserver)return;
+    new IntersectionObserver(function(es){bar.classList.toggle("cache",es[0].isIntersecting)},{threshold:0}).observe(card)})();
+
+  majOffre();majPrix();show(1);
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});
+})();

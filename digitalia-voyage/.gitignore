@@ -1,0 +1,8 @@
+.venv/
+data/
+.env
+mai_scenario.json
+__pycache__/
+.pytest_cache/
+brouillon/.maquette-index.html
+e2e_captures/
